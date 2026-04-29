@@ -109,6 +109,21 @@ const DMG = (() => {
     return Math.floor(hp * turn / 16);
   }
 
+  // Ability immunity result
+  function makeImmune(moveName, moveType, bp, atkStats, defStats, abil) {
+    return {
+      move: moveName, moveType, bp,
+      minDmg: 0, maxDmg: 0, minPct: '0.0', maxPct: '0.0',
+      hp: defStats.hp,
+      koText: '無効', koClass: 'ko-safe', koDetail: '',
+      typeEff: 0, isSTAB: false,
+      atkStats, defStats,
+      atkRecoil: '',
+      berryActive: false, berryItem: '',
+      statNote: `${abil}で無効`
+    };
+  }
+
   // Main damage calculation
   function calculate(attacker, defender, moveName, field) {
     const move = moveDB[moveName];
@@ -153,35 +168,142 @@ const DMG = (() => {
     def = applyBoost(def, defBoost);
 
     let bp = move.bp;
+    const aAbil = attacker.ability || '';
+    const dAbil = defender.ability || '';
+
+    // ===== ATTACKER ABILITY: BP modifiers =====
+    // Technician: moves with bp<=60 get 1.5x
+    if (aAbil === 'Technician' && bp <= 60) bp = Math.floor(bp * 1.5);
+    // Iron Fist: punch moves 1.2x
+    const punchMoves = ['Bullet Punch','Close Combat','Drain Punch','Dynamic Punch','Fire Punch','Focus Punch','Hammer Arm','Ice Punch','Mach Punch','Mega Punch','Meteor Mash','Power-Up Punch','Shadow Punch','Sky Uppercut','Sucker Punch','Thunder Punch'];
+    if (aAbil === 'Iron Fist' && punchMoves.includes(moveName)) bp = Math.floor(bp * 1.2);
+    // Strong Jaw: biting moves 1.5x
+    const biteMoves = ['Bite','Crunch','Fire Fang','Fishious Rend','Hyper Fang','Ice Fang','Jaw Lock','Poison Fang','Psychic Fangs','Thunder Fang'];
+    if (aAbil === 'Strong Jaw' && biteMoves.includes(moveName)) bp = Math.floor(bp * 1.5);
+    // Sharpness: slicing moves 1.5x
+    const sliceMoves = ['Aerial Ace','Air Cutter','Air Slash','Aqua Cutter','Behemoth Blade','Bitter Blade','Ceaseless Edge','Cross Poison','Cut','Fury Cutter','Kowtow Cleave','Leaf Blade','Night Slash','Psycho Cut','Razor Leaf','Razor Shell','Sacred Sword','Secret Sword','Slash','Solar Blade','Stone Axe','X-Scissor'];
+    if (aAbil === 'Sharpness' && sliceMoves.includes(moveName)) bp = Math.floor(bp * 1.5);
+    // Mega Launcher: pulse/aura moves 1.5x
+    const pulseMoves = ['Aura Sphere','Dark Pulse','Dragon Pulse','Heal Pulse','Origin Pulse','Terrain Pulse','Water Pulse'];
+    if (aAbil === 'Mega Launcher' && pulseMoves.includes(moveName)) bp = Math.floor(bp * 1.5);
+    // Reckless: recoil moves 1.2x
+    if (aAbil === 'Reckless' && move.recoilHP) bp = Math.floor(bp * 1.2);
+    // Sheer Force: moves with secondary effects 1.3x (but removes the effect)
+    if (aAbil === 'Sheer Force' && move.secondary) bp = Math.floor(bp * 1.3);
+
+    // ===== ATTACKER ABILITY: Atk stat modifiers =====
+    // Huge Power / Pure Power: doubles Attack
+    if ((aAbil === 'Huge Power' || aAbil === 'Pure Power') && isPhysical) atk = Math.floor(atk * 2);
+    // Hustle: 1.5x physical attack
+    if (aAbil === 'Hustle' && isPhysical) atk = Math.floor(atk * 1.5);
+    // Solar Power: 1.5x SpA in Sun
+    if (aAbil === 'Solar Power' && !isPhysical && field?.weather === 'Sun') atk = Math.floor(atk * 1.5);
+    // Guts: 1.5x Attack when statused (already handles burn bypass)
+    if (aAbil === 'Guts' && attacker.status && isPhysical) atk = Math.floor(atk * 1.5);
+    // Toxic Boost: 1.5x Attack when poisoned
+    if (aAbil === 'Toxic Boost' && (attacker.status === 'psn' || attacker.status === 'tox') && isPhysical) atk = Math.floor(atk * 1.5);
+    // Flare Boost: 1.5x SpA when burned
+    if (aAbil === 'Flare Boost' && attacker.status === 'brn' && !isPhysical) atk = Math.floor(atk * 1.5);
+    // Gorilla Tactics: 1.5x Attack (like choice band)
+    if (aAbil === 'Gorilla Tactics' && isPhysical) atk = Math.floor(atk * 1.5);
+    // Overgrow/Blaze/Torrent/Swarm: 1.5x when HP<=1/3 (simplified: always apply if ability matches type)
+    // These are situational so we skip auto-apply; user controls via boost
+
+    // ===== ATTACKER ABILITY: -ate abilities (type change + 1.2x) =====
+    let ateType = '';
+    if (aAbil === 'Pixilate' && move.type === 'Normal') ateType = 'Fairy';
+    if (aAbil === 'Aerilate' && move.type === 'Normal') ateType = 'Flying';
+    if (aAbil === 'Refrigerate' && move.type === 'Normal') ateType = 'Ice';
+    if (aAbil === 'Galvanize' && move.type === 'Normal') ateType = 'Electric';
+    if (aAbil === 'Dragonize' && move.type === 'Normal') ateType = 'Dragon';
 
     // STAB
     const atkTypes = atkData.types;
-    const isSTAB = atkTypes.includes(move.type);
-    const stabMod = isSTAB ? (attacker.ability === 'Adaptability' ? 2 : 1.5) : 1;
+    const effectiveMoveType = ateType || move.type;
+    const isSTAB = atkTypes.includes(effectiveMoveType);
+    let stabMod = isSTAB ? (aAbil === 'Adaptability' ? 2 : 1.5) : 1;
+    if (ateType) stabMod *= 1.2; // -ate bonus
 
-    // Type effectiveness
+    // Protean/Libero: always STAB
+    if ((aAbil === 'Protean' || aAbil === 'Libero') && !isSTAB) stabMod = 1.5;
+
+    // Type effectiveness (use effective move type for -ate)
     const defTypes = defData.types;
-    const typeEff = getTypeEff(move.type, defTypes);
+    const typeEff = getTypeEff(effectiveMoveType, defTypes);
+
+    // ===== DEFENDER ABILITY: Immunities =====
+    // Levitate: immune to Ground
+    if (dAbil === 'Levitate' && effectiveMoveType === 'Ground') return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
+    // Flash Fire: immune to Fire
+    if (dAbil === 'Flash Fire' && effectiveMoveType === 'Fire') return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
+    // Water Absorb / Storm Drain: immune to Water
+    if ((dAbil === 'Water Absorb' || dAbil === 'Storm Drain') && effectiveMoveType === 'Water') return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
+    // Volt Absorb / Lightning Rod / Motor Drive: immune to Electric
+    if ((dAbil === 'Volt Absorb' || dAbil === 'Lightning Rod' || dAbil === 'Motor Drive') && effectiveMoveType === 'Electric') return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
+    // Sap Sipper: immune to Grass
+    if (dAbil === 'Sap Sipper' && effectiveMoveType === 'Grass') return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
+    // Dry Skin: immune to Water, weak to Fire 1.25x
+    if (dAbil === 'Dry Skin' && effectiveMoveType === 'Water') return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
+    // Earth Eater: immune to Ground
+    if (dAbil === 'Earth Eater' && effectiveMoveType === 'Ground') return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
+    // Bulletproof: immune to ball/bomb moves
+    const bulletMoves = ['Acid Spray','Aura Sphere','Barrage','Bullet Seed','Egg Bomb','Electro Ball','Energy Ball','Focus Blast','Gyro Ball','Ice Ball','Mist Ball','Mud Bomb','Octazooka','Pollen Puff','Pyro Ball','Rock Blast','Rock Wrecker','Searing Shot','Seed Bomb','Shadow Ball','Sludge Bomb','Weather Ball','Zap Cannon'];
+    if (dAbil === 'Bulletproof' && bulletMoves.includes(moveName)) return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
+    // Soundproof: immune to sound moves
+    const soundMoves = ['Alluring Voice','Boomburst','Bug Buzz','Chatter','Clanging Scales','Clangorous Soulblaze','Disarming Voice','Echoed Voice','Eerie Spell','Grass Whistle','Growl','Heal Bell','Howl','Hyper Voice','Metal Sound','Noble Roar','Overdrive','Perish Song','Relic Song','Roar','Round','Screech','Sing','Snarl','Snore','Sparkling Aria','Supersonic','Torch Song','Uproar'];
+    if (dAbil === 'Soundproof' && soundMoves.includes(moveName)) return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
+
+    // ===== DEFENDER ABILITY: Damage reduction =====
+    let defAbilMod = 1;
+    // Multiscale / Shadow Shield: halves damage at full HP (simplified: toggle)
+    if (dAbil === 'Multiscale' || dAbil === 'Shadow Shield') defAbilMod = 0.5;
+    // Solid Rock / Filter / Prism Armor: SE damage ×0.75
+    if ((dAbil === 'Solid Rock' || dAbil === 'Filter' || dAbil === 'Prism Armor') && typeEff > 1) defAbilMod = 0.75;
+    // Thick Fat: halves Fire and Ice damage
+    if (dAbil === 'Thick Fat' && (effectiveMoveType === 'Fire' || effectiveMoveType === 'Ice')) defAbilMod = 0.5;
+    // Fur Coat: halves physical damage
+    if (dAbil === 'Fur Coat' && isPhysical) defAbilMod = 0.5;
+    // Fluffy: halves contact damage, doubles Fire damage
+    if (dAbil === 'Fluffy') {
+      if (move.contact && effectiveMoveType !== 'Fire') defAbilMod = 0.5;
+      if (effectiveMoveType === 'Fire') defAbilMod = 2;
+    }
+    // Ice Scales: halves special damage
+    if (dAbil === 'Ice Scales' && !isPhysical) defAbilMod = 0.5;
+    // Heatproof: halves Fire damage
+    if (dAbil === 'Heatproof' && effectiveMoveType === 'Fire') defAbilMod = 0.5;
+    // Dry Skin: Fire damage 1.25x
+    if (dAbil === 'Dry Skin' && effectiveMoveType === 'Fire') defAbilMod = 1.25;
+    // Purifying Salt: halves Ghost damage
+    if (dAbil === 'Purifying Salt' && effectiveMoveType === 'Ghost') defAbilMod = 0.5;
+
+    // ===== DEFENDER ABILITY: Intimidate (Atk -1 on switch-in, simplified) =====
+    // Intimidate is a switch-in effect; the user should set Atk -1 boost manually.
+    // But we note it in the UI.
 
     // Weather
     let weatherMod = 1;
     if (field?.weather === 'Sun') {
-      if (move.type === 'Fire') weatherMod = 1.5;
-      if (move.type === 'Water') weatherMod = 0.5;
+      if (effectiveMoveType === 'Fire') weatherMod = 1.5;
+      if (effectiveMoveType === 'Water') weatherMod = 0.5;
     } else if (field?.weather === 'Rain') {
-      if (move.type === 'Water') weatherMod = 1.5;
-      if (move.type === 'Fire') weatherMod = 0.5;
+      if (effectiveMoveType === 'Water') weatherMod = 1.5;
+      if (effectiveMoveType === 'Fire') weatherMod = 0.5;
     }
+    // Sand: Rock SpD 1.5x
+    if (field?.weather === 'Sand' && !isPhysical && defTypes.includes('Rock')) def = Math.floor(def * 1.5);
+    // Snow: Ice Def 1.5x
+    if (field?.weather === 'Snow' && isPhysical && defTypes.includes('Ice')) def = Math.floor(def * 1.5);
 
     // Terrain
     let terrainMod = 1;
-    if (field?.terrain === 'Electric' && move.type === 'Electric') terrainMod = 1.3;
-    if (field?.terrain === 'Grassy' && move.type === 'Grass') terrainMod = 1.3;
-    if (field?.terrain === 'Psychic' && move.type === 'Psychic') terrainMod = 1.3;
-    if (field?.terrain === 'Misty' && move.type === 'Dragon') terrainMod = 0.5;
+    if (field?.terrain === 'Electric' && effectiveMoveType === 'Electric') terrainMod = 1.3;
+    if (field?.terrain === 'Grassy' && effectiveMoveType === 'Grass') terrainMod = 1.3;
+    if (field?.terrain === 'Psychic' && effectiveMoveType === 'Psychic') terrainMod = 1.3;
+    if (field?.terrain === 'Misty' && effectiveMoveType === 'Dragon') terrainMod = 0.5;
 
     // Burn
-    const burnMod = (attacker.status === 'brn' && isPhysical && attacker.ability !== 'Guts') ? 0.5 : 1;
+    const burnMod = (attacker.status === 'brn' && isPhysical && aAbil !== 'Guts') ? 0.5 : 1;
 
     // Spread move in doubles
     const spreadMod = (field?.doubles && move.spread) ? 0.75 : 1;
@@ -195,15 +317,16 @@ const DMG = (() => {
     if (item === 'Life Orb') itemMod = 1.3;
     if (item === 'Expert Belt' && typeEff > 1) itemMod = 1.2;
 
-    // Defensive item - stat modifiers
+    // Defensive item
     const dItem = defender.item || '';
     if (dItem === 'Assault Vest' && !isPhysical) def = Math.floor(def * 1.5);
+    if (dItem === 'Eviolite') { def = Math.floor(def * 1.5); } // simplified
 
-    // Type-resist berry: halves SE damage of matching type
+    // Type-resist berry
     const resistType = RESIST_BERRY[dItem];
     const berryActive = resistType && (
-      (resistType === move.type && typeEff > 1) ||
-      (resistType === 'Normal' && move.type === 'Normal') // Chilan Berry works on normal moves
+      (resistType === effectiveMoveType && typeEff > 1) ||
+      (resistType === 'Normal' && effectiveMoveType === 'Normal')
     );
     const berryMod = berryActive ? 0.5 : 1;
 
@@ -229,6 +352,7 @@ const DMG = (() => {
       dmg = Math.floor(dmg * burnMod);
       dmg = Math.floor(dmg * terrainMod);
       dmg = Math.floor(dmg * itemMod);
+      dmg = Math.floor(dmg * defAbilMod);
       dmg = Math.max(dmg, 1);
       results.push(dmg);
     }
@@ -282,7 +406,7 @@ const DMG = (() => {
 
     return {
       move: moveName,
-      moveType: move.type,
+      moveType: effectiveMoveType,
       bp,
       minDmg, maxDmg, minPct, maxPct,
       hp,
