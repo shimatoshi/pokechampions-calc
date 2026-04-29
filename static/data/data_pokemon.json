@@ -15,6 +15,7 @@
     },
     "w": 100,
     "abilities": [
+      "Overgrow",
       "Chlorophyll"
     ],
     "formes": [
@@ -38,6 +39,7 @@
     },
     "w": 90.5,
     "abilities": [
+      "Blaze",
       "Solar Power"
     ],
     "formes": [
@@ -61,7 +63,8 @@
     },
     "w": 85.5,
     "abilities": [
-      "Torrent"
+      "Torrent",
+      "Rain Dish"
     ],
     "formes": [
       "Blastoise",
@@ -84,7 +87,8 @@
     },
     "w": 29.5,
     "abilities": [
-      "Swarm"
+      "Swarm",
+      "Sniper"
     ],
     "formes": [
       "Beedrill",
@@ -107,7 +111,9 @@
     },
     "w": 39.5,
     "abilities": [
-      "Keen Eye"
+      "Keen Eye",
+      "Tangled Feet",
+      "Big Pecks"
     ],
     "formes": [
       "Pidgeot",
@@ -129,7 +135,9 @@
     },
     "w": 65,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Shed Skin",
+      "Unnerve"
     ],
     "formes": null
   },
@@ -148,6 +156,7 @@
     },
     "w": 6,
     "abilities": [
+      "Static",
       "Lightning Rod"
     ],
     "formes": null
@@ -167,6 +176,7 @@
     },
     "w": 30,
     "abilities": [
+      "Static",
       "Lightning Rod"
     ],
     "formes": null
@@ -186,6 +196,8 @@
     },
     "w": 40,
     "abilities": [
+      "Cute Charm",
+      "Magic Guard",
       "Unaware"
     ],
     "formes": [
@@ -208,6 +220,7 @@
     },
     "w": 19.9,
     "abilities": [
+      "Flash Fire",
       "Drought"
     ],
     "formes": null
@@ -227,7 +240,9 @@
     },
     "w": 155,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Flash Fire",
+      "Justified"
     ],
     "formes": null
   },
@@ -246,6 +261,8 @@
     },
     "w": 48,
     "abilities": [
+      "Synchronize",
+      "Inner Focus",
       "Magic Guard"
     ],
     "formes": [
@@ -268,7 +285,9 @@
     },
     "w": 130,
     "abilities": [
-      "No Guard"
+      "Guts",
+      "No Guard",
+      "Steadfast"
     ],
     "formes": null
   },
@@ -288,7 +307,8 @@
     },
     "w": 15.5,
     "abilities": [
-      "Chlorophyll"
+      "Chlorophyll",
+      "Gluttony"
     ],
     "formes": [
       "Victreebel",
@@ -311,6 +331,8 @@
     },
     "w": 78.5,
     "abilities": [
+      "Oblivious",
+      "Own Tempo",
       "Regenerator"
     ],
     "formes": [
@@ -356,7 +378,9 @@
     },
     "w": 80,
     "abilities": [
-      "Scrappy"
+      "Early Bird",
+      "Scrappy",
+      "Inner Focus"
     ],
     "formes": [
       "Kangaskhan",
@@ -379,7 +403,9 @@
     },
     "w": 80,
     "abilities": [
-      "Natural Cure"
+      "Illuminate",
+      "Natural Cure",
+      "Analytic"
     ],
     "formes": [
       "Starmie",
@@ -401,7 +427,9 @@
     },
     "w": 55,
     "abilities": [
-      "Hyper Cutter"
+      "Hyper Cutter",
+      "Mold Breaker",
+      "Moxie"
     ],
     "formes": [
       "Pinsir",
@@ -423,7 +451,9 @@
     },
     "w": 88.4,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Anger Point",
+      "Sheer Force"
     ],
     "formes": null
   },
@@ -443,7 +473,8 @@
     },
     "w": 235,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Moxie"
     ],
     "formes": [
       "Gyarados",
@@ -465,6 +496,7 @@
     },
     "w": 4,
     "abilities": [
+      "Limber",
       "Imposter"
     ],
     "formes": null
@@ -484,7 +516,8 @@
     },
     "w": 29,
     "abilities": [
-      "Water Absorb"
+      "Water Absorb",
+      "Hydration"
     ],
     "formes": null
   },
@@ -503,7 +536,8 @@
     },
     "w": 24.5,
     "abilities": [
-      "Volt Absorb"
+      "Volt Absorb",
+      "Quick Feet"
     ],
     "formes": null
   },
@@ -522,7 +556,8 @@
     },
     "w": 25,
     "abilities": [
-      "Flash Fire"
+      "Flash Fire",
+      "Guts"
     ],
     "formes": null
   },
@@ -542,6 +577,8 @@
     },
     "w": 59,
     "abilities": [
+      "Rock Head",
+      "Pressure",
       "Unnerve"
     ],
     "formes": [
@@ -564,6 +601,8 @@
     },
     "w": 460,
     "abilities": [
+      "Immunity",
+      "Thick Fat",
       "Gluttony"
     ],
     "formes": null
@@ -584,6 +623,7 @@
     },
     "w": 210,
     "abilities": [
+      "Inner Focus",
       "Multiscale"
     ],
     "formes": [
@@ -605,7 +645,8 @@
     },
     "w": 100.5,
     "abilities": [
-      "Overgrow"
+      "Overgrow",
+      "Leaf Guard"
     ],
     "formes": [
       "Meganium",
@@ -626,6 +667,7 @@
     },
     "w": 79.5,
     "abilities": [
+      "Blaze",
       "Flash Fire"
     ],
     "formes": null
@@ -644,6 +686,7 @@
     },
     "w": 88.8,
     "abilities": [
+      "Torrent",
       "Sheer Force"
     ],
     "formes": [
@@ -666,7 +709,9 @@
     },
     "w": 33.5,
     "abilities": [
-      "Swarm"
+      "Swarm",
+      "Insomnia",
+      "Sniper"
     ],
     "formes": null
   },
@@ -684,7 +729,8 @@
     },
     "w": 61.5,
     "abilities": [
-      "Static"
+      "Static",
+      "Plus"
     ],
     "formes": [
       "Ampharos",
@@ -706,7 +752,9 @@
     },
     "w": 28.5,
     "abilities": [
-      "Huge Power"
+      "Thick Fat",
+      "Huge Power",
+      "Sap Sipper"
     ],
     "formes": null
   },
@@ -724,6 +772,8 @@
     },
     "w": 33.9,
     "abilities": [
+      "Water Absorb",
+      "Damp",
       "Drizzle"
     ],
     "formes": null
@@ -742,6 +792,7 @@
     },
     "w": 26.5,
     "abilities": [
+      "Synchronize",
       "Magic Bounce"
     ],
     "formes": null
@@ -760,6 +811,7 @@
     },
     "w": 27,
     "abilities": [
+      "Synchronize",
       "Inner Focus"
     ],
     "formes": null
@@ -779,6 +831,8 @@
     },
     "w": 79.5,
     "abilities": [
+      "Oblivious",
+      "Own Tempo",
       "Regenerator"
     ],
     "formes": null
@@ -798,7 +852,8 @@
     },
     "w": 125.8,
     "abilities": [
-      "Sturdy"
+      "Sturdy",
+      "Overcoat"
     ],
     "formes": null
   },
@@ -817,6 +872,8 @@
     },
     "w": 400,
     "abilities": [
+      "Rock Head",
+      "Sturdy",
       "Sheer Force"
     ],
     "formes": [
@@ -839,7 +896,9 @@
     },
     "w": 118,
     "abilities": [
-      "Technician"
+      "Swarm",
+      "Technician",
+      "Light Metal"
     ],
     "formes": [
       "Scizor",
@@ -861,6 +920,8 @@
     },
     "w": 54,
     "abilities": [
+      "Swarm",
+      "Guts",
       "Moxie"
     ],
     "formes": [
@@ -883,7 +944,9 @@
     },
     "w": 50.5,
     "abilities": [
-      "Sturdy"
+      "Keen Eye",
+      "Sturdy",
+      "Weak Armor"
     ],
     "formes": [
       "Skarmory",
@@ -905,7 +968,9 @@
     },
     "w": 35,
     "abilities": [
-      "Flash Fire"
+      "Early Bird",
+      "Flash Fire",
+      "Unnerve"
     ],
     "formes": [
       "Houndoom",
@@ -927,7 +992,8 @@
     },
     "w": 202,
     "abilities": [
-      "Sand Stream"
+      "Sand Stream",
+      "Unnerve"
     ],
     "formes": [
       "Tyranitar",
@@ -949,7 +1015,9 @@
     },
     "w": 28,
     "abilities": [
-      "Drizzle"
+      "Keen Eye",
+      "Drizzle",
+      "Rain Dish"
     ],
     "formes": null
   },
@@ -968,7 +1036,9 @@
     },
     "w": 48.4,
     "abilities": [
-      "Trace"
+      "Synchronize",
+      "Trace",
+      "Telepathy"
     ],
     "formes": [
       "Gardevoir",
@@ -990,6 +1060,8 @@
     },
     "w": 11,
     "abilities": [
+      "Keen Eye",
+      "Stall",
       "Prankster"
     ],
     "formes": [
@@ -1012,7 +1084,9 @@
     },
     "w": 360,
     "abilities": [
-      "Sturdy"
+      "Sturdy",
+      "Rock Head",
+      "Heavy Metal"
     ],
     "formes": [
       "Aggron",
@@ -1034,7 +1108,8 @@
     },
     "w": 31.5,
     "abilities": [
-      "Pure Power"
+      "Pure Power",
+      "Telepathy"
     ],
     "formes": [
       "Medicham",
@@ -1055,7 +1130,9 @@
     },
     "w": 40.2,
     "abilities": [
-      "Lightning Rod"
+      "Static",
+      "Lightning Rod",
+      "Minus"
     ],
     "formes": [
       "Manectric",
@@ -1077,6 +1154,7 @@
     },
     "w": 88.8,
     "abilities": [
+      "Rough Skin",
       "Speed Boost"
     ],
     "formes": [
@@ -1099,7 +1177,9 @@
     },
     "w": 220,
     "abilities": [
-      "Solid Rock"
+      "Magma Armor",
+      "Solid Rock",
+      "Anger Point"
     ],
     "formes": [
       "Camerupt",
@@ -1120,7 +1200,9 @@
     },
     "w": 80.4,
     "abilities": [
-      "Drought"
+      "White Smoke",
+      "Drought",
+      "Shell Armor"
     ],
     "formes": null
   },
@@ -1139,7 +1221,8 @@
     },
     "w": 20.6,
     "abilities": [
-      "Natural Cure"
+      "Natural Cure",
+      "Cloud Nine"
     ],
     "formes": [
       "Altaria",
@@ -1160,7 +1243,9 @@
     },
     "w": 162,
     "abilities": [
-      "Competitive"
+      "Marvel Scale",
+      "Competitive",
+      "Cute Charm"
     ],
     "formes": null
   },
@@ -1196,7 +1281,9 @@
     },
     "w": 12.5,
     "abilities": [
-      "Insomnia"
+      "Insomnia",
+      "Frisk",
+      "Cursed Body"
     ],
     "formes": [
       "Banette",
@@ -1238,7 +1325,9 @@
     },
     "w": 47,
     "abilities": [
-      "Pressure"
+      "Pressure",
+      "Super Luck",
+      "Justified"
     ],
     "formes": [
       "Absol",
@@ -1259,7 +1348,9 @@
     },
     "w": 256.5,
     "abilities": [
-      "Inner Focus"
+      "Inner Focus",
+      "Ice Body",
+      "Moody"
     ],
     "formes": [
       "Glalie",
@@ -1281,7 +1372,8 @@
     },
     "w": 310,
     "abilities": [
-      "Overgrow"
+      "Overgrow",
+      "Shell Armor"
     ],
     "formes": null
   },
@@ -1300,7 +1392,8 @@
     },
     "w": 55,
     "abilities": [
-      "Blaze"
+      "Blaze",
+      "Iron Fist"
     ],
     "formes": null
   },
@@ -1319,7 +1412,8 @@
     },
     "w": 84.5,
     "abilities": [
-      "Torrent"
+      "Torrent",
+      "Competitive"
     ],
     "formes": null
   },
@@ -1337,7 +1431,9 @@
     },
     "w": 42,
     "abilities": [
-      "Intimidate"
+      "Rivalry",
+      "Intimidate",
+      "Guts"
     ],
     "formes": null
   },
@@ -1356,7 +1452,9 @@
     },
     "w": 14.5,
     "abilities": [
-      "Natural Cure"
+      "Natural Cure",
+      "Poison Point",
+      "Technician"
     ],
     "formes": null
   },
@@ -1374,6 +1472,7 @@
     },
     "w": 102.5,
     "abilities": [
+      "Mold Breaker",
       "Sheer Force"
     ],
     "formes": null
@@ -1393,7 +1492,8 @@
     },
     "w": 149.5,
     "abilities": [
-      "Sturdy"
+      "Sturdy",
+      "Soundproof"
     ],
     "formes": null
   },
@@ -1411,7 +1511,9 @@
     },
     "w": 33.3,
     "abilities": [
-      "Klutz"
+      "Cute Charm",
+      "Klutz",
+      "Limber"
     ],
     "formes": [
       "Lopunny",
@@ -1433,7 +1535,8 @@
     },
     "w": 108,
     "abilities": [
-      "Pressure"
+      "Pressure",
+      "Infiltrator"
     ],
     "formes": null
   },
@@ -1452,6 +1555,7 @@
     },
     "w": 95,
     "abilities": [
+      "Sand Veil",
       "Rough Skin"
     ],
     "formes": [
@@ -1474,7 +1578,9 @@
     },
     "w": 54,
     "abilities": [
-      "Inner Focus"
+      "Steadfast",
+      "Inner Focus",
+      "Justified"
     ],
     "formes": [
       "Lucario",
@@ -1495,7 +1601,8 @@
     },
     "w": 300,
     "abilities": [
-      "Sand Stream"
+      "Sand Stream",
+      "Sand Force"
     ],
     "formes": null
   },
@@ -1514,7 +1621,9 @@
     },
     "w": 44.4,
     "abilities": [
-      "Dry Skin"
+      "Anticipation",
+      "Dry Skin",
+      "Poison Touch"
     ],
     "formes": null
   },
@@ -1533,7 +1642,8 @@
     },
     "w": 135.5,
     "abilities": [
-      "Snow Warning"
+      "Snow Warning",
+      "Soundproof"
     ],
     "formes": [
       "Abomasnow",
@@ -1555,7 +1665,8 @@
     },
     "w": 34,
     "abilities": [
-      "Pressure"
+      "Pressure",
+      "Pickpocket"
     ],
     "formes": null
   },
@@ -1574,7 +1685,9 @@
     },
     "w": 282.8,
     "abilities": [
-      "Solid Rock"
+      "Lightning Rod",
+      "Solid Rock",
+      "Reckless"
     ],
     "formes": null
   },
@@ -1592,6 +1705,7 @@
     },
     "w": 25.5,
     "abilities": [
+      "Leaf Guard",
       "Chlorophyll"
     ],
     "formes": null
@@ -1610,7 +1724,8 @@
     },
     "w": 25.9,
     "abilities": [
-      "Snow Cloak"
+      "Snow Cloak",
+      "Ice Body"
     ],
     "formes": null
   },
@@ -1629,6 +1744,8 @@
     },
     "w": 42.5,
     "abilities": [
+      "Hyper Cutter",
+      "Sand Veil",
       "Poison Heal"
     ],
     "formes": null
@@ -1648,6 +1765,8 @@
     },
     "w": 291,
     "abilities": [
+      "Oblivious",
+      "Snow Cloak",
       "Thick Fat"
     ],
     "formes": null
@@ -1667,7 +1786,9 @@
     },
     "w": 52,
     "abilities": [
-      "Sharpness"
+      "Steadfast",
+      "Sharpness",
+      "Justified"
     ],
     "formes": [
       "Gallade",
@@ -1689,7 +1810,8 @@
     },
     "w": 26.6,
     "abilities": [
-      "Snow Cloak"
+      "Snow Cloak",
+      "Cursed Body"
     ],
     "formes": [
       "Froslass",
@@ -1729,6 +1851,7 @@
     },
     "w": 63,
     "abilities": [
+      "Overgrow",
       "Contrary"
     ],
     "formes": null
@@ -1748,6 +1871,7 @@
     },
     "w": 150,
     "abilities": [
+      "Blaze",
       "Reckless"
     ],
     "formes": [
@@ -1769,7 +1893,8 @@
     },
     "w": 94.6,
     "abilities": [
-      "Torrent"
+      "Torrent",
+      "Shell Armor"
     ],
     "formes": null
   },
@@ -1787,6 +1912,8 @@
     },
     "w": 27,
     "abilities": [
+      "Illuminate",
+      "Keen Eye",
       "Analytic"
     ],
     "formes": null
@@ -1805,6 +1932,8 @@
     },
     "w": 37.5,
     "abilities": [
+      "Limber",
+      "Unburden",
       "Prankster"
     ],
     "formes": null
@@ -1823,6 +1952,7 @@
     },
     "w": 30.5,
     "abilities": [
+      "Gluttony",
       "Overgrow"
     ],
     "formes": null
@@ -1841,6 +1971,7 @@
     },
     "w": 28,
     "abilities": [
+      "Gluttony",
       "Blaze"
     ],
     "formes": null
@@ -1859,6 +1990,7 @@
     },
     "w": 29,
     "abilities": [
+      "Gluttony",
       "Torrent"
     ],
     "formes": null
@@ -1878,7 +2010,9 @@
     },
     "w": 40.4,
     "abilities": [
-      "Sand Rush"
+      "Sand Rush",
+      "Sand Force",
+      "Mold Breaker"
     ],
     "formes": [
       "Excadrill",
@@ -1899,7 +2033,9 @@
     },
     "w": 31,
     "abilities": [
-      "Regenerator"
+      "Healer",
+      "Regenerator",
+      "Klutz"
     ],
     "formes": [
       "Audino",
@@ -1920,6 +2056,8 @@
     },
     "w": 87,
     "abilities": [
+      "Guts",
+      "Sheer Force",
       "Iron Fist"
     ],
     "formes": null
@@ -1939,7 +2077,9 @@
     },
     "w": 6.6,
     "abilities": [
-      "Prankster"
+      "Prankster",
+      "Infiltrator",
+      "Chlorophyll"
     ],
     "formes": null
   },
@@ -1958,7 +2098,9 @@
     },
     "w": 96.3,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Moxie",
+      "Anger Point"
     ],
     "formes": null
   },
@@ -1994,6 +2136,8 @@
     },
     "w": 107.3,
     "abilities": [
+      "Stench",
+      "Weak Armor",
       "Aftermath"
     ],
     "formes": null
@@ -2030,7 +2174,9 @@
     },
     "w": 20.1,
     "abilities": [
-      "Magic Guard"
+      "Overcoat",
+      "Magic Guard",
+      "Regenerator"
     ],
     "formes": null
   },
@@ -2048,7 +2194,9 @@
     },
     "w": 57.5,
     "abilities": [
-      "Snow Warning"
+      "Ice Body",
+      "Snow Warning",
+      "Weak Armor"
     ],
     "formes": null
   },
@@ -2067,6 +2215,7 @@
     },
     "w": 5,
     "abilities": [
+      "Static",
       "Motor Drive"
     ],
     "formes": null
@@ -2086,7 +2235,9 @@
     },
     "w": 34.3,
     "abilities": [
-      "Flash Fire"
+      "Flash Fire",
+      "Flame Body",
+      "Infiltrator"
     ],
     "formes": [
       "Chandelure",
@@ -2107,6 +2258,8 @@
     },
     "w": 260,
     "abilities": [
+      "Snow Cloak",
+      "Slush Rush",
       "Swift Swim"
     ],
     "formes": null
@@ -2126,7 +2279,9 @@
     },
     "w": 11,
     "abilities": [
-      "Static"
+      "Static",
+      "Limber",
+      "Sand Veil"
     ],
     "formes": null
   },
@@ -2145,7 +2300,9 @@
     },
     "w": 330,
     "abilities": [
-      "Iron Fist"
+      "Iron Fist",
+      "Klutz",
+      "No Guard"
     ],
     "formes": [
       "Golurk",
@@ -2186,7 +2343,8 @@
     },
     "w": 46,
     "abilities": [
-      "Flame Body"
+      "Flame Body",
+      "Swarm"
     ],
     "formes": null
   },
@@ -2205,6 +2363,7 @@
     },
     "w": 90,
     "abilities": [
+      "Overgrow",
       "Bulletproof"
     ],
     "formes": [
@@ -2227,6 +2386,7 @@
     },
     "w": 39,
     "abilities": [
+      "Blaze",
       "Magician"
     ],
     "formes": [
@@ -2249,6 +2409,7 @@
     },
     "w": 40,
     "abilities": [
+      "Torrent",
       "Protean"
     ],
     "formes": [
@@ -2271,6 +2432,8 @@
     },
     "w": 42.4,
     "abilities": [
+      "Pickup",
+      "Cheek Pouch",
       "Huge Power"
     ],
     "formes": null
@@ -2290,6 +2453,7 @@
     },
     "w": 24.5,
     "abilities": [
+      "Flame Body",
       "Gale Wings"
     ],
     "formes": null
@@ -2309,6 +2473,8 @@
     },
     "w": 17,
     "abilities": [
+      "Shield Dust",
+      "Compound Eyes",
       "Friend Guard"
     ],
     "formes": null
@@ -2327,7 +2493,8 @@
     },
     "w": 0.9,
     "abilities": [
-      "Flower Veil"
+      "Flower Veil",
+      "Symbiosis"
     ],
     "formes": [
       "Floette-Eternal",
@@ -2348,6 +2515,7 @@
     },
     "w": 10,
     "abilities": [
+      "Flower Veil",
       "Symbiosis"
     ],
     "formes": null
@@ -2367,6 +2535,8 @@
     },
     "w": 136,
     "abilities": [
+      "Iron Fist",
+      "Mold Breaker",
       "Scrappy"
     ],
     "formes": null
@@ -2403,6 +2573,8 @@
     },
     "w": 8.5,
     "abilities": [
+      "Keen Eye",
+      "Infiltrator",
       "Prankster"
     ],
     "formes": [
@@ -2446,7 +2618,8 @@
     },
     "w": 15.5,
     "abilities": [
-      "Healer"
+      "Healer",
+      "Aroma Veil"
     ],
     "formes": null
   },
@@ -2464,6 +2637,7 @@
     },
     "w": 5,
     "abilities": [
+      "Sweet Veil",
       "Unburden"
     ],
     "formes": null
@@ -2501,7 +2675,9 @@
     },
     "w": 21,
     "abilities": [
-      "Dry Skin"
+      "Dry Skin",
+      "Sand Veil",
+      "Solar Power"
     ],
     "formes": null
   },
@@ -2520,7 +2696,8 @@
     },
     "w": 270,
     "abilities": [
-      "Strong Jaw"
+      "Strong Jaw",
+      "Rock Head"
     ],
     "formes": null
   },
@@ -2539,7 +2716,8 @@
     },
     "w": 225,
     "abilities": [
-      "Refrigerate"
+      "Refrigerate",
+      "Snow Warning"
     ],
     "formes": null
   },
@@ -2557,6 +2735,7 @@
     },
     "w": 23.5,
     "abilities": [
+      "Cute Charm",
       "Pixilate"
     ],
     "formes": null
@@ -2576,7 +2755,9 @@
     },
     "w": 21.5,
     "abilities": [
-      "Unburden"
+      "Limber",
+      "Unburden",
+      "Mold Breaker"
     ],
     "formes": [
       "Hawlucha",
@@ -2598,7 +2779,9 @@
     },
     "w": 2.2,
     "abilities": [
-      "Cheek Pouch"
+      "Cheek Pouch",
+      "Pickup",
+      "Plus"
     ],
     "formes": null
   },
@@ -2616,7 +2799,9 @@
     },
     "w": 150.5,
     "abilities": [
-      "Sap Sipper"
+      "Sap Sipper",
+      "Hydration",
+      "Gooey"
     ],
     "formes": null
   },
@@ -2635,7 +2820,8 @@
     },
     "w": 3,
     "abilities": [
-      "Prankster"
+      "Prankster",
+      "Magician"
     ],
     "formes": null
   },
@@ -2654,6 +2840,8 @@
     },
     "w": 71,
     "abilities": [
+      "Natural Cure",
+      "Frisk",
       "Harvest"
     ],
     "formes": null
@@ -2673,7 +2861,9 @@
     },
     "w": 12.5,
     "abilities": [
-      "Frisk"
+      "Pickup",
+      "Frisk",
+      "Insomnia"
     ],
     "formes": null
   },
@@ -2691,7 +2881,9 @@
     },
     "w": 505,
     "abilities": [
-      "Own Tempo"
+      "Own Tempo",
+      "Ice Body",
+      "Sturdy"
     ],
     "formes": null
   },
@@ -2710,7 +2902,9 @@
     },
     "w": 85,
     "abilities": [
-      "Infiltrator"
+      "Frisk",
+      "Infiltrator",
+      "Telepathy"
     ],
     "formes": null
   },
@@ -2729,6 +2923,7 @@
     },
     "w": 36.6,
     "abilities": [
+      "Overgrow",
       "Long Reach"
     ],
     "formes": null
@@ -2748,6 +2943,7 @@
     },
     "w": 83,
     "abilities": [
+      "Blaze",
       "Intimidate"
     ],
     "formes": null
@@ -2767,6 +2963,7 @@
     },
     "w": 44,
     "abilities": [
+      "Torrent",
       "Liquid Voice"
     ],
     "formes": null
@@ -2786,7 +2983,9 @@
     },
     "w": 26,
     "abilities": [
-      "Skill Link"
+      "Keen Eye",
+      "Skill Link",
+      "Sheer Force"
     ],
     "formes": null
   },
@@ -2805,7 +3004,9 @@
     },
     "w": 180,
     "abilities": [
-      "Hyper Cutter"
+      "Hyper Cutter",
+      "Iron Fist",
+      "Anger Point"
     ],
     "formes": [
       "Crabominable",
@@ -2826,7 +3027,9 @@
     },
     "w": 25,
     "abilities": [
-      "Sand Rush"
+      "Keen Eye",
+      "Sand Rush",
+      "Steadfast"
     ],
     "formes": null
   },
@@ -2845,6 +3048,8 @@
     },
     "w": 14.5,
     "abilities": [
+      "Merciless",
+      "Limber",
       "Regenerator"
     ],
     "formes": null
@@ -2863,7 +3068,9 @@
     },
     "w": 920,
     "abilities": [
-      "Stamina"
+      "Own Tempo",
+      "Stamina",
+      "Inner Focus"
     ],
     "formes": null
   },
@@ -2882,7 +3089,8 @@
     },
     "w": 82,
     "abilities": [
-      "Water Bubble"
+      "Water Bubble",
+      "Water Absorb"
     ],
     "formes": null
   },
@@ -2901,6 +3109,7 @@
     },
     "w": 22.2,
     "abilities": [
+      "Corrosion",
       "Oblivious"
     ],
     "formes": null
@@ -2919,7 +3128,9 @@
     },
     "w": 21.4,
     "abilities": [
-      "Queenly Majesty"
+      "Leaf Guard",
+      "Queenly Majesty",
+      "Sweet Veil"
     ],
     "formes": null
   },
@@ -2938,7 +3149,9 @@
     },
     "w": 76,
     "abilities": [
-      "Inner Focus"
+      "Inner Focus",
+      "Telepathy",
+      "Symbiosis"
     ],
     "formes": null
   },
@@ -2956,6 +3169,7 @@
     },
     "w": 82.8,
     "abilities": [
+      "Receiver",
       "Defiant"
     ],
     "formes": null
@@ -2994,6 +3208,8 @@
     },
     "w": 185,
     "abilities": [
+      "Berserk",
+      "Sap Sipper",
       "Cloud Nine"
     ],
     "formes": [
@@ -3016,7 +3232,9 @@
     },
     "w": 78.2,
     "abilities": [
-      "Soundproof"
+      "Bulletproof",
+      "Soundproof",
+      "Overcoat"
     ],
     "formes": null
   },
@@ -3035,6 +3253,8 @@
     },
     "w": 75,
     "abilities": [
+      "Pressure",
+      "Unnerve",
       "Mirror Armor"
     ],
     "formes": null
@@ -3054,6 +3274,8 @@
     },
     "w": 1,
     "abilities": [
+      "Ripen",
+      "Gluttony",
       "Hustle"
     ],
     "formes": null
@@ -3073,6 +3295,8 @@
     },
     "w": 13,
     "abilities": [
+      "Ripen",
+      "Gluttony",
       "Thick Fat"
     ],
     "formes": null
@@ -3091,7 +3315,9 @@
     },
     "w": 65.5,
     "abilities": [
-      "Sand Spit"
+      "Sand Spit",
+      "Shed Skin",
+      "Sand Veil"
     ],
     "formes": null
   },
@@ -3109,6 +3335,7 @@
     },
     "w": 0.4,
     "abilities": [
+      "Weak Armor",
       "Cursed Body"
     ],
     "formes": null
@@ -3128,6 +3355,8 @@
     },
     "w": 5.1,
     "abilities": [
+      "Healer",
+      "Anticipation",
       "Magic Bounce"
     ],
     "formes": null
@@ -3147,7 +3376,9 @@
     },
     "w": 58.2,
     "abilities": [
-      "Screen Cleaner"
+      "Tangled Feet",
+      "Screen Cleaner",
+      "Ice Body"
     ],
     "formes": null
   },
@@ -3184,7 +3415,8 @@
     },
     "w": 0.5,
     "abilities": [
-      "Sweet Veil"
+      "Sweet Veil",
+      "Aroma Veil"
     ],
     "formes": null
   },
@@ -3225,7 +3457,9 @@
     },
     "w": 50,
     "abilities": [
-      "Clear Body"
+      "Clear Body",
+      "Infiltrator",
+      "Cursed Body"
     ],
     "formes": null
   },
@@ -3244,7 +3478,9 @@
     },
     "w": 95.1,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Frisk",
+      "Sap Sipper"
     ],
     "formes": null
   },
@@ -3263,6 +3499,8 @@
     },
     "w": 89,
     "abilities": [
+      "Swarm",
+      "Sheer Force",
       "Sharpness"
     ],
     "formes": null
@@ -3282,7 +3520,9 @@
     },
     "w": 110,
     "abilities": [
-      "Swift Swim"
+      "Swift Swim",
+      "Adaptability",
+      "Mold Breaker"
     ],
     "formes": null
   },
@@ -3301,7 +3541,9 @@
     },
     "w": 43,
     "abilities": [
-      "Unburden"
+      "Pressure",
+      "Unburden",
+      "Poison Touch"
     ],
     "formes": null
   },
@@ -3320,6 +3562,7 @@
     },
     "w": 31.2,
     "abilities": [
+      "Overgrow",
       "Protean"
     ],
     "formes": null
@@ -3339,6 +3582,7 @@
     },
     "w": 326.5,
     "abilities": [
+      "Blaze",
       "Unaware"
     ],
     "formes": null
@@ -3358,6 +3602,7 @@
     },
     "w": 61.9,
     "abilities": [
+      "Torrent",
       "Moxie"
     ],
     "formes": null
@@ -3376,6 +3621,8 @@
     },
     "w": 2.3,
     "abilities": [
+      "Friend Guard",
+      "Cheek Pouch",
       "Technician"
     ],
     "formes": null
@@ -3394,7 +3641,9 @@
     },
     "w": 240,
     "abilities": [
-      "Purifying Salt"
+      "Purifying Salt",
+      "Sturdy",
+      "Clear Body"
     ],
     "formes": null
   },
@@ -3413,7 +3662,8 @@
     },
     "w": 85,
     "abilities": [
-      "Flash Fire"
+      "Flash Fire",
+      "Weak Armor"
     ],
     "formes": null
   },
@@ -3432,7 +3682,8 @@
     },
     "w": 62,
     "abilities": [
-      "Flash Fire"
+      "Flash Fire",
+      "Weak Armor"
     ],
     "formes": null
   },
@@ -3450,7 +3701,9 @@
     },
     "w": 113,
     "abilities": [
-      "Electromorphosis"
+      "Electromorphosis",
+      "Static",
+      "Damp"
     ],
     "formes": null
   },
@@ -3469,7 +3722,9 @@
     },
     "w": 15,
     "abilities": [
-      "Chlorophyll"
+      "Chlorophyll",
+      "Insomnia",
+      "Moody"
     ],
     "formes": [
       "Scovillain",
@@ -3490,6 +3745,8 @@
     },
     "w": 90,
     "abilities": [
+      "Opportunist",
+      "Frisk",
       "Speed Boost"
     ],
     "formes": null
@@ -3509,7 +3766,9 @@
     },
     "w": 112.8,
     "abilities": [
-      "Own Tempo"
+      "Mold Breaker",
+      "Own Tempo",
+      "Pickpocket"
     ],
     "formes": null
   },
@@ -3527,7 +3786,7 @@
     },
     "w": 60.2,
     "abilities": [
-      "Zero to Hero"
+      "Zero To Hero"
     ],
     "formes": [
       "Palafin",
@@ -3548,7 +3807,8 @@
     },
     "w": 310,
     "abilities": [
-      "Earth Eater"
+      "Earth Eater",
+      "Sand Veil"
     ],
     "formes": null
   },
@@ -3567,7 +3827,8 @@
     },
     "w": 45,
     "abilities": [
-      "Toxic Debris"
+      "Toxic Debris",
+      "Corrosion"
     ],
     "formes": [
       "Glimmora",
@@ -3589,7 +3850,9 @@
     },
     "w": 160,
     "abilities": [
-      "Cud Chew"
+      "Cud Chew",
+      "Armor Tail",
+      "Sap Sipper"
     ],
     "formes": null
   },
@@ -3608,7 +3871,9 @@
     },
     "w": 120,
     "abilities": [
-      "Defiant"
+      "Defiant",
+      "Supreme Overlord",
+      "Pressure"
     ],
     "formes": null
   },
@@ -3627,7 +3892,8 @@
     },
     "w": 2.2,
     "abilities": [
-      "Hospitality"
+      "Hospitality",
+      "Heatproof"
     ],
     "formes": null
   },
@@ -3646,7 +3912,9 @@
     },
     "w": 60,
     "abilities": [
-      "Stamina"
+      "Stamina",
+      "Sturdy",
+      "Stalwart"
     ],
     "formes": null
   },
@@ -3665,7 +3933,9 @@
     },
     "w": 93,
     "abilities": [
-      "Regenerator"
+      "Supersweet Syrup",
+      "Regenerator",
+      "Sticky Hold"
     ],
     "formes": null
   },
@@ -3835,6 +4105,7 @@
     },
     "w": 19.9,
     "abilities": [
+      "Snow Cloak",
       "Snow Warning"
     ],
     "formes": null
@@ -3854,7 +4125,9 @@
     },
     "w": 168,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Flash Fire",
+      "Rock Head"
     ],
     "formes": null
   },
@@ -3929,7 +4202,9 @@
     },
     "w": 70.5,
     "abilities": [
-      "Quick Draw"
+      "Quick Draw",
+      "Own Tempo",
+      "Regenerator"
     ],
     "formes": null
   },
@@ -4022,7 +4297,9 @@
     },
     "w": 115,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Anger Point",
+      "Cud Chew"
     ],
     "formes": null
   },
@@ -4041,7 +4318,9 @@
     },
     "w": 110,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Anger Point",
+      "Cud Chew"
     ],
     "formes": null
   },
@@ -4060,7 +4339,9 @@
     },
     "w": 85,
     "abilities": [
-      "Intimidate"
+      "Intimidate",
+      "Anger Point",
+      "Cud Chew"
     ],
     "formes": null
   },
@@ -4155,6 +4436,7 @@
     },
     "w": 69.8,
     "abilities": [
+      "Blaze",
       "Frisk"
     ],
     "formes": null
@@ -4212,7 +4494,9 @@
     },
     "w": 79.5,
     "abilities": [
-      "Curious Medicine"
+      "Curious Medicine",
+      "Own Tempo",
+      "Regenerator"
     ],
     "formes": null
   },
@@ -4796,6 +5080,7 @@
     },
     "w": 58.2,
     "abilities": [
+      "Torrent",
       "Sharpness"
     ],
     "formes": null
@@ -5003,6 +5288,8 @@
     },
     "w": 8.5,
     "abilities": [
+      "Keen Eye",
+      "Infiltrator",
       "Competitive"
     ],
     "formes": [
@@ -5100,7 +5387,9 @@
     },
     "w": 334.1,
     "abilities": [
-      "Shell Armor"
+      "Sap Sipper",
+      "Shell Armor",
+      "Gooey"
     ],
     "formes": null
   },
@@ -5119,7 +5408,9 @@
     },
     "w": 9.5,
     "abilities": [
-      "Frisk"
+      "Pickup",
+      "Frisk",
+      "Insomnia"
     ],
     "formes": null
   },
@@ -5138,7 +5429,9 @@
     },
     "w": 14,
     "abilities": [
-      "Frisk"
+      "Pickup",
+      "Frisk",
+      "Insomnia"
     ],
     "formes": null
   },
@@ -5157,6 +5450,8 @@
     },
     "w": 39,
     "abilities": [
+      "Pickup",
+      "Frisk",
       "Insomnia"
     ],
     "formes": null
@@ -5176,7 +5471,9 @@
     },
     "w": 262.4,
     "abilities": [
-      "Strong Jaw"
+      "Strong Jaw",
+      "Ice Body",
+      "Sturdy"
     ],
     "formes": null
   },
@@ -5195,6 +5492,7 @@
     },
     "w": 37,
     "abilities": [
+      "Overgrow",
       "Scrappy"
     ],
     "formes": null
@@ -5232,7 +5530,9 @@
     },
     "w": 25,
     "abilities": [
-      "Vital Spirit"
+      "Keen Eye",
+      "Vital Spirit",
+      "No Guard"
     ],
     "formes": null
   },
@@ -5307,7 +5607,9 @@
     },
     "w": 110,
     "abilities": [
-      "Adaptability"
+      "Swift Swim",
+      "Adaptability",
+      "Mold Breaker"
     ],
     "formes": null
   },
@@ -5325,6 +5627,8 @@
     },
     "w": 2.8,
     "abilities": [
+      "Friend Guard",
+      "Cheek Pouch",
       "Technician"
     ],
     "formes": null
@@ -5362,7 +5666,7 @@
     },
     "w": 97.4,
     "abilities": [
-      "Zero to Hero"
+      "Zero To Hero"
     ],
     "formes": null
   },
