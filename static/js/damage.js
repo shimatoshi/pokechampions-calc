@@ -122,12 +122,33 @@ const DMG = (() => {
     const defStats = getStats(defender);
 
     const isPhysical = move.cat === 'Physical';
-    let atk = isPhysical ? atkStats.at : atkStats.sa;
-    let def = isPhysical ? defStats.df : defStats.sd;
 
-    // Apply boosts
-    const atkBoost = isPhysical ? (attacker.boosts?.at || 0) : (attacker.boosts?.sa || 0);
-    const defBoost = isPhysical ? (defender.boosts?.df || 0) : (defender.boosts?.sd || 0);
+    // Special stat-overriding moves
+    let atk, def, atkBoost, defBoost;
+    if (moveName === 'Body Press') {
+      // Uses attacker's Defense (and Def boosts) instead of Attack
+      atk = atkStats.df;
+      atkBoost = attacker.boosts?.df || 0;
+      def = defStats.df;
+      defBoost = defender.boosts?.df || 0;
+    } else if (moveName === 'Foul Play') {
+      // Uses defender's Attack (and Atk boosts) for damage
+      atk = defStats.at;
+      atkBoost = defender.boosts?.at || 0;
+      def = defStats.df;
+      defBoost = defender.boosts?.df || 0;
+    } else if (moveName === 'Psyshock' || moveName === 'Psystrike' || moveName === 'Secret Sword') {
+      // Special move that targets physical Defense
+      atk = atkStats.sa;
+      atkBoost = attacker.boosts?.sa || 0;
+      def = defStats.df;
+      defBoost = defender.boosts?.df || 0;
+    } else {
+      atk = isPhysical ? atkStats.at : atkStats.sa;
+      atkBoost = isPhysical ? (attacker.boosts?.at || 0) : (attacker.boosts?.sa || 0);
+      def = isPhysical ? defStats.df : defStats.sd;
+      defBoost = isPhysical ? (defender.boosts?.df || 0) : (defender.boosts?.sd || 0);
+    }
     atk = applyBoost(atk, atkBoost);
     def = applyBoost(def, defBoost);
 
@@ -251,7 +272,11 @@ const DMG = (() => {
       isSTAB,
       atkStats, defStats,
       atkRecoil,
-      berryActive, berryItem: berryActive ? dItem : ''
+      berryActive, berryItem: berryActive ? dItem : '',
+      statNote: moveName === 'Body Press' ? '防御でダメージ計算'
+        : moveName === 'Foul Play' ? '相手の攻撃でダメージ計算'
+        : (moveName === 'Psyshock' || moveName === 'Psystrike' || moveName === 'Secret Sword') ? '相手の防御にダメージ'
+        : ''
     };
   }
 
