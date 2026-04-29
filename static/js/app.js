@@ -481,6 +481,15 @@ function initCalcPage() {
   document.getElementById('field-pinch').addEventListener('change', e => fieldState.pinch = e.target.checked);
   document.getElementById('field-sr').addEventListener('change', e => fieldState.stealthRock = e.target.checked);
   document.getElementById('field-spikes').addEventListener('change', e => fieldState.spikes = parseInt(e.target.value));
+
+  // Restore field UI from state (survives initCalcPage re-calls)
+  document.getElementById('field-weather').value = fieldState.weather;
+  document.getElementById('field-terrain').value = fieldState.terrain;
+  document.getElementById('field-doubles').checked = fieldState.doubles;
+  document.getElementById('field-crit').checked = fieldState.crit;
+  document.getElementById('field-pinch').checked = fieldState.pinch;
+  document.getElementById('field-sr').checked = fieldState.stealthRock;
+  document.getElementById('field-spikes').value = fieldState.spikes;
 }
 
 function selectPokemon(side, name) {
