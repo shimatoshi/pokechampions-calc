@@ -93,6 +93,9 @@ label:first-child{margin-top:0}
 .ts-plus{color:#e74c3c;font-weight:700}
 .ts-minus{color:#3498db;font-weight:700}
 
+/* ===== SHOWDOWN TEXT ===== */
+.sd-text{font-family:'Courier New',monospace;font-size:.72rem;line-height:1.5;background:var(--bg);color:var(--fg);padding:6px 8px;border-radius:4px;border:1px solid var(--bg3);margin:2px 0;white-space:pre-wrap;word-break:break-all;user-select:text}
+
 /* ===== THREAT SLOT ===== */
 .threat-slot .team-slot{border-left:3px solid var(--warn);margin-bottom:0}
 

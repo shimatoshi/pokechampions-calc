@@ -25,6 +25,51 @@ function typeBadge(t) {
 const STAT_JA = {hp:'HP',at:'攻撃',df:'防御',sa:'特攻',sd:'特防',sp:'素早'};
 const STAT_SHORT = {hp:'H',at:'A',df:'B',sa:'C',sd:'D',sp:'S'};
 
+// ===== SHOWDOWN-STYLE TEXT FORMAT =====
+function toShowdownText(poke) {
+  const p = DATA.pokemon[poke.name];
+  if (!p) return '';
+  const jaName = ja('pokemon', poke.name);
+  const itemStr = poke.item ? ` @ ${ja('items', poke.item)}` : '';
+  const lines = [`${jaName}${itemStr}`];
+
+  // Ability
+  if (poke.ability) lines.push(`特性: ${ja('abilities', poke.ability) || poke.ability}`);
+
+  // Nature
+  const nm = poke.natureMods || {};
+  if (nm.plus && nm.minus) {
+    const en = DMG.findNatureName(nm.plus, nm.minus);
+    lines.push(`性格: ${ja('natures', en)} (+${STAT_JA[nm.plus]} -${STAT_JA[nm.minus]})`);
+  }
+
+  // SP
+  const sp = poke.sp || {};
+  const spParts = ['hp','at','df','sa','sd','sp'].filter(s => sp[s]).map(s => `${STAT_SHORT[s]}${sp[s]}`);
+  if (spParts.length > 0) lines.push(`SP: ${spParts.join(' / ')}`);
+
+  // Real stats
+  const stats = DMG.getStats(poke);
+  if (stats) {
+    lines.push(`実数値: ${stats.hp}-${stats.at}-${stats.df}-${stats.sa}-${stats.sd}-${stats.sp}`);
+  }
+
+  // Moves
+  const moves = (poke.moves || []).filter(Boolean);
+  for (const m of moves) lines.push(`- ${ja('moves', m) || m}`);
+
+  return lines.join('\n');
+}
+
+function showdownHTML(poke) {
+  const text = toShowdownText(poke);
+  return `<pre class="sd-text">${text}</pre>`;
+}
+
+function teamToShowdownText(team) {
+  return team.members.map(m => toShowdownText(m)).join('\n\n');
+}
+
 // ===== DATA LOADING =====
 async function loadData() {
   const keys = ['data_pokemon','data_moves','data_types','data_natures','data_items',
@@ -755,6 +800,13 @@ async function renderTeamPage() {
       <button class="btn btn-outline" style="flex:1" id="team-add-from-box">+ BOXから追加</button>
     </div>` : ''}
     <div class="card mt">
+      <div class="row" style="align-items:center;gap:4px">
+        <h3 style="flex:1;margin:0">テキスト</h3>
+        <button class="btn btn-sm btn-outline" id="team-copy-sd">Showdown形式コピー</button>
+      </div>
+      <pre class="sd-text" id="team-sd-preview" style="max-height:200px;overflow-y:auto;margin-top:4px">${currentTeam.members.length > 0 ? teamToShowdownText(currentTeam) : '（チームにポケモンを追加してください）'}</pre>
+    </div>
+    <div class="card mt">
       <h3>概要・戦略メモ</h3>
       <textarea id="team-notes" rows="4" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:6px;font-size:.85rem" placeholder="チームの戦略、選出パターン、戦績メモ...">${currentTeam.notes || ''}</textarea>
     </div>
@@ -773,6 +825,15 @@ async function renderTeamPage() {
 
   document.getElementById('team-name').addEventListener('change', e => currentTeam.name = e.target.value);
   document.getElementById('team-notes').addEventListener('input', e => currentTeam.notes = e.target.value);
+  document.getElementById('team-copy-sd')?.addEventListener('click', () => {
+    const text = teamToShowdownText(currentTeam);
+    navigator.clipboard.writeText(text).then(() => showToast('コピーしました')).catch(() => {
+      // Fallback for non-HTTPS
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      showToast('コピーしました');
+    });
+  });
   document.getElementById('team-save')?.addEventListener('click', saveTeam);
   document.getElementById('team-load')?.addEventListener('click', loadTeamList);
   document.getElementById('team-add')?.addEventListener('click', () => openTeamEditor(-1));
@@ -854,29 +915,17 @@ function restoreStateToUI(side, state) {
 function renderTeamSlot(member, idx) {
   const p = DATA.pokemon[member.name];
   const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
-  const jaName = ja('pokemon', member.name);
-  const stats = DMG.getStats(member);
-  const moves = (member.moves || []).filter(Boolean).map(m => ja('moves', m)).join(', ');
-  const itemStr = member.item ? ja('items', member.item) : '';
-  const abilStr = member.ability ? (ja('abilities', member.ability) || member.ability) : '';
-  const nm = member.natureMods || {};
-  const natureStr = nm.plus && nm.minus ? `${STAT_SHORT[nm.plus]}↑${STAT_SHORT[nm.minus]}↓` : '';
-
   return `
     <div class="team-detail" data-idx="${idx}">
       <div class="team-slot" data-idx="${idx}">
         ${spriteImg(member.name, 40)}
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700">${jaName} ${types}</div>
-          <div style="font-size:.7rem;color:var(--fg2)">${[abilStr, itemStr, natureStr].filter(Boolean).join(' / ')}</div>
+          <div style="font-weight:700">${ja('pokemon', member.name)} ${types}</div>
         </div>
         <button class="btn btn-sm btn-outline edit-btn">編集</button>
         <button class="btn btn-sm btn-danger del-btn">×</button>
       </div>
-      ${stats ? `<div class="team-stats">${['hp','at','df','sa','sd','sp'].map(s =>
-        `<span class="ts-cell${nm.plus===s?' ts-plus':''}${nm.minus===s?' ts-minus':''}">${STAT_SHORT[s]}${stats[s]}</span>`
-      ).join('')}</div>` : ''}
-      ${moves ? `<div style="font-size:.7rem;color:var(--fg2);padding:0 4px 4px">${moves}</div>` : ''}
+      ${showdownHTML(member)}
     </div>`;
 }
 
@@ -1381,30 +1430,20 @@ async function renderBoxPage() {
 function renderBoxSlot(b) {
   const p = DATA.pokemon[b.name];
   const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
-  const stats = DMG.getStats(b);
-  const moves = (b.moves || []).filter(Boolean).map(m => ja('moves', m) || m).join(', ');
-  const itemStr = b.item ? ja('items', b.item) : '';
-  const abilStr = b.ability ? (ja('abilities', b.ability) || b.ability) : '';
-  const nm = b.natureMods || {};
   const calcs = b.savedCalcs || [];
 
   return `
     <div class="box-entry card" data-id="${b.id}" style="padding:6px">
-      <div style="display:flex;align-items:center;gap:6px">
+      <div style="display:flex;align-items:flex-start;gap:6px">
         ${spriteImg(b.name, 40)}
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700">${ja('pokemon', b.name)} ${types}</div>
-          <div style="font-size:.7rem;color:var(--fg2)">${[abilStr, itemStr].filter(Boolean).join(' / ')}</div>
-          <div style="font-size:.65rem;color:var(--fg2)">${moves}</div>
+          ${showdownHTML(b)}
         </div>
         <div style="display:flex;flex-direction:column;gap:2px">
           <button class="btn btn-sm box-to-calc" style="font-size:.6rem;padding:2px 6px">ダメ計</button>
           <button class="btn btn-sm btn-outline box-to-team" style="font-size:.6rem;padding:2px 6px">チーム</button>
         </div>
       </div>
-      ${stats ? `<div class="team-stats" style="margin-top:2px">${['hp','at','df','sa','sd','sp'].map(s =>
-        `<span class="ts-cell${nm.plus===s?' ts-plus':''}${nm.minus===s?' ts-minus':''}">${STAT_SHORT[s]}${stats[s]}</span>`
-      ).join('')}</div>` : ''}
       ${calcs.length > 0 ? `
         <div style="margin-top:4px">
           <button class="btn btn-sm btn-outline box-detail-toggle" style="font-size:.65rem;width:100%;padding:2px">ダメ計結果 (${calcs.length}件)</button>
