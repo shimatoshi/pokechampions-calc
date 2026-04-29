@@ -5,9 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta name="theme-color" content="#e94560">
   <title>ポケチャン ダメ計</title>
-  <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/css/style.css">
+  <base id="base-tag">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <script>
+    // Auto-detect base path for GitHub Pages / localhost
+    const base = document.createElement('base');
+    base.href = location.pathname.replace(/\/[^/]*$/, '/');
+    document.getElementById('base-tag').replaceWith(base);
+  </script>
 </head>
 <body>
   <nav>
@@ -18,8 +25,8 @@
   <div class="page show" id="page-calc">読み込み中...</div>
   <div class="page" id="page-team"></div>
   <div class="page" id="page-records"></div>
-  <script src="/js/db.js"></script>
-  <script src="/js/damage.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/damage.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

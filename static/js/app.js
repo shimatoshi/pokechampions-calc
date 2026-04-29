@@ -10,7 +10,7 @@ function ja(type, en) {
 
 function spriteUrl(name) {
   const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  return `/img/${slug}.webp`;
+  return `img/${slug}.webp`;
 }
 
 function spriteImg(name, size = 40) {
@@ -29,7 +29,7 @@ const STAT_SHORT = {hp:'H',at:'A',df:'B',sa:'C',sd:'D',sp:'S'};
 async function loadData() {
   const keys = ['data_pokemon','data_moves','data_types','data_natures','data_items',
                 'names_pokemon_ja','names_moves_ja','names_natures_ja','names_items_ja','names_abilities_ja'];
-  const fetches = keys.map(k => fetch(`/data/${k}.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})));
+  const fetches = keys.map(k => fetch(`data/${k}.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})));
   const [pokemon, moves, types, natures, items, jaPoke, jaMoves, jaNatures, jaItems, jaAbilities] = await Promise.all(fetches);
   DATA = { pokemon, moves, types, natures, items };
   JA.pokemon = jaPoke; JA.moves = jaMoves; JA.natures = jaNatures; JA.items = jaItems; JA.abilities = jaAbilities;
@@ -846,7 +846,7 @@ function showToast(msg) {
 
 // ===== INIT =====
 async function init() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
   DB.persist();
   await loadData();
   initCalcPage();
