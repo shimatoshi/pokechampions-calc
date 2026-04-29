@@ -594,11 +594,28 @@ async function openLoadPicker(side) {
   });
 }
 
+// ===== INDIVIDUAL IDENTITY =====
+// Same species + same SP + same nature + same moves + same item = same individual
+function buildFingerprint(state) {
+  const sp = state.sp || {};
+  const nm = state.natureMods || {};
+  const moves = (state.moves || []).filter(Boolean).sort().join(',');
+  return `${state.name}|${sp.hp||0},${sp.at||0},${sp.df||0},${sp.sa||0},${sp.sd||0},${sp.sp||0}|${nm.plus||''},${nm.minus||''}|${moves}|${state.item||''}`;
+}
+
+function findBoxMatch(boxAll, state) {
+  const fp = buildFingerprint(state);
+  return boxAll.find(b => buildFingerprint(b) === fp);
+}
+
 // ===== ADD TO BOX / THREATS FROM CALC =====
 async function addCalcToBox(side) {
   const state = side === 'atk' ? atkState : defState;
   if (!state.name) { showToast('ポケモンを選択してください'); return; }
+  const boxAll = await DB.getAll('box');
+  if (findBoxMatch(boxAll, state)) { showToast('同じ個体がBOXに存在します'); return; }
   const entry = JSON.parse(JSON.stringify(state));
+  delete entry.id; // remove any stale id
   entry.savedCalcs = [];
   entry.notes = '';
   await DB.add('box', entry);
@@ -608,6 +625,7 @@ async function addCalcToBox(side) {
 async function addDefToThreat() {
   if (!defState.name) { showToast('防御側を選択してください'); return; }
   const entry = JSON.parse(JSON.stringify(defState));
+  delete entry.id; // IMPORTANT: remove stale id so autoIncrement works
   await DB.add('threats', entry);
   showToast(`${ja('pokemon', defState.name)} を仮想敵に追加`);
 }
@@ -617,12 +635,13 @@ async function saveCalcToBox() {
   const activeMoves = atkState.moves.filter(m => m && DATA.moves[m]);
   if (activeMoves.length === 0) { showToast('わざを選択してください'); return; }
 
-  // Build calc summary
-  const calcResults = [];
+  // Build calc summary for ATTACKER (attacking calcs)
+  const atkCalcs = [];
   for (const moveName of activeMoves) {
     const r = DMG.calculate(atkState, defState, moveName, fieldState);
     if (!r) continue;
-    calcResults.push({
+    atkCalcs.push({
+      dir: 'atk', // attacking
       vs: defState.name,
       move: moveName,
       range: `${r.minPct}%~${r.maxPct}%`,
@@ -630,26 +649,66 @@ async function saveCalcToBox() {
       detail: r.koDetail || ''
     });
   }
-  if (calcResults.length === 0) { showToast('計算結果がありません'); return; }
 
-  // Find or create box entry for attacker
+  // Build calc summary for DEFENDER (receiving calcs)
+  const defCalcs = [];
+  for (const moveName of activeMoves) {
+    const r = DMG.calculate(atkState, defState, moveName, fieldState);
+    if (!r) continue;
+    defCalcs.push({
+      dir: 'def', // defending
+      vs: atkState.name,
+      move: moveName,
+      range: `${r.minPct}%~${r.maxPct}%`,
+      ko: r.koText,
+      detail: r.koDetail || ''
+    });
+  }
+
   const boxAll = await DB.getAll('box');
-  let boxEntry = boxAll.find(b => b.name === atkState.name);
-  if (!boxEntry) {
-    boxEntry = JSON.parse(JSON.stringify(atkState));
-    boxEntry.savedCalcs = [];
-    boxEntry.notes = '';
-  }
-  // Append new calc results
-  if (!boxEntry.savedCalcs) boxEntry.savedCalcs = [];
-  for (const cr of calcResults) {
-    // Avoid exact duplicates
-    if (!boxEntry.savedCalcs.some(s => s.vs === cr.vs && s.move === cr.move && s.range === cr.range)) {
-      boxEntry.savedCalcs.push(cr);
+  let saved = 0;
+
+  // Save attacker's calcs
+  if (atkCalcs.length > 0) {
+    let atkBox = findBoxMatch(boxAll, atkState);
+    if (!atkBox) {
+      atkBox = JSON.parse(JSON.stringify(atkState));
+      delete atkBox.id;
+      atkBox.savedCalcs = [];
+      atkBox.notes = '';
     }
+    if (!atkBox.savedCalcs) atkBox.savedCalcs = [];
+    for (const cr of atkCalcs) {
+      if (!atkBox.savedCalcs.some(s => s.dir === cr.dir && s.vs === cr.vs && s.move === cr.move && s.range === cr.range)) {
+        atkBox.savedCalcs.push(cr);
+        saved++;
+      }
+    }
+    await DB.put('box', atkBox);
+    // Update boxAll for defender lookup
+    if (!atkBox.id) boxAll.push(atkBox);
   }
-  await DB.put('box', boxEntry);
-  showToast(`${ja('pokemon', atkState.name)} のダメ計結果をBOXに保存 (${calcResults.length}件)`);
+
+  // Save defender's calcs
+  if (defCalcs.length > 0) {
+    let defBox = findBoxMatch(boxAll, defState);
+    if (!defBox) {
+      defBox = JSON.parse(JSON.stringify(defState));
+      delete defBox.id;
+      defBox.savedCalcs = [];
+      defBox.notes = '';
+    }
+    if (!defBox.savedCalcs) defBox.savedCalcs = [];
+    for (const cr of defCalcs) {
+      if (!defBox.savedCalcs.some(s => s.dir === cr.dir && s.vs === cr.vs && s.move === cr.move && s.range === cr.range)) {
+        defBox.savedCalcs.push(cr);
+        saved++;
+      }
+    }
+    await DB.put('box', defBox);
+  }
+
+  showToast(`ダメ計結果をBOXに保存 (${saved}件)`);
 }
 
 // ===== ADD TO TEAM FROM CALC =====
@@ -657,9 +716,10 @@ function addCalcToTeam(side) {
   const state = side === 'atk' ? atkState : defState;
   if (!state.name) { showToast('ポケモンを選択してください'); return; }
   if (currentTeam.members.length >= 6) { showToast('チームは6匹まで'); return; }
-  // Check duplicate
-  if (currentTeam.members.some(m => m.name === state.name)) {
-    showToast(`${ja('pokemon', state.name)} は既にチームにいます`);
+  // Check duplicate by fingerprint (same species + different build = OK)
+  const fp = buildFingerprint(state);
+  if (currentTeam.members.some(m => buildFingerprint(m) === fp)) {
+    showToast(`同じ個体が既にチームにいます`);
     return;
   }
   const member = JSON.parse(JSON.stringify(state));
@@ -1297,12 +1357,17 @@ function renderBoxSlot(b) {
         <div style="margin-top:4px">
           <button class="btn btn-sm btn-outline box-detail-toggle" style="font-size:.65rem;width:100%;padding:2px">ダメ計結果 (${calcs.length}件)</button>
           <div class="box-detail hidden" style="margin-top:4px">
-            ${calcs.map((c, ci) => `
+            ${calcs.map((c, ci) => {
+              const icon = c.dir === 'def' ? '🛡' : '⚔';
+              const label = c.dir === 'def'
+                ? `${ja('pokemon', c.vs)}の${ja('moves', c.move)}→自分`
+                : `自分の${ja('moves', c.move)}→${ja('pokemon', c.vs)}`;
+              return `
               <div style="font-size:.7rem;padding:2px 0;display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--bg3)">
-                <span style="flex:1">vs ${ja('pokemon', c.vs)}: ${ja('moves', c.move)} ${c.range} <strong>${c.ko}</strong> ${c.detail}</span>
+                <span style="flex:1">${icon} ${label} ${c.range} <strong>${c.ko}</strong> ${c.detail}</span>
                 <button class="btn btn-sm btn-danger calc-del" data-ci="${ci}" style="font-size:.55rem;padding:1px 4px">×</button>
-              </div>
-            `).join('')}
+              </div>`;
+            }).join('')}
           </div>
         </div>` : ''}
       <div style="display:flex;justify-content:flex-end;margin-top:4px">
