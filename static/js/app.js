@@ -305,12 +305,18 @@ function initCalcPage() {
         <label><input type="checkbox" id="field-crit"> 急所</label>
       </div>
     </div>
-    <button class="btn" style="width:100%" id="calc-btn">ダメージ計算</button>
+    <div class="row mt" style="gap:4px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-sm" id="load-atk-from" title="チーム/対策表から攻撃側に読込">攻撃側に読込</button>
+      <button class="btn btn-sm" id="swap-sides" style="background:var(--accent2)">攻守入替</button>
+      <button class="btn btn-sm" id="load-def-from" title="チーム/対策表から防御側に読込">防御側に読込</button>
+    </div>
+    <button class="btn mt" style="width:100%" id="calc-btn">ダメージ計算</button>
     <div class="row mt" style="gap:4px">
       <button class="btn btn-outline btn-sm" id="add-atk-to-team">攻撃側をチームに追加</button>
       <button class="btn btn-outline btn-sm" id="add-def-to-team">防御側をチームに追加</button>
     </div>
     <div id="calc-results"></div>
+    <div id="load-picker" class="hidden"></div>
   `;
 
   // Pokemon search
@@ -376,6 +382,13 @@ function initCalcPage() {
   // Add to team buttons
   document.getElementById('add-atk-to-team').addEventListener('click', () => addCalcToTeam('atk'));
   document.getElementById('add-def-to-team').addEventListener('click', () => addCalcToTeam('def'));
+
+  // Swap attacker/defender
+  document.getElementById('swap-sides').addEventListener('click', swapSides);
+
+  // Load from team/threats
+  document.getElementById('load-atk-from').addEventListener('click', () => openLoadPicker('atk'));
+  document.getElementById('load-def-from').addEventListener('click', () => openLoadPicker('def'));
 
   document.getElementById('calc-btn').addEventListener('click', runCalc);
   document.getElementById('field-weather').addEventListener('change', e => fieldState.weather = e.target.value);
@@ -493,6 +506,70 @@ function runCalc() {
   results.innerHTML = html;
 }
 
+// ===== SWAP ATTACKER/DEFENDER =====
+function swapSides() {
+  const tmp = JSON.parse(JSON.stringify(atkState));
+  Object.assign(atkState, JSON.parse(JSON.stringify(defState)));
+  Object.assign(defState, tmp);
+  // Re-render both sides
+  initCalcPage();
+  if (atkState.name) { selectPokemon('atk', atkState.name); restoreStateToUI('atk', atkState); }
+  if (defState.name) { selectPokemon('def', defState.name); restoreStateToUI('def', defState); }
+  showToast('攻守入替');
+}
+
+// ===== LOAD FROM TEAM / THREATS =====
+async function openLoadPicker(side) {
+  const picker = document.getElementById('load-picker');
+  const members = currentTeam.members || [];
+  const threats = await DB.getAll('threats');
+
+  picker.classList.remove('hidden');
+  picker.innerHTML = `
+    <div class="card" style="border:2px solid var(--accent);max-height:60vh;overflow-y:auto">
+      <h3>${side === 'atk' ? '攻撃側' : '防御側'}に読込</h3>
+      ${members.length > 0 ? `
+        <div style="font-size:.75rem;color:var(--fg2);margin:4px 0">チーム: ${currentTeam.name}</div>
+        ${members.map((m, i) => `
+          <div class="team-slot pick-slot" data-src="team" data-idx="${i}">
+            ${spriteImg(m.name, 28)}
+            <div class="name">${ja('pokemon', m.name)}</div>
+            ${DATA.pokemon[m.name]?.types.map(t => typeBadge(t)).join('')||''}
+          </div>`).join('')}
+      ` : '<div style="font-size:.8rem;color:var(--fg2);margin:4px 0">チームなし</div>'}
+      <hr>
+      <div style="font-size:.75rem;color:var(--fg2);margin:4px 0">対策表</div>
+      ${threats.length > 0 ? threats.map(t => `
+        <div class="team-slot pick-slot" data-src="threat" data-idx="${t.id}">
+          ${spriteImg(t.name, 28)}
+          <div class="name">${ja('pokemon', t.name)}</div>
+          ${DATA.pokemon[t.name]?.types.map(tp => typeBadge(tp)).join('')||''}
+          ${t.item ? `<span style="font-size:.65rem;color:var(--fg2)">${ja('items',t.item)}</span>` : ''}
+        </div>`).join('') : '<div style="font-size:.8rem;color:var(--fg2)">対策表が空です（編成タブで追加）</div>'}
+      <button class="btn btn-outline mt" id="pick-close">閉じる</button>
+    </div>`;
+
+  picker.querySelector('#pick-close').addEventListener('click', () => picker.classList.add('hidden'));
+  picker.querySelectorAll('.pick-slot').forEach(slot => {
+    slot.addEventListener('click', () => {
+      const state = side === 'atk' ? atkState : defState;
+      let src;
+      if (slot.dataset.src === 'team') {
+        src = currentTeam.members[parseInt(slot.dataset.idx)];
+      } else {
+        src = threats.find(t => t.id === parseInt(slot.dataset.idx));
+      }
+      if (!src) return;
+      Object.assign(state, JSON.parse(JSON.stringify(src)));
+      picker.classList.add('hidden');
+      initCalcPage();
+      if (atkState.name) { selectPokemon('atk', atkState.name); restoreStateToUI('atk', atkState); }
+      if (defState.name) { selectPokemon('def', defState.name); restoreStateToUI('def', defState); }
+      showToast(`${ja('pokemon', src.name)} を${side === 'atk' ? '攻撃側' : '防御側'}に読込`);
+    });
+  });
+}
+
 // ===== ADD TO TEAM FROM CALC =====
 function addCalcToTeam(side) {
   const state = side === 'atk' ? atkState : defState;
@@ -509,11 +586,12 @@ function addCalcToTeam(side) {
 }
 
 // ===== TEAM BUILDER PAGE =====
-let currentTeam = { id: null, name: '新チーム', members: [] };
+let currentTeam = { id: null, name: '新チーム', members: [], notes: '' };
 
 function initTeamPage() { renderTeamPage(); }
 
-function renderTeamPage() {
+async function renderTeamPage() {
+  const threats = await DB.getAll('threats');
   const page = document.getElementById('page-team');
   page.innerHTML = `
     <div class="card">
@@ -528,16 +606,32 @@ function renderTeamPage() {
     </div>
     ${currentTeam.members.length < 6 ? `
     <button class="btn btn-outline mt" style="width:100%" id="team-add">+ ポケモンを追加</button>` : ''}
+    <div class="card mt">
+      <h3>概要・戦略メモ</h3>
+      <textarea id="team-notes" rows="4" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:6px;font-size:.85rem" placeholder="チームの戦略、選出パターン、戦績メモ...">${currentTeam.notes || ''}</textarea>
+    </div>
+    <div class="card mt">
+      <h3>対策表（仮想敵）</h3>
+      <div id="threat-list">
+        ${threats.length === 0 ? '<div style="font-size:.8rem;color:var(--fg2)">仮想敵が未登録です</div>' : ''}
+        ${threats.map(t => renderThreatSlot(t)).join('')}
+      </div>
+      <button class="btn btn-outline mt" style="width:100%" id="threat-add">+ 仮想敵を追加</button>
+      <div id="threat-editor" class="hidden"></div>
+    </div>
     <div id="team-editor" class="hidden"></div>
     <div id="team-load-modal" class="hidden"></div>
   `;
 
   document.getElementById('team-name').addEventListener('change', e => currentTeam.name = e.target.value);
+  document.getElementById('team-notes').addEventListener('input', e => currentTeam.notes = e.target.value);
   document.getElementById('team-save')?.addEventListener('click', saveTeam);
   document.getElementById('team-load')?.addEventListener('click', loadTeamList);
   document.getElementById('team-add')?.addEventListener('click', () => openTeamEditor(-1));
+  document.getElementById('threat-add')?.addEventListener('click', () => openThreatEditor());
 
-  page.querySelectorAll('.team-slot').forEach(slot => {
+  // Team slot events
+  page.querySelectorAll('.team-slot[data-idx]').forEach(slot => {
     const idx = parseInt(slot.dataset.idx);
     slot.querySelector('.edit-btn')?.addEventListener('click', e => { e.stopPropagation(); openTeamEditor(idx); });
     slot.querySelector('.del-btn')?.addEventListener('click', e => {
@@ -552,6 +646,31 @@ function renderTeamPage() {
       initCalcPage();
       selectPokemon('atk', atkState.name);
       restoreStateToUI('atk', atkState);
+    });
+  });
+
+  // Threat slot events
+  page.querySelectorAll('.threat-slot').forEach(slot => {
+    const id = parseInt(slot.dataset.id);
+    slot.querySelector('.threat-edit')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const t = threats.find(x => x.id === id);
+      if (t) openThreatEditor(t);
+    });
+    slot.querySelector('.threat-del')?.addEventListener('click', async e => {
+      e.stopPropagation();
+      await DB.del('threats', id);
+      renderTeamPage();
+    });
+    slot.addEventListener('click', () => {
+      const t = threats.find(x => x.id === id);
+      if (!t) return;
+      Object.assign(defState, JSON.parse(JSON.stringify(t)));
+      switchPage('calc');
+      initCalcPage();
+      if (atkState.name) { selectPokemon('atk', atkState.name); restoreStateToUI('atk', atkState); }
+      selectPokemon('def', defState.name);
+      restoreStateToUI('def', defState);
     });
   });
 }
@@ -587,14 +706,143 @@ function renderTeamSlot(member, idx) {
   const p = DATA.pokemon[member.name];
   const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
   const jaName = ja('pokemon', member.name);
+  const stats = DMG.getStats(member);
+  const moves = (member.moves || []).filter(Boolean).map(m => ja('moves', m)).join(', ');
+  const itemStr = member.item ? ja('items', member.item) : '';
+  const abilStr = member.ability ? (ja('abilities', member.ability) || member.ability) : '';
+  const nm = member.natureMods || {};
+  const natureStr = nm.plus && nm.minus ? `${STAT_SHORT[nm.plus]}↑${STAT_SHORT[nm.minus]}↓` : '';
+
   return `
-    <div class="team-slot" data-idx="${idx}">
-      ${spriteImg(member.name, 36)}
-      <div class="name">${jaName}</div>
-      <div class="types">${types}</div>
-      <button class="btn btn-sm btn-outline edit-btn">編集</button>
-      <button class="btn btn-sm btn-danger del-btn">×</button>
+    <div class="team-detail" data-idx="${idx}">
+      <div class="team-slot" data-idx="${idx}">
+        ${spriteImg(member.name, 40)}
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700">${jaName} ${types}</div>
+          <div style="font-size:.7rem;color:var(--fg2)">${[abilStr, itemStr, natureStr].filter(Boolean).join(' / ')}</div>
+        </div>
+        <button class="btn btn-sm btn-outline edit-btn">編集</button>
+        <button class="btn btn-sm btn-danger del-btn">×</button>
+      </div>
+      ${stats ? `<div class="team-stats">${['hp','at','df','sa','sd','sp'].map(s =>
+        `<span class="ts-cell${nm.plus===s?' ts-plus':''}${nm.minus===s?' ts-minus':''}">${STAT_SHORT[s]}${stats[s]}</span>`
+      ).join('')}</div>` : ''}
+      ${moves ? `<div style="font-size:.7rem;color:var(--fg2);padding:0 4px 4px">${moves}</div>` : ''}
     </div>`;
+}
+
+function renderThreatSlot(t) {
+  const p = DATA.pokemon[t.name];
+  const types = p ? p.types.map(tp => typeBadge(tp)).join('') : '';
+  const itemStr = t.item ? ja('items', t.item) : '';
+  const moves = (t.moves || []).filter(Boolean).map(m => ja('moves', m)).join(', ');
+  return `
+    <div class="threat-slot" data-id="${t.id}" style="cursor:pointer">
+      <div class="team-slot">
+        ${spriteImg(t.name, 32)}
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:.85rem">${ja('pokemon', t.name)} ${types}</div>
+          <div style="font-size:.65rem;color:var(--fg2)">${[itemStr, moves].filter(Boolean).join(' | ')}</div>
+        </div>
+        <button class="btn btn-sm btn-outline threat-edit">編集</button>
+        <button class="btn btn-sm btn-danger threat-del">×</button>
+      </div>
+    </div>`;
+}
+
+async function openThreatEditor(existing) {
+  const isNew = !existing;
+  const threat = existing ? JSON.parse(JSON.stringify(existing)) : makePokemonState();
+  if (!threat.natureMods) threat.natureMods = { plus: '', minus: '' };
+  if (!threat.moves) threat.moves = ['','','',''];
+
+  const editor = document.getElementById('threat-editor');
+  editor.classList.remove('hidden');
+  editor.innerHTML = `
+    <div class="card" style="border:2px solid var(--warn)">
+      <h3>${isNew ? '仮想敵を追加' : '仮想敵を編集'}</h3>
+      <div class="search-wrap">
+        <input type="text" id="th-search" value="${threat.name ? ja('pokemon', threat.name) : ''}" placeholder="ポケモン名..." autocomplete="off">
+        <div class="search-list" id="th-list"></div>
+      </div>
+      <div id="th-info"></div>
+      ${buildNatureUI('th')}
+      <label>もちもの</label>
+      <div class="search-wrap">
+        <input type="text" id="th-item-search" value="${threat.item ? ja('items', threat.item) : ''}" placeholder="もちもの検索..." autocomplete="off">
+        <div class="search-list" id="th-item-list"></div>
+      </div>
+      <label>とくせい</label>
+      <select id="th-ability"></select>
+      <label>SP配分</label>
+      ${['hp','at','df','sa','sd','sp'].map(stat => `
+        <div class="sp-row">
+          <span class="sp-label">${STAT_SHORT[stat]}</span>
+          <input type="number" id="th-sp-${stat}" min="0" max="32" value="${threat.sp?.[stat] || 0}">
+        </div>
+      `).join('')}
+      <label>わざ</label>
+      ${[0,1,2,3].map(i => `
+        <div class="search-wrap" style="margin-bottom:4px">
+          <input type="text" id="th-move-${i}" value="${threat.moves[i] ? ja('moves', threat.moves[i]) : ''}" placeholder="わざ${i+1}..." autocomplete="off">
+          <div class="search-list" id="th-movelist-${i}"></div>
+        </div>
+      `).join('')}
+      <div class="row mt">
+        <button class="btn" id="th-ok">${isNew ? '追加' : '更新'}</button>
+        <button class="btn btn-outline" id="th-cancel">キャンセル</button>
+      </div>
+    </div>`;
+
+  setupSearch(document.getElementById('th-search'), document.getElementById('th-list'), pokemonNames, name => {
+    threat.name = name;
+    const p = DATA.pokemon[name];
+    if (p) {
+      document.getElementById('th-info').innerHTML = `${spriteImg(name,48)} ${p.types.map(t => typeBadge(t)).join(' ')}`;
+      const abilSel = document.getElementById('th-ability');
+      abilSel.innerHTML = p.abilities.map(a => `<option value="${a}">${ja('abilities',a)||a}</option>`).join('');
+      threat.ability = p.abilities[0];
+    }
+  });
+
+  const thNature = { natureMods: { ...threat.natureMods } };
+  initNatureUI('th', thNature);
+  updateNatureDisplay('th', thNature);
+
+  const thItemEntries = Object.keys(DATA.items).sort().map(k => ({ key: k, ja: ja('items', k) }));
+  setupItemSearch(document.getElementById('th-item-search'), document.getElementById('th-item-list'), thItemEntries, name => { threat.item = name; });
+  if (threat.item) document.getElementById('th-item-search').dataset.key = threat.item;
+
+  const moveNames = Object.keys(DATA.moves).sort();
+  for (let i = 0; i < 4; i++) {
+    setupSearch(document.getElementById(`th-move-${i}`), document.getElementById(`th-movelist-${i}`), moveNames, name => { threat.moves[i] = name; });
+  }
+
+  if (threat.name && DATA.pokemon[threat.name]) {
+    const p = DATA.pokemon[threat.name];
+    document.getElementById('th-info').innerHTML = `${spriteImg(threat.name,48)} ${p.types.map(t => typeBadge(t)).join(' ')}`;
+    const abilSel = document.getElementById('th-ability');
+    abilSel.innerHTML = p.abilities.map(a => `<option value="${a}"${a===threat.ability?' selected':''}>${ja('abilities',a)||a}</option>`).join('');
+  }
+
+  document.getElementById('th-ok').addEventListener('click', async () => {
+    if (!threat.name) return;
+    threat.natureMods = { ...thNature.natureMods };
+    threat.item = document.getElementById('th-item-search').dataset?.key || '';
+    threat.ability = document.getElementById('th-ability').value;
+    for (const stat of ['hp','at','df','sa','sd','sp'])
+      threat.sp[stat] = parseInt(document.getElementById(`th-sp-${stat}`).value) || 0;
+    for (let i = 0; i < 4; i++) {
+      const el = document.getElementById(`th-move-${i}`);
+      threat.moves[i] = el.dataset?.key || el.value || '';
+    }
+    if (existing?.id) threat.id = existing.id;
+    await DB.put('threats', threat);
+    editor.classList.add('hidden');
+    renderTeamPage();
+    showToast(isNew ? '仮想敵を追加しました' : '仮想敵を更新しました');
+  });
+  document.getElementById('th-cancel').addEventListener('click', () => editor.classList.add('hidden'));
 }
 
 function openTeamEditor(idx) {
@@ -705,7 +953,7 @@ function openTeamEditor(idx) {
 }
 
 async function saveTeam() {
-  const team = { name: currentTeam.name, members: currentTeam.members, updatedAt: Date.now() };
+  const team = { name: currentTeam.name, members: currentTeam.members, notes: currentTeam.notes || '', updatedAt: Date.now() };
   if (currentTeam.id) team.id = currentTeam.id;
   const id = await DB.put('teams', team);
   if (!currentTeam.id) currentTeam.id = id;
@@ -739,7 +987,7 @@ async function loadTeamList() {
     const id = parseInt(btn.dataset.id);
     if (btn.dataset.action === 'load') {
       const team = await DB.get('teams', id);
-      currentTeam = { id: team.id, name: team.name, members: team.members };
+      currentTeam = { id: team.id, name: team.name, members: team.members, notes: team.notes || '' };
       modal.classList.add('hidden');
       renderTeamPage();
     } else if (btn.dataset.action === 'delete') {

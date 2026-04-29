@@ -85,6 +85,17 @@ label:first-child{margin-top:0}
 .team-slot .name{font-weight:700;flex:1}
 .team-slot .types{display:flex;gap:2px}
 
+/* ===== TEAM DETAIL ===== */
+.team-detail{background:var(--bg2);border-radius:var(--radius);margin-bottom:6px;overflow:hidden}
+.team-detail .team-slot{margin-bottom:0}
+.team-stats{display:flex;gap:2px;padding:2px 4px;flex-wrap:wrap}
+.ts-cell{font-size:.65rem;padding:1px 4px;background:var(--bg);border-radius:2px;white-space:nowrap}
+.ts-plus{color:#e74c3c;font-weight:700}
+.ts-minus{color:#3498db;font-weight:700}
+
+/* ===== THREAT SLOT ===== */
+.threat-slot .team-slot{border-left:3px solid var(--warn);margin-bottom:0}
+
 /* ===== RECORDS ===== */
 .record{background:var(--bg2);border-radius:var(--radius);padding:10px;margin-bottom:6px;border-left:4px solid var(--accent)}
 .record .meta{font-size:.75rem;color:var(--fg2);margin-bottom:4px}

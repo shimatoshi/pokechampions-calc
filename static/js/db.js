@@ -1,7 +1,7 @@
 // IndexedDB wrapper with persistence
 const DB = (() => {
   const DB_NAME = 'pokechamp';
-  const DB_VER = 1;
+  const DB_VER = 2;
   let db = null;
 
   function open() {
@@ -14,6 +14,8 @@ const DB = (() => {
           d.createObjectStore('teams', { keyPath: 'id', autoIncrement: true });
         if (!d.objectStoreNames.contains('records'))
           d.createObjectStore('records', { keyPath: 'id', autoIncrement: true });
+        if (!d.objectStoreNames.contains('threats'))
+          d.createObjectStore('threats', { keyPath: 'id', autoIncrement: true });
       };
       req.onsuccess = () => { db = req.result; resolve(db); };
       req.onerror = () => reject(req.error);
@@ -36,9 +38,7 @@ const DB = (() => {
     async add(store, obj) { return wrap((await tx(store, 'readwrite')).add(obj)); },
     async del(store, id) { return wrap((await tx(store, 'readwrite')).delete(id)); },
     async persist() {
-      if (navigator.storage && navigator.storage.persist) {
-        return navigator.storage.persist();
-      }
+      if (navigator.storage && navigator.storage.persist) return navigator.storage.persist();
       return false;
     }
   };
