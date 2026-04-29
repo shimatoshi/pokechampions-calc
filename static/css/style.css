@@ -100,6 +100,20 @@ label:first-child{margin-top:0}
 .search-list .item{padding:6px 10px;cursor:pointer;font-size:.85rem;display:flex;justify-content:space-between;align-items:center}
 .search-list .item:active,.search-list .item:hover{background:var(--bg3)}
 
+/* ===== NATURE GRID (Showdown-style) ===== */
+.nature-grid{margin:6px 0}
+.nature-btn{display:inline-flex;align-items:center;gap:2px;padding:4px 8px;margin:2px;border-radius:4px;background:var(--bg);border:1px solid var(--bg3);cursor:pointer;font-size:.8rem;user-select:none;transition:.15s}
+.nature-btn:active{transform:scale(.95)}
+.nature-btn.nature-plus{border-color:#e74c3c;background:rgba(231,76,60,.15)}
+.nature-btn.nature-minus{border-color:#3498db;background:rgba(52,152,219,.15)}
+.nature-mark{font-weight:900;font-size:1rem;width:12px;text-align:center}
+.nature-name{font-style:italic}
+
+/* ===== POKE INFO ===== */
+.poke-info img{vertical-align:middle}
+
+/* ===== TOAST ===== */
+
 /* ===== MISC ===== */
 .text-center{text-align:center}
 .mt{margin-top:var(--gap)}

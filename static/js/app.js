@@ -1,17 +1,38 @@
 // Pokemon Champions Calculator - Main App
 let DATA = { pokemon: {}, moves: {}, types: {}, natures: {}, items: {} };
+let JA = { pokemon: {}, moves: {}, natures: {}, items: {}, abilities: {} };
 let pokemonNames = [];
+
+// ===== HELPERS =====
+function ja(type, en) {
+  return JA[type]?.[en] || en;
+}
+
+function spriteUrl(name) {
+  const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return `/img/${slug}.webp`;
+}
+
+function spriteImg(name, size = 40) {
+  return `<img src="${spriteUrl(name)}" alt="${ja('pokemon', name)}" width="${size}" height="${size}" style="image-rendering:pixelated" onerror="this.style.display='none'">`;
+}
+
+function typeBadge(t) {
+  const typeJa = {Normal:'ノーマル',Fire:'ほのお',Water:'みず',Grass:'くさ',Electric:'でんき',Ice:'こおり',Fighting:'かくとう',Poison:'どく',Ground:'じめん',Flying:'ひこう',Psychic:'エスパー',Bug:'むし',Rock:'いわ',Ghost:'ゴースト',Dragon:'ドラゴン',Dark:'あく',Steel:'はがね',Fairy:'フェアリー',Stellar:'ステラ'};
+  return `<span class="type-badge type-${t}">${typeJa[t]||t}</span>`;
+}
+
+const STAT_JA = {hp:'HP',at:'攻撃',df:'防御',sa:'特攻',sd:'特防',sp:'素早'};
+const STAT_SHORT = {hp:'H',at:'A',df:'B',sa:'C',sd:'D',sp:'S'};
 
 // ===== DATA LOADING =====
 async function loadData() {
-  const [pokemon, moves, types, natures, items] = await Promise.all([
-    fetch('/data/data_pokemon.json').then(r => r.json()),
-    fetch('/data/data_moves.json').then(r => r.json()),
-    fetch('/data/data_types.json').then(r => r.json()),
-    fetch('/data/data_natures.json').then(r => r.json()),
-    fetch('/data/data_items.json').then(r => r.json())
-  ]);
+  const keys = ['data_pokemon','data_moves','data_types','data_natures','data_items',
+                'names_pokemon_ja','names_moves_ja','names_natures_ja','names_items_ja','names_abilities_ja'];
+  const fetches = keys.map(k => fetch(`/data/${k}.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})));
+  const [pokemon, moves, types, natures, items, jaPoke, jaMoves, jaNatures, jaItems, jaAbilities] = await Promise.all(fetches);
   DATA = { pokemon, moves, types, natures, items };
+  JA.pokemon = jaPoke; JA.moves = jaMoves; JA.natures = jaNatures; JA.items = jaItems; JA.abilities = jaAbilities;
   pokemonNames = Object.keys(pokemon).sort();
   DMG.init(types, moves, pokemon, natures);
 }
@@ -25,15 +46,24 @@ function switchPage(page) {
 }
 
 // ===== AUTOCOMPLETE SEARCH =====
-function setupSearch(inputEl, listEl, items, onSelect) {
+function setupSearch(inputEl, listEl, entries, onSelect) {
+  // entries: [{key, label, extra}] or just string[] for pokemon/moves
   inputEl.addEventListener('input', () => {
     const q = inputEl.value.toLowerCase();
     if (q.length < 1) { listEl.classList.remove('open'); return; }
-    const matches = items.filter(n => n.toLowerCase().includes(q)).slice(0, 30);
-    listEl.innerHTML = matches.map(n => {
-      const p = DATA.pokemon[n];
-      const types = p ? p.types.map(t => `<span class="type-badge type-${t}">${t}</span>`).join('') : '';
-      return `<div class="item" data-name="${n}"><span>${n}</span>${types}</div>`;
+    const matches = entries.filter(e => {
+      const name = typeof e === 'string' ? e : e.key;
+      const jaName = typeof e === 'string' ? (JA.pokemon[e] || JA.moves[e] || '') : (e.ja || '');
+      return name.toLowerCase().includes(q) || jaName.includes(q);
+    }).slice(0, 30);
+    listEl.innerHTML = matches.map(e => {
+      const name = typeof e === 'string' ? e : e.key;
+      const jaName = typeof e === 'string' ? (JA.pokemon[name] || JA.moves[name] || '') : (e.ja || '');
+      const p = DATA.pokemon[name];
+      const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
+      const moveInfo = DATA.moves[name] ? `<span class="type-badge type-${DATA.moves[name].type}">${DATA.moves[name].type}</span>` : '';
+      const display = jaName ? `${jaName} <span style="color:var(--fg2);font-size:.7rem">${name}</span>` : name;
+      return `<div class="item" data-name="${name}">${p ? spriteImg(name, 28) : ''}<span>${display}</span>${types}${moveInfo}</div>`;
     }).join('');
     listEl.classList.add('open');
   });
@@ -41,7 +71,9 @@ function setupSearch(inputEl, listEl, items, onSelect) {
     const item = e.target.closest('.item');
     if (!item) return;
     const name = item.dataset.name;
-    inputEl.value = name;
+    const jaName = JA.pokemon[name] || JA.moves[name] || name;
+    inputEl.value = jaName !== name ? `${jaName} (${name})` : name;
+    inputEl.dataset.key = name;
     listEl.classList.remove('open');
     onSelect(name);
   });
@@ -51,11 +83,11 @@ function setupSearch(inputEl, listEl, items, onSelect) {
   });
 }
 
-// ===== DAMAGE CALC PAGE =====
-function makePokemonState(prefix) {
+// ===== POKEMON STATE =====
+function makePokemonState() {
   return {
     name: '',
-    nature: 'Adamant',
+    natureMods: { plus: '', minus: '' }, // Showdown-style
     sp: { hp: 0, at: 0, df: 0, sa: 0, sd: 0, sp: 0 },
     boosts: { at: 0, df: 0, sa: 0, sd: 0, sp: 0 },
     item: '',
@@ -65,73 +97,135 @@ function makePokemonState(prefix) {
   };
 }
 
-const atkState = makePokemonState('atk');
-const defState = makePokemonState('def');
+const atkState = makePokemonState();
+const defState = makePokemonState();
 const fieldState = { weather: '', terrain: '', doubles: false, crit: false };
 
-function buildSidePanel(side, state) {
-  const s = side; // 'atk' or 'def'
+// ===== NATURE UI (Showdown-style +/- on stats) =====
+function buildNatureUI(side) {
+  const stats = ['at','df','sa','sd','sp'];
+  return `
+    <div class="nature-grid" id="${side}-nature-grid">
+      <div style="font-size:.7rem;color:var(--fg2);margin-bottom:2px">性格補正（タップで+/-切替）</div>
+      ${stats.map(s => `
+        <div class="nature-btn" data-stat="${s}" id="${side}-nbtn-${s}">
+          <span class="nature-mark" id="${side}-nmark-${s}"></span>
+          <span>${STAT_JA[s]}</span>
+        </div>
+      `).join('')}
+      <div class="nature-name" id="${side}-nature-name" style="font-size:.7rem;color:var(--fg2);margin-top:2px"></div>
+    </div>`;
+}
+
+function initNatureUI(side, state) {
+  const stats = ['at','df','sa','sd','sp'];
+  for (const s of stats) {
+    const btn = document.getElementById(`${side}-nbtn-${s}`);
+    btn.addEventListener('click', () => {
+      if (state.natureMods.plus === s) {
+        state.natureMods.plus = '';
+      } else if (state.natureMods.minus === s) {
+        state.natureMods.minus = '';
+      } else if (!state.natureMods.plus) {
+        state.natureMods.plus = s;
+      } else if (!state.natureMods.minus) {
+        if (s !== state.natureMods.plus) state.natureMods.minus = s;
+      } else {
+        // Both set: replace minus
+        if (s !== state.natureMods.plus) state.natureMods.minus = s;
+      }
+      updateNatureDisplay(side, state);
+      updateStatDisplay(side, state);
+    });
+  }
+  updateNatureDisplay(side, state);
+}
+
+function updateNatureDisplay(side, state) {
+  const stats = ['at','df','sa','sd','sp'];
+  for (const s of stats) {
+    const mark = document.getElementById(`${side}-nmark-${s}`);
+    const btn = document.getElementById(`${side}-nbtn-${s}`);
+    if (state.natureMods.plus === s) {
+      mark.textContent = '+'; mark.style.color = '#e74c3c';
+      btn.classList.add('nature-plus'); btn.classList.remove('nature-minus');
+    } else if (state.natureMods.minus === s) {
+      mark.textContent = '-'; mark.style.color = '#3498db';
+      btn.classList.remove('nature-plus'); btn.classList.add('nature-minus');
+    } else {
+      mark.textContent = ''; btn.classList.remove('nature-plus','nature-minus');
+    }
+  }
+  // Show nature name
+  const nameEl = document.getElementById(`${side}-nature-name`);
+  if (state.natureMods.plus && state.natureMods.minus) {
+    const en = DMG.findNatureName(state.natureMods.plus, state.natureMods.minus);
+    nameEl.textContent = `${ja('natures', en)} (${en})`;
+  } else if (!state.natureMods.plus && !state.natureMods.minus) {
+    nameEl.textContent = '補正なし';
+  } else {
+    nameEl.textContent = '（+と-を1つずつ選択）';
+  }
+}
+
+// ===== ITEM SELECT WITH JA =====
+function itemOptions() {
+  return `<option value="">なし</option>` +
+    Object.keys(DATA.items).sort().map(i => {
+      const jaName = ja('items', i);
+      return `<option value="${i}">${jaName !== i ? jaName : i}</option>`;
+    }).join('');
+}
+
+// ===== BUILD SIDE PANEL =====
+function buildSidePanel(side) {
+  const s = side;
   const label = s === 'atk' ? '攻撃側' : '防御側';
 
   return `
     <div class="card">
       <h3>${label}</h3>
       <div class="search-wrap">
-        <input type="text" id="${s}-search" placeholder="ポケモン名..." autocomplete="off">
+        <input type="text" id="${s}-search" placeholder="ポケモン名 / 日本語..." autocomplete="off">
         <div class="search-list" id="${s}-list"></div>
       </div>
-      <div id="${s}-info"></div>
-      <label>性格</label>
-      <select id="${s}-nature">
-        ${Object.keys(DATA.natures).map(n => `<option${n === state.nature ? ' selected' : ''}>${n}</option>`).join('')}
-      </select>
+      <div id="${s}-info" class="poke-info"></div>
+      ${buildNatureUI(s)}
       <label>もちもの</label>
-      <select id="${s}-item">
-        <option value="">なし</option>
-        ${Object.keys(DATA.items).sort().map(i => `<option>${i}</option>`).join('')}
-      </select>
+      <select id="${s}-item">${itemOptions()}</select>
       <div id="${s}-ability-wrap" class="hidden">
         <label>とくせい</label>
         <select id="${s}-ability"></select>
       </div>
-      ${s === 'atk' ? `<label>状態</label>
+      <label>状態異常</label>
       <select id="${s}-status">
         <option value="">なし</option>
         <option value="brn">やけど</option>
-      </select>` : ''}
+        <option value="psn">どく (1/8)</option>
+        <option value="tox">もうどく</option>
+        <option value="par">まひ</option>
+      </select>
       <label>SP配分 <span id="${s}-sp-total" class="sp-total">0/66</span></label>
       <div id="${s}-sp">
         ${['hp','at','df','sa','sd','sp'].map(stat => `
           <div class="sp-row">
-            <span class="sp-label">${{hp:'HP',at:'攻撃',df:'防御',sa:'特攻',sd:'特防',sp:'素早'}[stat]}</span>
+            <span class="sp-label">${STAT_SHORT[stat]}</span>
             <input type="number" id="${s}-sp-${stat}" min="0" max="32" value="0" data-stat="${stat}">
             <span class="sp-val" id="${s}-val-${stat}">-</span>
           </div>
         `).join('')}
       </div>
-      ${s === 'atk' ? `
       <label>ランク補正</label>
       <div class="col3">
-        ${['at','sa','sp'].map(stat => `
+        ${(s === 'atk' ? ['at','sa','sp'] : ['df','sd','sp']).map(stat => `
           <div class="boost-sel">
-            <span style="font-size:.7rem">${{at:'攻',sa:'特攻',sp:'素早'}[stat]}</span>
+            <span style="font-size:.7rem">${STAT_SHORT[stat]}</span>
             <select id="${s}-boost-${stat}" style="width:50px">
               ${[-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6].map(v => `<option value="${v}"${v===0?' selected':''}>${v>=0?'+':''}${v}</option>`).join('')}
             </select>
           </div>
         `).join('')}
-      </div>` : `
-      <label>ランク補正</label>
-      <div class="col3">
-        ${['df','sd','sp'].map(stat => `
-          <div class="boost-sel">
-            <span style="font-size:.7rem">${{df:'防',sd:'特防',sp:'素早'}[stat]}</span>
-            <select id="${s}-boost-${stat}" style="width:50px">
-              ${[-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6].map(v => `<option value="${v}"${v===0?' selected':''}>${v>=0?'+':''}${v}</option>`).join('')}
-            </select>
-          </div>
-        `).join('')}
-      </div>`}
+      </div>
       ${s === 'atk' ? `
       <label>わざ</label>
       ${[0,1,2,3].map(i => `
@@ -143,12 +237,13 @@ function buildSidePanel(side, state) {
     </div>`;
 }
 
+// ===== INIT CALC PAGE =====
 function initCalcPage() {
   const page = document.getElementById('page-calc');
   page.innerHTML = `
     <div class="row">
-      <div>${buildSidePanel('atk', atkState)}</div>
-      <div>${buildSidePanel('def', defState)}</div>
+      <div>${buildSidePanel('atk')}</div>
+      <div>${buildSidePanel('def')}</div>
     </div>
     <div class="card">
       <h3>フィールド</h3>
@@ -157,14 +252,16 @@ function initCalcPage() {
           <label>天候</label>
           <select id="field-weather">
             <option value="">なし</option>
-            <option>Sun</option><option>Rain</option><option>Sand</option><option>Hail</option><option>Snow</option>
+            <option value="Sun">はれ</option><option value="Rain">あめ</option>
+            <option value="Sand">すなあらし</option><option value="Snow">ゆき</option>
           </select>
         </div>
         <div>
           <label>フィールド</label>
           <select id="field-terrain">
             <option value="">なし</option>
-            <option>Electric</option><option>Grassy</option><option>Psychic</option><option>Misty</option>
+            <option value="Electric">エレキ</option><option value="Grassy">グラス</option>
+            <option value="Psychic">サイコ</option><option value="Misty">ミスト</option>
           </select>
         </div>
       </div>
@@ -177,69 +274,38 @@ function initCalcPage() {
     <div id="calc-results"></div>
   `;
 
-  // Setup search
-  setupSearch(
-    document.getElementById('atk-search'),
-    document.getElementById('atk-list'),
-    pokemonNames,
-    name => selectPokemon('atk', name)
-  );
-  setupSearch(
-    document.getElementById('def-search'),
-    document.getElementById('def-list'),
-    pokemonNames,
-    name => selectPokemon('def', name)
-  );
+  // Pokemon search
+  setupSearch(document.getElementById('atk-search'), document.getElementById('atk-list'), pokemonNames, n => selectPokemon('atk', n));
+  setupSearch(document.getElementById('def-search'), document.getElementById('def-list'), pokemonNames, n => selectPokemon('def', n));
 
-  // Setup move searches
+  // Move search
   const moveNames = Object.keys(DATA.moves).sort();
   for (let i = 0; i < 4; i++) {
-    setupSearch(
-      document.getElementById(`atk-move-${i}`),
-      document.getElementById(`atk-movelist-${i}`),
-      moveNames,
-      name => { atkState.moves[i] = name; }
-    );
+    setupSearch(document.getElementById(`atk-move-${i}`), document.getElementById(`atk-movelist-${i}`), moveNames, name => { atkState.moves[i] = name; });
   }
 
-  // SP inputs
+  // Nature UI
+  initNatureUI('atk', atkState);
+  initNatureUI('def', defState);
+
+  // SP inputs, items, status, boosts
   for (const side of ['atk', 'def']) {
     const state = side === 'atk' ? atkState : defState;
     for (const stat of ['hp','at','df','sa','sd','sp']) {
-      const input = document.getElementById(`${side}-sp-${stat}`);
-      input.addEventListener('input', () => {
-        state.sp[stat] = parseInt(input.value) || 0;
+      document.getElementById(`${side}-sp-${stat}`).addEventListener('input', e => {
+        state.sp[stat] = parseInt(e.target.value) || 0;
         updateStatDisplay(side, state);
       });
     }
-    // Nature
-    document.getElementById(`${side}-nature`).addEventListener('change', e => {
-      state.nature = e.target.value;
-      updateStatDisplay(side, state);
-    });
-    // Item
-    document.getElementById(`${side}-item`).addEventListener('change', e => {
-      state.item = e.target.value;
-    });
-    // Status
-    if (side === 'atk') {
-      document.getElementById(`${side}-status`).addEventListener('change', e => {
-        state.status = e.target.value;
-      });
-    }
-    // Boosts
+    document.getElementById(`${side}-item`).addEventListener('change', e => state.item = e.target.value);
+    document.getElementById(`${side}-status`).addEventListener('change', e => state.status = e.target.value);
     const boostStats = side === 'atk' ? ['at','sa','sp'] : ['df','sd','sp'];
     for (const stat of boostStats) {
-      document.getElementById(`${side}-boost-${stat}`).addEventListener('change', e => {
-        state.boosts[stat] = parseInt(e.target.value);
-      });
+      document.getElementById(`${side}-boost-${stat}`).addEventListener('change', e => state.boosts[stat] = parseInt(e.target.value));
     }
   }
 
-  // Calc button
   document.getElementById('calc-btn').addEventListener('click', runCalc);
-
-  // Field
   document.getElementById('field-weather').addEventListener('change', e => fieldState.weather = e.target.value);
   document.getElementById('field-terrain').addEventListener('change', e => fieldState.terrain = e.target.value);
   document.getElementById('field-doubles').addEventListener('change', e => fieldState.doubles = e.target.checked);
@@ -252,23 +318,42 @@ function selectPokemon(side, name) {
   const data = DATA.pokemon[name];
   if (!data) return;
 
-  // Show info
   const info = document.getElementById(`${side}-info`);
-  info.innerHTML = data.types.map(t => `<span class="type-badge type-${t}">${t}</span>`).join(' ');
+  const jaName = ja('pokemon', name);
+  info.innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px;margin:4px 0">
+      ${spriteImg(name, 48)}
+      <div>
+        <div style="font-weight:700">${jaName}</div>
+        <div style="font-size:.7rem;color:var(--fg2)">${name}</div>
+        <div>${data.types.map(t => typeBadge(t)).join(' ')}</div>
+      </div>
+    </div>`;
+
+  // Formes
+  if (data.formes && data.formes.length > 1) {
+    info.innerHTML += `<div style="font-size:.75rem;margin-top:2px">${data.formes.map(f =>
+      `<span class="btn btn-sm btn-outline" style="margin:1px;padding:2px 6px;font-size:.7rem;cursor:pointer" data-forme="${f}">${ja('pokemon', f) || f}</span>`
+    ).join('')}</div>`;
+    info.querySelectorAll('[data-forme]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const searchEl = document.getElementById(`${side}-search`);
+        const forme = btn.dataset.forme;
+        searchEl.value = ja('pokemon', forme) || forme;
+        searchEl.dataset.key = forme;
+        selectPokemon(side, forme);
+      });
+    });
+  }
 
   // Ability
   const abilWrap = document.getElementById(`${side}-ability-wrap`);
   const abilSel = document.getElementById(`${side}-ability`);
   if (data.abilities.length > 0) {
     abilWrap.classList.remove('hidden');
-    abilSel.innerHTML = data.abilities.map(a => `<option>${a}</option>`).join('');
+    abilSel.innerHTML = data.abilities.map(a => `<option value="${a}">${ja('abilities', a) || a}</option>`).join('');
     state.ability = data.abilities[0];
     abilSel.onchange = e => state.ability = e.target.value;
-  }
-
-  // Formes
-  if (data.formes) {
-    info.innerHTML += `<br><span style="font-size:.75rem;color:var(--fg2)">フォルム: ${data.formes.join(', ')}</span>`;
   }
 
   updateStatDisplay(side, state);
@@ -280,12 +365,21 @@ function updateStatDisplay(side, state) {
   if (!stats) return;
   let total = 0;
   for (const stat of ['hp','at','df','sa','sd','sp']) {
-    document.getElementById(`${side}-val-${stat}`).textContent = stats[stat];
-    total += state.sp[stat];
+    const el = document.getElementById(`${side}-val-${stat}`);
+    if (el) {
+      el.textContent = stats[stat];
+      // Color based on nature
+      if (state.natureMods?.plus === stat) el.style.color = '#e74c3c';
+      else if (state.natureMods?.minus === stat) el.style.color = '#3498db';
+      else el.style.color = '';
+    }
+    total += (state.sp[stat] || 0);
   }
   const totalEl = document.getElementById(`${side}-sp-total`);
-  totalEl.textContent = `${total}/66`;
-  totalEl.classList.toggle('over', total > 66);
+  if (totalEl) {
+    totalEl.textContent = `${total}/66`;
+    totalEl.classList.toggle('over', total > 66);
+  }
 }
 
 function runCalc() {
@@ -308,16 +402,18 @@ function runCalc() {
     else if (r.typeEff < 1 && r.typeEff > 0) effText = `<span class="eff-05">いまひとつ (×${r.typeEff})</span>`;
     else if (r.typeEff === 0) effText = `<span class="eff-0">効果なし</span>`;
 
+    const jaMove = ja('moves', moveName);
     html += `
       <div class="dmg-result">
         <div style="font-size:.8rem;margin-bottom:4px">
-          <span class="type-badge type-${r.moveType}">${r.moveType}</span>
-          <strong>${moveName}</strong> (威力${r.bp})
+          ${typeBadge(r.moveType)}
+          <strong>${jaMove}</strong> <span style="color:var(--fg2);font-size:.7rem">${moveName}</span> (威力${r.bp})
           ${r.isSTAB ? '<span style="color:var(--warn);font-size:.7rem">STAB</span>' : ''}
         </div>
         <div class="pct">${r.minPct}% ~ ${r.maxPct}%</div>
         <div class="range">${r.minDmg} ~ ${r.maxDmg} / ${r.hp} HP</div>
-        <div class="ko ${r.koClass}">${r.koText}</div>
+        <div class="ko ${r.koClass}">${r.koText} ${r.koDetail || ''}</div>
+        ${r.atkRecoil ? `<div style="font-size:.75rem;color:var(--fg2)">${r.atkRecoil}</div>` : ''}
         <div class="effectiveness">${effText}</div>
       </div>`;
   }
@@ -327,9 +423,7 @@ function runCalc() {
 // ===== TEAM BUILDER PAGE =====
 let currentTeam = { id: null, name: '新チーム', members: [] };
 
-function initTeamPage() {
-  renderTeamPage();
-}
+function initTeamPage() { renderTeamPage(); }
 
 function renderTeamPage() {
   const page = document.getElementById('page-team');
@@ -364,38 +458,45 @@ function renderTeamPage() {
       renderTeamPage();
     });
     slot.addEventListener('click', () => {
-      // Send to damage calc
-      atkState.name = currentTeam.members[idx].name;
-      atkState.nature = currentTeam.members[idx].nature;
-      atkState.sp = { ...currentTeam.members[idx].sp };
-      atkState.item = currentTeam.members[idx].item || '';
-      atkState.ability = currentTeam.members[idx].ability || '';
-      atkState.moves = [...(currentTeam.members[idx].moves || ['','','',''])];
+      const m = currentTeam.members[idx];
+      Object.assign(atkState, JSON.parse(JSON.stringify(m)));
       switchPage('calc');
       initCalcPage();
       selectPokemon('atk', atkState.name);
-      // Restore SP and moves
-      for (const stat of ['hp','at','df','sa','sd','sp']) {
-        const input = document.getElementById(`atk-sp-${stat}`);
-        if (input) input.value = atkState.sp[stat];
-      }
-      for (let i = 0; i < 4; i++) {
-        const input = document.getElementById(`atk-move-${i}`);
-        if (input) input.value = atkState.moves[i] || '';
-      }
-      document.getElementById('atk-nature').value = atkState.nature;
-      document.getElementById('atk-item').value = atkState.item;
-      updateStatDisplay('atk', atkState);
+      restoreStateToUI('atk', atkState);
     });
   });
 }
 
+function restoreStateToUI(side, state) {
+  for (const stat of ['hp','at','df','sa','sd','sp']) {
+    const input = document.getElementById(`${side}-sp-${stat}`);
+    if (input) input.value = state.sp[stat] || 0;
+  }
+  if (side === 'atk') {
+    for (let i = 0; i < 4; i++) {
+      const input = document.getElementById(`${side}-move-${i}`);
+      if (input) {
+        const m = state.moves[i];
+        input.value = m ? `${ja('moves', m)} (${m})` : '';
+        input.dataset.key = m || '';
+      }
+    }
+  }
+  const itemEl = document.getElementById(`${side}-item`);
+  if (itemEl) itemEl.value = state.item || '';
+  updateNatureDisplay(side, state);
+  updateStatDisplay(side, state);
+}
+
 function renderTeamSlot(member, idx) {
   const p = DATA.pokemon[member.name];
-  const types = p ? p.types.map(t => `<span class="type-badge type-${t}">${t}</span>`).join('') : '';
+  const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
+  const jaName = ja('pokemon', member.name);
   return `
     <div class="team-slot" data-idx="${idx}">
-      <div class="name">${member.name}</div>
+      ${spriteImg(member.name, 36)}
+      <div class="name">${jaName}</div>
       <div class="types">${types}</div>
       <button class="btn btn-sm btn-outline edit-btn">編集</button>
       <button class="btn btn-sm btn-danger del-btn">×</button>
@@ -404,8 +505,8 @@ function renderTeamSlot(member, idx) {
 
 function openTeamEditor(idx) {
   const isNew = idx === -1;
-  const member = isNew ? makePokemonState() : { ...currentTeam.members[idx] };
-  if (isNew) member.sp = { hp: 0, at: 0, df: 0, sa: 0, sd: 0, sp: 0 };
+  const member = isNew ? makePokemonState() : JSON.parse(JSON.stringify(currentTeam.members[idx]));
+  if (!member.natureMods) member.natureMods = { plus: '', minus: '' };
   if (!member.moves) member.moves = ['','','',''];
 
   const editor = document.getElementById('team-editor');
@@ -414,32 +515,26 @@ function openTeamEditor(idx) {
     <div class="card" style="border:2px solid var(--accent)">
       <h3>${isNew ? 'ポケモン追加' : '編集'}</h3>
       <div class="search-wrap">
-        <input type="text" id="te-search" value="${member.name}" placeholder="ポケモン名..." autocomplete="off">
+        <input type="text" id="te-search" value="${member.name ? ja('pokemon', member.name) : ''}" placeholder="ポケモン名..." autocomplete="off">
         <div class="search-list" id="te-list"></div>
       </div>
       <div id="te-info"></div>
-      <label>性格</label>
-      <select id="te-nature">
-        ${Object.keys(DATA.natures).map(n => `<option${n === member.nature ? ' selected' : ''}>${n}</option>`).join('')}
-      </select>
+      ${buildNatureUI('te')}
       <label>もちもの</label>
-      <select id="te-item">
-        <option value="">なし</option>
-        ${Object.keys(DATA.items).sort().map(i => `<option${i === member.item ? ' selected' : ''}>${i}</option>`).join('')}
-      </select>
+      <select id="te-item">${itemOptions()}</select>
       <label>とくせい</label>
       <select id="te-ability"></select>
       <label>SP配分</label>
       ${['hp','at','df','sa','sd','sp'].map(stat => `
         <div class="sp-row">
-          <span class="sp-label">${{hp:'HP',at:'攻撃',df:'防御',sa:'特攻',sd:'特防',sp:'素早'}[stat]}</span>
-          <input type="number" id="te-sp-${stat}" min="0" max="32" value="${member.sp[stat] || 0}">
+          <span class="sp-label">${STAT_SHORT[stat]}</span>
+          <input type="number" id="te-sp-${stat}" min="0" max="32" value="${member.sp?.[stat] || 0}">
         </div>
       `).join('')}
       <label>わざ</label>
       ${[0,1,2,3].map(i => `
         <div class="search-wrap" style="margin-bottom:4px">
-          <input type="text" id="te-move-${i}" value="${member.moves[i] || ''}" placeholder="わざ${i+1}..." autocomplete="off">
+          <input type="text" id="te-move-${i}" value="${member.moves[i] ? ja('moves', member.moves[i]) : ''}" placeholder="わざ${i+1}..." autocomplete="off">
           <div class="search-list" id="te-movelist-${i}"></div>
         </div>
       `).join('')}
@@ -454,12 +549,18 @@ function openTeamEditor(idx) {
     member.name = name;
     const p = DATA.pokemon[name];
     if (p) {
-      document.getElementById('te-info').innerHTML = p.types.map(t => `<span class="type-badge type-${t}">${t}</span>`).join(' ');
+      document.getElementById('te-info').innerHTML = `${spriteImg(name,48)} ${p.types.map(t => typeBadge(t)).join(' ')}`;
       const abilSel = document.getElementById('te-ability');
-      abilSel.innerHTML = p.abilities.map(a => `<option>${a}</option>`).join('');
+      abilSel.innerHTML = p.abilities.map(a => `<option value="${a}">${ja('abilities',a)||a}</option>`).join('');
       member.ability = p.abilities[0];
     }
   });
+
+  // Init nature UI for team editor
+  // Copy member's natureMods to a temp state for the UI
+  const teNature = { natureMods: { ...member.natureMods } };
+  initNatureUI('te', teNature);
+  updateNatureDisplay('te', teNature);
 
   const moveNames = Object.keys(DATA.moves).sort();
   for (let i = 0; i < 4; i++) {
@@ -470,21 +571,22 @@ function openTeamEditor(idx) {
 
   if (member.name && DATA.pokemon[member.name]) {
     const p = DATA.pokemon[member.name];
-    document.getElementById('te-info').innerHTML = p.types.map(t => `<span class="type-badge type-${t}">${t}</span>`).join(' ');
+    document.getElementById('te-info').innerHTML = `${spriteImg(member.name,48)} ${p.types.map(t => typeBadge(t)).join(' ')}`;
     const abilSel = document.getElementById('te-ability');
-    abilSel.innerHTML = p.abilities.map(a => `<option${a === member.ability ? ' selected' : ''}>${a}</option>`).join('');
+    abilSel.innerHTML = p.abilities.map(a => `<option value="${a}"${a===member.ability?' selected':''}>${ja('abilities',a)||a}</option>`).join('');
   }
+  if (member.item) document.getElementById('te-item').value = member.item;
 
   document.getElementById('te-ok').addEventListener('click', () => {
     if (!member.name) return;
-    member.nature = document.getElementById('te-nature').value;
+    member.natureMods = { ...teNature.natureMods };
     member.item = document.getElementById('te-item').value;
     member.ability = document.getElementById('te-ability').value;
-    for (const stat of ['hp','at','df','sa','sd','sp']) {
+    for (const stat of ['hp','at','df','sa','sd','sp'])
       member.sp[stat] = parseInt(document.getElementById(`te-sp-${stat}`).value) || 0;
-    }
     for (let i = 0; i < 4; i++) {
-      member.moves[i] = document.getElementById(`te-move-${i}`).value || '';
+      const el = document.getElementById(`te-move-${i}`);
+      member.moves[i] = el.dataset?.key || el.value || '';
     }
     if (isNew) currentTeam.members.push(member);
     else currentTeam.members[idx] = member;
@@ -495,15 +597,11 @@ function openTeamEditor(idx) {
 }
 
 async function saveTeam() {
-  const team = {
-    name: currentTeam.name,
-    members: currentTeam.members,
-    updatedAt: Date.now()
-  };
+  const team = { name: currentTeam.name, members: currentTeam.members, updatedAt: Date.now() };
   if (currentTeam.id) team.id = currentTeam.id;
   const id = await DB.put('teams', team);
   if (!currentTeam.id) currentTeam.id = id;
-  alert('保存しました');
+  showToast('保存しました');
 }
 
 async function loadTeamList() {
@@ -545,9 +643,7 @@ async function loadTeamList() {
 }
 
 // ===== RECORDS PAGE =====
-function initRecordsPage() {
-  renderRecordsPage();
-}
+function initRecordsPage() { renderRecordsPage(); }
 
 async function renderRecordsPage() {
   const records = await DB.getAll('records');
@@ -566,25 +662,18 @@ async function renderRecordsPage() {
   page.querySelectorAll('.record [data-action]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = parseInt(btn.dataset.id);
-      if (btn.dataset.action === 'delete') {
-        await DB.del('records', id);
-        renderRecordsPage();
-      } else if (btn.dataset.action === 'edit') {
-        const rec = await DB.get('records', id);
-        openRecordEditor(rec);
-      }
+      if (btn.dataset.action === 'delete') { await DB.del('records', id); renderRecordsPage(); }
+      else if (btn.dataset.action === 'edit') { openRecordEditor(await DB.get('records', id)); }
     });
   });
 }
 
 function renderRecord(r) {
   const date = r.date ? new Date(r.date).toLocaleDateString('ja-JP') : '';
-  const resultClass = r.result === 'win' ? 'result-win' : 'result-lose';
-  const resultText = r.result === 'win' ? '勝ち' : '負け';
   return `
     <div class="record">
       <div class="meta">${date}</div>
-      <span class="result-tag ${resultClass}">${resultText}</span>
+      <span class="result-tag ${r.result==='win'?'result-win':'result-lose'}">${r.result==='win'?'勝ち':'負け'}</span>
       <strong style="margin-left:8px">${r.opponent || '不明'}</strong>
       ${r.myTeam ? `<div style="font-size:.75rem;color:var(--fg2);margin-top:2px">自分: ${r.myTeam}</div>` : ''}
       ${r.oppTeam ? `<div style="font-size:.75rem;color:var(--fg2)">相手: ${r.oppTeam}</div>` : ''}
@@ -600,30 +689,27 @@ function openRecordEditor(existing) {
   const editor = document.getElementById('record-editor');
   editor.classList.remove('hidden');
   const r = existing || { result: 'win', opponent: '', myTeam: '', oppTeam: '', notes: '', date: Date.now() };
-
   editor.innerHTML = `
     <div class="card" style="border:2px solid var(--accent)">
       <h3>${existing ? '記録編集' : '新しい記録'}</h3>
       <label>結果</label>
       <select id="re-result">
-        <option value="win"${r.result === 'win' ? ' selected' : ''}>勝ち</option>
-        <option value="lose"${r.result === 'lose' ? ' selected' : ''}>負け</option>
+        <option value="win"${r.result==='win'?' selected':''}>勝ち</option>
+        <option value="lose"${r.result==='lose'?' selected':''}>負け</option>
       </select>
-      <label>相手プレイヤー</label>
-      <input type="text" id="re-opponent" value="${r.opponent || ''}">
+      <label>相手</label>
+      <input type="text" id="re-opponent" value="${r.opponent||''}">
       <label>自分のチーム</label>
-      <input type="text" id="re-myteam" value="${r.myTeam || ''}" placeholder="ガブリアス, ミミッキュ...">
+      <input type="text" id="re-myteam" value="${r.myTeam||''}" placeholder="ガブリアス, ミミッキュ...">
       <label>相手のチーム</label>
-      <input type="text" id="re-oppteam" value="${r.oppTeam || ''}" placeholder="ドラパルト, キョジオーン...">
+      <input type="text" id="re-oppteam" value="${r.oppTeam||''}" placeholder="ドラパルト, キョジオーン...">
       <label>メモ</label>
-      <textarea id="re-notes" rows="3" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:6px;font-size:.85rem">${r.notes || ''}</textarea>
+      <textarea id="re-notes" rows="3" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:6px;font-size:.85rem">${r.notes||''}</textarea>
       <div class="row mt">
         <button class="btn" id="re-save">保存</button>
         <button class="btn btn-outline" id="re-cancel">キャンセル</button>
       </div>
-    </div>
-  `;
-
+    </div>`;
   document.getElementById('re-save').addEventListener('click', async () => {
     const record = {
       result: document.getElementById('re-result').value,
@@ -641,21 +727,24 @@ function openRecordEditor(existing) {
   document.getElementById('re-cancel').addEventListener('click', () => editor.classList.add('hidden'));
 }
 
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:8px 20px;border-radius:20px;font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.style.opacity = '1');
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2000);
+}
+
 // ===== INIT =====
 async function init() {
-  // Register SW
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
-  }
-  // Persist storage
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
   DB.persist();
-
   await loadData();
   initCalcPage();
   initTeamPage();
   initRecordsPage();
-
-  // Nav
   document.querySelectorAll('nav button').forEach(btn => {
     btn.addEventListener('click', () => {
       const page = btn.dataset.page;
@@ -665,5 +754,4 @@ async function init() {
     });
   });
 }
-
 init();

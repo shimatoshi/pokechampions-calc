@@ -1,5 +1,5 @@
-const CACHE = 'pokechamp-v1';
-const ASSETS = [
+const CACHE = 'pokechamp-v2';
+const CORE_ASSETS = [
   '/',
   '/css/style.css',
   '/js/app.js',
@@ -10,11 +10,16 @@ const ASSETS = [
   '/data/data_types.json',
   '/data/data_natures.json',
   '/data/data_items.json',
+  '/data/names_pokemon_ja.json',
+  '/data/names_moves_ja.json',
+  '/data/names_natures_ja.json',
+  '/data/names_items_ja.json',
+  '/data/names_abilities_ja.json',
   '/manifest.json'
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE_ASSETS)));
   self.skipWaiting();
 });
 
@@ -29,10 +34,16 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-      const clone = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, clone));
-      return res;
-    }))
+    caches.match(e.request).then(r => {
+      if (r) return r;
+      return fetch(e.request).then(res => {
+        // Cache images and data on first load
+        if (res.ok && (e.request.url.includes('/img/') || e.request.url.includes('/data/'))) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => new Response('', { status: 404 }));
+    })
   );
 });
