@@ -208,8 +208,14 @@ const DMG = (() => {
     if (aAbil === 'Flare Boost' && attacker.status === 'brn' && !isPhysical) atk = Math.floor(atk * 1.5);
     // Gorilla Tactics: 1.5x Attack (like choice band)
     if (aAbil === 'Gorilla Tactics' && isPhysical) atk = Math.floor(atk * 1.5);
-    // Overgrow/Blaze/Torrent/Swarm: 1.5x when HP<=1/3 (simplified: always apply if ability matches type)
-    // These are situational so we skip auto-apply; user controls via boost
+    // Overgrow/Blaze/Torrent/Swarm: 1.5x when HP<=1/3
+    // Pinch abilities — user sets via field checkbox
+    if (field?.pinch) {
+      if (aAbil === 'Overgrow' && effectiveMoveType === 'Grass') bp = Math.floor(bp * 1.5);
+      if (aAbil === 'Blaze' && effectiveMoveType === 'Fire') bp = Math.floor(bp * 1.5);
+      if (aAbil === 'Torrent' && effectiveMoveType === 'Water') bp = Math.floor(bp * 1.5);
+      if (aAbil === 'Swarm' && effectiveMoveType === 'Bug') bp = Math.floor(bp * 1.5);
+    }
 
     // ===== ATTACKER ABILITY: -ate abilities (type change + 1.2x) =====
     let ateType = '';

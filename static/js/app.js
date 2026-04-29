@@ -188,7 +188,7 @@ function makePokemonState() {
 
 const atkState = makePokemonState();
 const defState = makePokemonState();
-const fieldState = { weather: '', terrain: '', doubles: false, crit: false, stealthRock: false, spikes: 0 };
+const fieldState = { weather: '', terrain: '', doubles: false, crit: false, stealthRock: false, spikes: 0, pinch: false };
 
 // ===== NATURE UI (Showdown-style +/- on stats) =====
 function buildNatureUI(side) {
@@ -357,6 +357,7 @@ function initCalcPage() {
         <label><input type="checkbox" id="field-crit"> 急所</label>
       </div>
       <div class="col2 mt">
+        <label><input type="checkbox" id="field-pinch"> HP1/3以下</label>
         <label><input type="checkbox" id="field-sr"> ステルスロック</label>
         <div>
           <label>まきびし</label>
@@ -477,6 +478,7 @@ function initCalcPage() {
   document.getElementById('field-terrain').addEventListener('change', e => fieldState.terrain = e.target.value);
   document.getElementById('field-doubles').addEventListener('change', e => fieldState.doubles = e.target.checked);
   document.getElementById('field-crit').addEventListener('change', e => fieldState.crit = e.target.checked);
+  document.getElementById('field-pinch').addEventListener('change', e => fieldState.pinch = e.target.checked);
   document.getElementById('field-sr').addEventListener('change', e => fieldState.stealthRock = e.target.checked);
   document.getElementById('field-spikes').addEventListener('change', e => fieldState.spikes = parseInt(e.target.value));
 }
