@@ -190,6 +190,8 @@ const DMG = (() => {
     if (aAbil === 'Reckless' && move.recoilHP) bp = Math.floor(bp * 1.2);
     // Sheer Force: moves with secondary effects 1.3x (but removes the effect)
     if (aAbil === 'Sheer Force' && move.secondary) bp = Math.floor(bp * 1.3);
+    // Tough Claws: contact moves 1.3x
+    if (aAbil === 'Tough Claws' && move.contact) bp = Math.floor(bp * 1.3);
 
     // ===== ATTACKER ABILITY: Atk stat modifiers =====
     // Huge Power / Pure Power: doubles Attack
