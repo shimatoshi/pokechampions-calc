@@ -211,10 +211,10 @@ const DMG = (() => {
     // Overgrow/Blaze/Torrent/Swarm: 1.5x when HP<=1/3
     // Pinch abilities — user sets via field checkbox
     if (field?.pinch) {
-      if (aAbil === 'Overgrow' && effectiveMoveType === 'Grass') bp = Math.floor(bp * 1.5);
-      if (aAbil === 'Blaze' && effectiveMoveType === 'Fire') bp = Math.floor(bp * 1.5);
-      if (aAbil === 'Torrent' && effectiveMoveType === 'Water') bp = Math.floor(bp * 1.5);
-      if (aAbil === 'Swarm' && effectiveMoveType === 'Bug') bp = Math.floor(bp * 1.5);
+      if (aAbil === 'Overgrow' && move.type === 'Grass') bp = Math.floor(bp * 1.5);
+      if (aAbil === 'Blaze' && move.type === 'Fire') bp = Math.floor(bp * 1.5);
+      if (aAbil === 'Torrent' && move.type === 'Water') bp = Math.floor(bp * 1.5);
+      if (aAbil === 'Swarm' && move.type === 'Bug') bp = Math.floor(bp * 1.5);
     }
 
     // ===== ATTACKER ABILITY: -ate abilities (type change + 1.2x) =====
