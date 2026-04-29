@@ -106,7 +106,7 @@ function setupSearch(inputEl, listEl, entries, onSelect) {
       const jaName = typeof e === 'string' ? (JA.pokemon[name] || JA.moves[name] || '') : (e.ja || '');
       const p = DATA.pokemon[name];
       const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
-      const moveInfo = DATA.moves[name] ? `<span class="type-badge type-${DATA.moves[name].type}">${DATA.moves[name].type}</span>` : '';
+      const moveInfo = DATA.moves[name] ? `<span class="type-badge type-${DATA.moves[name].type}">${DATA.moves[name].type}</span>${DATA.moves[name].cat === 'Status' ? '<span style="font-size:.6rem;color:var(--fg2);margin-left:2px">変化</span>' : ''}` : '';
       const display = jaName ? `${jaName} <span style="color:var(--fg2);font-size:.7rem">${name}</span>` : name;
       return `<div class="item" data-name="${name}">${p ? spriteImg(name, 28) : ''}<span>${display}</span>${types}${moveInfo}</div>`;
     }).join('');
