@@ -85,6 +85,20 @@ label:first-child{margin-top:0}
 .team-slot .name{font-weight:700;flex:1}
 .team-slot .types{display:flex;gap:2px}
 
+/* ===== TEAM SPRITES BAR ===== */
+.team-sprites{display:flex;gap:2px;justify-content:center}
+.team-sprites img{width:40px;height:40px;image-rendering:pixelated}
+.team-empty-slot{width:40px;height:40px;background:var(--bg3);border-radius:50%;opacity:.3}
+.team-sprites-bar{display:flex;gap:4px;justify-content:center;padding:8px;background:var(--bg2);border-radius:var(--radius);margin-bottom:var(--gap);position:sticky;top:42px;z-index:50}
+.ts-sprite{width:48px;height:48px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;transition:.15s;border:2px solid transparent}
+.ts-sprite:active{transform:scale(.9)}
+.ts-sprite.ts-empty{background:var(--bg3);opacity:.3}
+.ts-sprite img{width:44px;height:44px}
+
+/* ===== TEAM ROW ===== */
+.team-row{transition:.15s}
+.team-row:active{transform:scale(.98);border-color:var(--accent)}
+
 /* ===== TEAM DETAIL ===== */
 .team-detail{background:var(--bg2);border-radius:var(--radius);margin-bottom:6px;overflow:hidden}
 .team-detail .team-slot{margin-bottom:0}
