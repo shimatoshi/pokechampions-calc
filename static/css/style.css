@@ -1,0 +1,116 @@
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#1a1a2e;--bg2:#16213e;--bg3:#0f3460;
+  --fg:#eee;--fg2:#aab;--accent:#e94560;--accent2:#533483;
+  --ok:#27ae60;--warn:#f39c12;--danger:#e74c3c;
+  --radius:8px;--gap:8px;
+}
+html{font-size:14px}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh;display:flex;flex-direction:column;overscroll-behavior:none}
+
+/* ===== NAV ===== */
+nav{display:flex;background:var(--bg2);border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100}
+nav button{flex:1;padding:10px 4px;background:none;border:none;color:var(--fg2);font-size:.9rem;font-weight:700;cursor:pointer;transition:.2s}
+nav button.active{color:var(--accent);border-bottom:3px solid var(--accent)}
+nav button:active{background:rgba(233,69,96,.15)}
+
+/* ===== PAGES ===== */
+.page{display:none;flex:1;padding:var(--gap);overflow-y:auto;padding-bottom:20px}
+.page.show{display:block}
+
+/* ===== CARDS ===== */
+.card{background:var(--bg2);border-radius:var(--radius);padding:10px;margin-bottom:var(--gap)}
+.card h3{font-size:.85rem;color:var(--accent);margin-bottom:6px}
+
+/* ===== FORMS ===== */
+select,input[type=number],input[type=text]{
+  background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;
+  padding:6px 8px;font-size:.85rem;width:100%}
+select:focus,input:focus{outline:none;border-color:var(--accent)}
+label{display:block;font-size:.75rem;color:var(--fg2);margin-bottom:2px;margin-top:6px}
+label:first-child{margin-top:0}
+
+/* ===== GRID ===== */
+.row{display:flex;gap:var(--gap)}
+.row>*{flex:1;min-width:0}
+.col2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+.col3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--gap)}
+.col6{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+
+/* ===== DAMAGE RESULT ===== */
+.dmg-result{
+  background:var(--bg);border:2px solid var(--bg3);border-radius:var(--radius);
+  padding:12px;text-align:center;margin:var(--gap) 0;font-size:1.1rem;font-weight:700}
+.dmg-result .pct{font-size:1.4rem;color:var(--accent)}
+.dmg-result .range{font-size:.85rem;color:var(--fg2);margin-top:4px}
+.dmg-result .ko{font-size:.85rem;margin-top:4px}
+.ko-guaranteed{color:var(--danger)}
+.ko-possible{color:var(--warn)}
+.ko-safe{color:var(--ok)}
+
+/* ===== TYPE BADGES ===== */
+.type-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:.7rem;font-weight:700;color:#fff;margin:1px}
+.type-Normal{background:#a8a878}.type-Fire{background:#f08030}.type-Water{background:#6890f0}
+.type-Grass{background:#78c850}.type-Electric{background:#f8d030;color:#333}.type-Ice{background:#98d8d8;color:#333}
+.type-Fighting{background:#c03028}.type-Poison{background:#a040a0}.type-Ground{background:#e0c068;color:#333}
+.type-Flying{background:#a890f0}.type-Psychic{background:#f85888}.type-Bug{background:#a8b820;color:#333}
+.type-Rock{background:#b8a038}.type-Ghost{background:#705898}.type-Dragon{background:#7038f8}
+.type-Dark{background:#705848}.type-Steel{background:#b8b8d0;color:#333}.type-Fairy{background:#ee99ac;color:#333}
+.type-Stellar{background:linear-gradient(135deg,#ff6b6b,#ffa07a,#ffd700,#98fb98,#87ceeb,#dda0dd);color:#333}
+
+/* ===== STAT BARS ===== */
+.sp-row{display:flex;align-items:center;gap:4px;margin:2px 0}
+.sp-row .sp-label{width:28px;font-size:.7rem;color:var(--fg2);text-align:right}
+.sp-row input[type=number]{width:48px;text-align:center;padding:3px}
+.sp-row .sp-val{width:36px;font-size:.75rem;text-align:right;color:var(--fg)}
+.sp-total{font-size:.75rem;text-align:right;margin-top:4px}
+.sp-total.over{color:var(--danger)}
+
+/* ===== BUTTONS ===== */
+.btn{background:var(--accent);color:#fff;border:none;border-radius:4px;padding:8px 16px;font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s}
+.btn:active{transform:scale(.97);opacity:.9}
+.btn-sm{padding:4px 10px;font-size:.75rem}
+.btn-outline{background:none;border:1px solid var(--accent);color:var(--accent)}
+.btn-danger{background:var(--danger)}
+
+/* ===== BOOST SELECT ===== */
+.boost-sel{display:flex;align-items:center;gap:4px}
+.boost-sel select{width:60px}
+
+/* ===== TEAM ===== */
+.team-slot{background:var(--bg2);border-radius:var(--radius);padding:8px;margin-bottom:6px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:.2s}
+.team-slot:active{background:var(--bg3)}
+.team-slot .name{font-weight:700;flex:1}
+.team-slot .types{display:flex;gap:2px}
+
+/* ===== RECORDS ===== */
+.record{background:var(--bg2);border-radius:var(--radius);padding:10px;margin-bottom:6px;border-left:4px solid var(--accent)}
+.record .meta{font-size:.75rem;color:var(--fg2);margin-bottom:4px}
+.record .result-tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:.75rem;font-weight:700}
+.result-win{background:var(--ok);color:#fff}
+.result-lose{background:var(--danger);color:#fff}
+.record .notes{font-size:.8rem;margin-top:4px;color:var(--fg2)}
+.record-actions{display:flex;gap:4px;margin-top:6px}
+
+/* ===== SEARCH ===== */
+.search-wrap{position:relative;margin-bottom:var(--gap)}
+.search-wrap input{padding-left:28px}
+.search-list{position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--bg3);border-radius:0 0 var(--radius) var(--radius);max-height:200px;overflow-y:auto;z-index:50;display:none}
+.search-list.open{display:block}
+.search-list .item{padding:6px 10px;cursor:pointer;font-size:.85rem;display:flex;justify-content:space-between;align-items:center}
+.search-list .item:active,.search-list .item:hover{background:var(--bg3)}
+
+/* ===== MISC ===== */
+.text-center{text-align:center}
+.mt{margin-top:var(--gap)}
+.mb{margin-bottom:var(--gap)}
+.hidden{display:none}
+hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
+.effectiveness{font-size:.8rem;margin-top:2px}
+.eff-2{color:#f08030;font-weight:700}
+.eff-05{color:#6890f0}
+.eff-0{color:#705898;font-weight:700}
+
+@media(min-width:600px){
+  .page{max-width:600px;margin:0 auto}
+}

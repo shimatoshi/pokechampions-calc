@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#e94560">
+  <title>ポケチャン ダメ計</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/style.css">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body>
+  <nav>
+    <button class="active" data-page="calc">ダメ計</button>
+    <button data-page="team">編成</button>
+    <button data-page="records">記録</button>
+  </nav>
+  <div class="page show" id="page-calc">読み込み中...</div>
+  <div class="page" id="page-team"></div>
+  <div class="page" id="page-records"></div>
+  <script src="/js/db.js"></script>
+  <script src="/js/damage.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
