@@ -83,6 +83,43 @@ function setupSearch(inputEl, listEl, entries, onSelect) {
   });
 }
 
+// ===== ITEM SEARCH =====
+function setupItemSearch(inputEl, listEl, entries, onSelect) {
+  inputEl.addEventListener('input', () => {
+    const q = inputEl.value.toLowerCase();
+    if (q.length < 1) { listEl.classList.remove('open'); return; }
+    const matches = entries.filter(e =>
+      e.key.toLowerCase().includes(q) || e.ja.toLowerCase().includes(q)
+    ).slice(0, 20);
+    listEl.innerHTML = matches.map(e => {
+      const display = e.ja !== e.key ? `${e.ja} <span style="color:var(--fg2);font-size:.7rem">${e.key}</span>` : e.key;
+      return `<div class="item" data-name="${e.key}"><span>${display}</span></div>`;
+    }).join('');
+    if (matches.length === 0) {
+      listEl.innerHTML = '<div class="item" style="color:var(--fg2)">該当なし</div>';
+    }
+    listEl.classList.add('open');
+  });
+  // Clear item on empty input
+  inputEl.addEventListener('change', () => {
+    if (!inputEl.value.trim()) { inputEl.dataset.key = ''; onSelect(''); }
+  });
+  listEl.addEventListener('click', e => {
+    const item = e.target.closest('.item');
+    if (!item || !item.dataset.name) return;
+    const name = item.dataset.name;
+    const jaName = ja('items', name);
+    inputEl.value = jaName !== name ? `${jaName}` : name;
+    inputEl.dataset.key = name;
+    listEl.classList.remove('open');
+    onSelect(name);
+  });
+  document.addEventListener('click', e => {
+    if (!inputEl.contains(e.target) && !listEl.contains(e.target))
+      listEl.classList.remove('open');
+  });
+}
+
 // ===== POKEMON STATE =====
 function makePokemonState() {
   return {
@@ -168,15 +205,6 @@ function updateNatureDisplay(side, state) {
   }
 }
 
-// ===== ITEM SELECT WITH JA =====
-function itemOptions() {
-  return `<option value="">なし</option>` +
-    Object.keys(DATA.items).sort().map(i => {
-      const jaName = ja('items', i);
-      return `<option value="${i}">${jaName !== i ? jaName : i}</option>`;
-    }).join('');
-}
-
 // ===== BUILD SIDE PANEL =====
 function buildSidePanel(side) {
   const s = side;
@@ -192,7 +220,10 @@ function buildSidePanel(side) {
       <div id="${s}-info" class="poke-info"></div>
       ${buildNatureUI(s)}
       <label>もちもの</label>
-      <select id="${s}-item">${itemOptions()}</select>
+      <div class="search-wrap">
+        <input type="text" id="${s}-item-search" placeholder="もちもの検索..." autocomplete="off">
+        <div class="search-list" id="${s}-item-list"></div>
+      </div>
       <div id="${s}-ability-wrap" class="hidden">
         <label>とくせい</label>
         <select id="${s}-ability"></select>
@@ -210,7 +241,11 @@ function buildSidePanel(side) {
         ${['hp','at','df','sa','sd','sp'].map(stat => `
           <div class="sp-row">
             <span class="sp-label">${STAT_SHORT[stat]}</span>
+            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="0">0</button>
+            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="-">-</button>
             <input type="number" id="${s}-sp-${stat}" min="0" max="32" value="0" data-stat="${stat}">
+            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="+">+</button>
+            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="32">32</button>
             <span class="sp-val" id="${s}-val-${stat}">-</span>
           </div>
         `).join('')}
@@ -271,6 +306,10 @@ function initCalcPage() {
       </div>
     </div>
     <button class="btn" style="width:100%" id="calc-btn">ダメージ計算</button>
+    <div class="row mt" style="gap:4px">
+      <button class="btn btn-outline btn-sm" id="add-atk-to-team">攻撃側をチームに追加</button>
+      <button class="btn btn-outline btn-sm" id="add-def-to-team">防御側をチームに追加</button>
+    </div>
     <div id="calc-results"></div>
   `;
 
@@ -288,22 +327,55 @@ function initCalcPage() {
   initNatureUI('atk', atkState);
   initNatureUI('def', defState);
 
-  // SP inputs, items, status, boosts
+  // Item search setup
+  const itemNames = Object.keys(DATA.items).sort();
+  const itemEntries = itemNames.map(k => ({ key: k, ja: ja('items', k) }));
+  for (const side of ['atk', 'def']) {
+    const state = side === 'atk' ? atkState : defState;
+    setupItemSearch(
+      document.getElementById(`${side}-item-search`),
+      document.getElementById(`${side}-item-list`),
+      itemEntries,
+      name => { state.item = name; }
+    );
+  }
+
+  // SP inputs + buttons, status, boosts
   for (const side of ['atk', 'def']) {
     const state = side === 'atk' ? atkState : defState;
     for (const stat of ['hp','at','df','sa','sd','sp']) {
       document.getElementById(`${side}-sp-${stat}`).addEventListener('input', e => {
-        state.sp[stat] = parseInt(e.target.value) || 0;
+        state.sp[stat] = Math.max(0, Math.min(32, parseInt(e.target.value) || 0));
         updateStatDisplay(side, state);
       });
     }
-    document.getElementById(`${side}-item`).addEventListener('change', e => state.item = e.target.value);
     document.getElementById(`${side}-status`).addEventListener('change', e => state.status = e.target.value);
     const boostStats = side === 'atk' ? ['at','sa','sp'] : ['df','sd','sp'];
     for (const stat of boostStats) {
       document.getElementById(`${side}-boost-${stat}`).addEventListener('change', e => state.boosts[stat] = parseInt(e.target.value));
     }
   }
+
+  // SP +/- /0/32 buttons (delegated)
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.sp-btn');
+    if (!btn) return;
+    const { side, stat, act } = btn.dataset;
+    const state = side === 'atk' ? atkState : defState;
+    const input = document.getElementById(`${side}-sp-${stat}`);
+    let val = state.sp[stat] || 0;
+    if (act === '+') val = Math.min(32, val + 1);
+    else if (act === '-') val = Math.max(0, val - 1);
+    else if (act === '0') val = 0;
+    else if (act === '32') val = 32;
+    state.sp[stat] = val;
+    input.value = val;
+    updateStatDisplay(side, state);
+  });
+
+  // Add to team buttons
+  document.getElementById('add-atk-to-team').addEventListener('click', () => addCalcToTeam('atk'));
+  document.getElementById('add-def-to-team').addEventListener('click', () => addCalcToTeam('def'));
 
   document.getElementById('calc-btn').addEventListener('click', runCalc);
   document.getElementById('field-weather').addEventListener('change', e => fieldState.weather = e.target.value);
@@ -420,6 +492,21 @@ function runCalc() {
   results.innerHTML = html;
 }
 
+// ===== ADD TO TEAM FROM CALC =====
+function addCalcToTeam(side) {
+  const state = side === 'atk' ? atkState : defState;
+  if (!state.name) { showToast('ポケモンを選択してください'); return; }
+  if (currentTeam.members.length >= 6) { showToast('チームは6匹まで'); return; }
+  // Check duplicate
+  if (currentTeam.members.some(m => m.name === state.name)) {
+    showToast(`${ja('pokemon', state.name)} は既にチームにいます`);
+    return;
+  }
+  const member = JSON.parse(JSON.stringify(state));
+  currentTeam.members.push(member);
+  showToast(`${ja('pokemon', state.name)} をチームに追加しました (${currentTeam.members.length}/6)`);
+}
+
 // ===== TEAM BUILDER PAGE =====
 let currentTeam = { id: null, name: '新チーム', members: [] };
 
@@ -483,8 +570,14 @@ function restoreStateToUI(side, state) {
       }
     }
   }
-  const itemEl = document.getElementById(`${side}-item`);
-  if (itemEl) itemEl.value = state.item || '';
+  const itemEl = document.getElementById(`${side}-item-search`);
+  if (itemEl && state.item) {
+    itemEl.value = ja('items', state.item);
+    itemEl.dataset.key = state.item;
+  } else if (itemEl) {
+    itemEl.value = '';
+    itemEl.dataset.key = '';
+  }
   updateNatureDisplay(side, state);
   updateStatDisplay(side, state);
 }
@@ -521,7 +614,10 @@ function openTeamEditor(idx) {
       <div id="te-info"></div>
       ${buildNatureUI('te')}
       <label>もちもの</label>
-      <select id="te-item">${itemOptions()}</select>
+      <div class="search-wrap">
+        <input type="text" id="te-item-search" value="${member.item ? ja('items', member.item) : ''}" placeholder="もちもの検索..." autocomplete="off">
+        <div class="search-list" id="te-item-list"></div>
+      </div>
       <label>とくせい</label>
       <select id="te-ability"></select>
       <label>SP配分</label>
@@ -562,6 +658,18 @@ function openTeamEditor(idx) {
   initNatureUI('te', teNature);
   updateNatureDisplay('te', teNature);
 
+  // Item search in team editor
+  const teItemEntries = Object.keys(DATA.items).sort().map(k => ({ key: k, ja: ja('items', k) }));
+  setupItemSearch(
+    document.getElementById('te-item-search'),
+    document.getElementById('te-item-list'),
+    teItemEntries,
+    name => { member.item = name; }
+  );
+  if (member.item) {
+    document.getElementById('te-item-search').dataset.key = member.item;
+  }
+
   const moveNames = Object.keys(DATA.moves).sort();
   for (let i = 0; i < 4; i++) {
     setupSearch(document.getElementById(`te-move-${i}`), document.getElementById(`te-movelist-${i}`), moveNames, name => {
@@ -575,12 +683,11 @@ function openTeamEditor(idx) {
     const abilSel = document.getElementById('te-ability');
     abilSel.innerHTML = p.abilities.map(a => `<option value="${a}"${a===member.ability?' selected':''}>${ja('abilities',a)||a}</option>`).join('');
   }
-  if (member.item) document.getElementById('te-item').value = member.item;
 
   document.getElementById('te-ok').addEventListener('click', () => {
     if (!member.name) return;
     member.natureMods = { ...teNature.natureMods };
-    member.item = document.getElementById('te-item').value;
+    member.item = document.getElementById('te-item-search').dataset?.key || '';
     member.ability = document.getElementById('te-ability').value;
     for (const stat of ['hp','at','df','sa','sd','sp'])
       member.sp[stat] = parseInt(document.getElementById(`te-sp-${stat}`).value) || 0;

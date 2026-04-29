@@ -6,6 +6,9 @@ import os
 PORT = 8080
 STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 
+class Server(http.server.HTTPServer):
+    allow_reuse_address = True
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=STATIC, **kwargs)
@@ -16,6 +19,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
 if __name__ == '__main__':
-    with http.server.HTTPServer(('0.0.0.0', PORT), Handler) as httpd:
+    with Server(('0.0.0.0', PORT), Handler) as httpd:
         print(f'Serving on http://localhost:{PORT}')
         httpd.serve_forever()

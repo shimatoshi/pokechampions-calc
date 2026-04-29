@@ -59,10 +59,12 @@ label:first-child{margin-top:0}
 .type-Stellar{background:linear-gradient(135deg,#ff6b6b,#ffa07a,#ffd700,#98fb98,#87ceeb,#dda0dd);color:#333}
 
 /* ===== STAT BARS ===== */
-.sp-row{display:flex;align-items:center;gap:4px;margin:2px 0}
-.sp-row .sp-label{width:28px;font-size:.7rem;color:var(--fg2);text-align:right}
-.sp-row input[type=number]{width:48px;text-align:center;padding:3px}
+.sp-row{display:flex;align-items:center;gap:2px;margin:2px 0}
+.sp-row .sp-label{width:16px;font-size:.7rem;color:var(--fg2);text-align:right}
+.sp-row input[type=number]{width:40px;text-align:center;padding:3px}
 .sp-row .sp-val{width:36px;font-size:.75rem;text-align:right;color:var(--fg)}
+.sp-btn{background:var(--bg3);color:var(--fg);border:none;border-radius:3px;width:24px;height:24px;font-size:.7rem;font-weight:700;cursor:pointer;padding:0;line-height:24px;text-align:center;user-select:none;transition:.1s}
+.sp-btn:active{transform:scale(.9);background:var(--accent)}
 .sp-total{font-size:.75rem;text-align:right;margin-top:4px}
 .sp-total.over{color:var(--danger)}
 
