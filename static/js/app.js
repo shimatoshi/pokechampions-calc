@@ -323,6 +323,7 @@ function initCalcPage() {
       <button class="btn btn-outline btn-sm" id="add-def-to-team">防→チーム</button>
       <button class="btn btn-outline btn-sm" id="add-atk-to-box">攻→BOX</button>
       <button class="btn btn-outline btn-sm" id="add-def-to-box">防→BOX</button>
+      <button class="btn btn-outline btn-sm" style="border-color:var(--warn);color:var(--warn)" id="add-atk-to-threat">攻→仮想敵</button>
       <button class="btn btn-outline btn-sm" style="border-color:var(--warn);color:var(--warn)" id="add-def-to-threat">防→仮想敵</button>
     </div>
     <div class="row mt" style="gap:4px">
@@ -375,8 +376,8 @@ function initCalcPage() {
     }
   }
 
-  // SP +/- /0/32 buttons (delegated)
-  document.addEventListener('click', e => {
+  // SP +/- /0/32 buttons (scoped to page, not document)
+  page.addEventListener('click', e => {
     const btn = e.target.closest('.sp-btn');
     if (!btn) return;
     const { side, stat, act } = btn.dataset;
@@ -407,8 +408,9 @@ function initCalcPage() {
   document.getElementById('add-atk-to-box').addEventListener('click', () => addCalcToBox('atk'));
   document.getElementById('add-def-to-box').addEventListener('click', () => addCalcToBox('def'));
 
-  // Add defender to threats
-  document.getElementById('add-def-to-threat').addEventListener('click', addDefToThreat);
+  // Add to threats
+  document.getElementById('add-atk-to-threat').addEventListener('click', () => addToThreat('atk'));
+  document.getElementById('add-def-to-threat').addEventListener('click', () => addToThreat('def'));
 
   // Save calc result to box
   document.getElementById('save-calc-result').addEventListener('click', saveCalcToBox);
@@ -622,12 +624,13 @@ async function addCalcToBox(side) {
   showToast(`${ja('pokemon', state.name)} をBOXに追加`);
 }
 
-async function addDefToThreat() {
-  if (!defState.name) { showToast('防御側を選択してください'); return; }
-  const entry = JSON.parse(JSON.stringify(defState));
-  delete entry.id; // IMPORTANT: remove stale id so autoIncrement works
+async function addToThreat(side) {
+  const state = side === 'atk' ? atkState : defState;
+  if (!state.name) { showToast('ポケモンを選択してください'); return; }
+  const entry = JSON.parse(JSON.stringify(state));
+  delete entry.id;
   await DB.add('threats', entry);
-  showToast(`${ja('pokemon', defState.name)} を仮想敵に追加`);
+  showToast(`${ja('pokemon', state.name)} を仮想敵に追加`);
 }
 
 async function saveCalcToBox() {
@@ -1139,22 +1142,51 @@ async function loadTeamList() {
   const teams = await DB.getAll('teams');
   const modal = document.getElementById('team-load-modal');
   modal.classList.remove('hidden');
-  if (teams.length === 0) {
-    modal.innerHTML = '<div class="card"><p>保存されたチームはありません</p><button class="btn btn-outline mt" id="modal-close">閉じる</button></div>';
-    document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
-    return;
-  }
-  modal.innerHTML = `<div class="card">
+  modal.innerHTML = `<div class="card" style="max-height:70vh;overflow-y:auto">
     <h3>チーム一覧</h3>
+    ${teams.length === 0 ? '<p style="color:var(--fg2)">保存されたチームはありません</p>' : ''}
     ${teams.map(t => `
       <div class="team-slot" data-id="${t.id}">
-        <div class="name">${t.name} (${t.members.length}匹)</div>
+        <div class="name" style="flex:1">${t.name} (${t.members.length}匹)</div>
         <button class="btn btn-sm" data-action="load" data-id="${t.id}">読込</button>
+        <button class="btn btn-sm btn-outline" data-action="export" data-id="${t.id}">出力</button>
         <button class="btn btn-sm btn-danger" data-action="delete" data-id="${t.id}">削除</button>
       </div>
     `).join('')}
+    <hr>
+    <div class="row" style="gap:4px">
+      <button class="btn btn-sm" id="modal-new-team">新規チーム</button>
+      <button class="btn btn-sm btn-outline" id="modal-import-team">チームインポート</button>
+      <input type="file" id="team-import-file" accept=".json" class="hidden">
+    </div>
     <button class="btn btn-outline mt" id="modal-close">閉じる</button>
   </div>`;
+
+  document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
+  document.getElementById('modal-new-team').addEventListener('click', () => {
+    currentTeam = { id: null, name: '新チーム', members: [], notes: '' };
+    modal.classList.add('hidden');
+    renderTeamPage();
+  });
+  document.getElementById('modal-import-team').addEventListener('click', () => document.getElementById('team-import-file').click());
+  document.getElementById('team-import-file').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (data.name && data.members) {
+        delete data.id;
+        const id = await DB.add('teams', data);
+        currentTeam = { id, name: data.name, members: data.members, notes: data.notes || '' };
+        modal.classList.add('hidden');
+        renderTeamPage();
+        showToast(`チーム「${data.name}」をインポート`);
+      } else {
+        showToast('無効なチームデータ');
+      }
+    } catch (err) { showToast('読込失敗: ' + err.message); }
+    e.target.value = '';
+  });
 
   modal.addEventListener('click', async e => {
     const btn = e.target.closest('[data-action]');
@@ -1165,6 +1197,14 @@ async function loadTeamList() {
       currentTeam = { id: team.id, name: team.name, members: team.members, notes: team.notes || '' };
       modal.classList.add('hidden');
       renderTeamPage();
+    } else if (btn.dataset.action === 'export') {
+      const team = await DB.get('teams', id);
+      const blob = new Blob([JSON.stringify(team, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `team_${team.name}.json`; a.click();
+      URL.revokeObjectURL(url);
+      showToast(`チーム「${team.name}」をエクスポート`);
     } else if (btn.dataset.action === 'delete') {
       await DB.del('teams', id);
       loadTeamList();
@@ -1323,6 +1363,18 @@ async function renderBoxPage() {
         renderBoxPage();
       });
     });
+    // Save notes on change
+    const notesEl = entry.querySelector('.box-notes');
+    if (notesEl) {
+      let saveTimer;
+      notesEl.addEventListener('input', () => {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(async () => {
+          const b = await DB.get('box', id);
+          if (b) { b.notes = notesEl.value; await DB.put('box', b); }
+        }, 500);
+      });
+    }
   });
 }
 
@@ -1370,7 +1422,10 @@ function renderBoxSlot(b) {
             }).join('')}
           </div>
         </div>` : ''}
-      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+      <div style="margin-top:4px">
+        <textarea class="box-notes" data-id="${b.id}" rows="2" placeholder="メモ（調整意図、立ち回り等）" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:4px;font-size:.7rem;resize:vertical">${b.notes||''}</textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:2px">
         <button class="btn btn-sm btn-danger box-del" style="font-size:.6rem;padding:2px 6px">削除</button>
       </div>
     </div>`;
