@@ -77,6 +77,13 @@ function setupSearch(inputEl, listEl, entries, onSelect) {
     listEl.classList.remove('open');
     onSelect(name);
   });
+  // Allow free text (for status moves etc) - save raw text as key on blur
+  inputEl.addEventListener('blur', () => {
+    if (!inputEl.dataset.key && inputEl.value.trim()) {
+      inputEl.dataset.key = inputEl.value.trim();
+      onSelect(inputEl.value.trim());
+    }
+  });
   document.addEventListener('click', e => {
     if (!inputEl.contains(e.target) && !listEl.contains(e.target))
       listEl.classList.remove('open');
@@ -311,9 +318,15 @@ function initCalcPage() {
       <button class="btn btn-sm" id="load-def-from" title="チーム/対策表から防御側に読込">防御側に読込</button>
     </div>
     <button class="btn mt" style="width:100%" id="calc-btn">ダメージ計算</button>
+    <div class="row mt" style="gap:4px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" id="add-atk-to-team">攻→チーム</button>
+      <button class="btn btn-outline btn-sm" id="add-def-to-team">防→チーム</button>
+      <button class="btn btn-outline btn-sm" id="add-atk-to-box">攻→BOX</button>
+      <button class="btn btn-outline btn-sm" id="add-def-to-box">防→BOX</button>
+      <button class="btn btn-outline btn-sm" style="border-color:var(--warn);color:var(--warn)" id="add-def-to-threat">防→仮想敵</button>
+    </div>
     <div class="row mt" style="gap:4px">
-      <button class="btn btn-outline btn-sm" id="add-atk-to-team">攻撃側をチームに追加</button>
-      <button class="btn btn-outline btn-sm" id="add-def-to-team">防御側をチームに追加</button>
+      <button class="btn btn-sm btn-outline" id="save-calc-result" style="width:100%;border-color:var(--accent2);color:var(--accent2)">ダメ計結果をBOXに保存</button>
     </div>
     <div id="calc-results"></div>
     <div id="load-picker" class="hidden"></div>
@@ -389,6 +402,16 @@ function initCalcPage() {
   // Load from team/threats
   document.getElementById('load-atk-from').addEventListener('click', () => openLoadPicker('atk'));
   document.getElementById('load-def-from').addEventListener('click', () => openLoadPicker('def'));
+
+  // Add to box
+  document.getElementById('add-atk-to-box').addEventListener('click', () => addCalcToBox('atk'));
+  document.getElementById('add-def-to-box').addEventListener('click', () => addCalcToBox('def'));
+
+  // Add defender to threats
+  document.getElementById('add-def-to-threat').addEventListener('click', addDefToThreat);
+
+  // Save calc result to box
+  document.getElementById('save-calc-result').addEventListener('click', saveCalcToBox);
 
   document.getElementById('calc-btn').addEventListener('click', runCalc);
   document.getElementById('field-weather').addEventListener('change', e => fieldState.weather = e.target.value);
@@ -571,6 +594,64 @@ async function openLoadPicker(side) {
   });
 }
 
+// ===== ADD TO BOX / THREATS FROM CALC =====
+async function addCalcToBox(side) {
+  const state = side === 'atk' ? atkState : defState;
+  if (!state.name) { showToast('ポケモンを選択してください'); return; }
+  const entry = JSON.parse(JSON.stringify(state));
+  entry.savedCalcs = [];
+  entry.notes = '';
+  await DB.add('box', entry);
+  showToast(`${ja('pokemon', state.name)} をBOXに追加`);
+}
+
+async function addDefToThreat() {
+  if (!defState.name) { showToast('防御側を選択してください'); return; }
+  const entry = JSON.parse(JSON.stringify(defState));
+  await DB.add('threats', entry);
+  showToast(`${ja('pokemon', defState.name)} を仮想敵に追加`);
+}
+
+async function saveCalcToBox() {
+  if (!atkState.name || !defState.name) { showToast('攻守両方を選択してください'); return; }
+  const activeMoves = atkState.moves.filter(m => m && DATA.moves[m]);
+  if (activeMoves.length === 0) { showToast('わざを選択してください'); return; }
+
+  // Build calc summary
+  const calcResults = [];
+  for (const moveName of activeMoves) {
+    const r = DMG.calculate(atkState, defState, moveName, fieldState);
+    if (!r) continue;
+    calcResults.push({
+      vs: defState.name,
+      move: moveName,
+      range: `${r.minPct}%~${r.maxPct}%`,
+      ko: r.koText,
+      detail: r.koDetail || ''
+    });
+  }
+  if (calcResults.length === 0) { showToast('計算結果がありません'); return; }
+
+  // Find or create box entry for attacker
+  const boxAll = await DB.getAll('box');
+  let boxEntry = boxAll.find(b => b.name === atkState.name);
+  if (!boxEntry) {
+    boxEntry = JSON.parse(JSON.stringify(atkState));
+    boxEntry.savedCalcs = [];
+    boxEntry.notes = '';
+  }
+  // Append new calc results
+  if (!boxEntry.savedCalcs) boxEntry.savedCalcs = [];
+  for (const cr of calcResults) {
+    // Avoid exact duplicates
+    if (!boxEntry.savedCalcs.some(s => s.vs === cr.vs && s.move === cr.move && s.range === cr.range)) {
+      boxEntry.savedCalcs.push(cr);
+    }
+  }
+  await DB.put('box', boxEntry);
+  showToast(`${ja('pokemon', atkState.name)} のダメ計結果をBOXに保存 (${calcResults.length}件)`);
+}
+
 // ===== ADD TO TEAM FROM CALC =====
 function addCalcToTeam(side) {
   const state = side === 'atk' ? atkState : defState;
@@ -606,7 +687,10 @@ async function renderTeamPage() {
       ${currentTeam.members.map((m, i) => renderTeamSlot(m, i)).join('')}
     </div>
     ${currentTeam.members.length < 6 ? `
-    <button class="btn btn-outline mt" style="width:100%" id="team-add">+ ポケモンを追加</button>` : ''}
+    <div class="row mt" style="gap:4px">
+      <button class="btn btn-outline" style="flex:1" id="team-add">+ 新規追加</button>
+      <button class="btn btn-outline" style="flex:1" id="team-add-from-box">+ BOXから追加</button>
+    </div>` : ''}
     <div class="card mt">
       <h3>概要・戦略メモ</h3>
       <textarea id="team-notes" rows="4" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:6px;font-size:.85rem" placeholder="チームの戦略、選出パターン、戦績メモ...">${currentTeam.notes || ''}</textarea>
@@ -629,6 +713,7 @@ async function renderTeamPage() {
   document.getElementById('team-save')?.addEventListener('click', saveTeam);
   document.getElementById('team-load')?.addEventListener('click', loadTeamList);
   document.getElementById('team-add')?.addEventListener('click', () => openTeamEditor(-1));
+  document.getElementById('team-add-from-box')?.addEventListener('click', openAddFromBox);
   document.getElementById('threat-add')?.addEventListener('click', () => openThreatEditor());
 
   // Team slot events
@@ -749,6 +834,35 @@ function renderThreatSlot(t) {
         <button class="btn btn-sm btn-danger threat-del">×</button>
       </div>
     </div>`;
+}
+
+async function openAddFromBox() {
+  const boxAll = await DB.getAll('box');
+  if (boxAll.length === 0) { showToast('BOXが空です'); return; }
+  const modal = document.getElementById('team-load-modal');
+  modal.classList.remove('hidden');
+  modal.innerHTML = `<div class="card" style="max-height:70vh;overflow-y:auto">
+    <h3>BOXから追加</h3>
+    ${boxAll.map(b => `
+      <div class="team-slot box-pick" data-id="${b.id}">
+        ${spriteImg(b.name, 28)}
+        <div class="name">${ja('pokemon', b.name)}</div>
+        ${DATA.pokemon[b.name]?.types.map(t => typeBadge(t)).join('')||''}
+      </div>`).join('')}
+    <button class="btn btn-outline mt" id="box-pick-close">閉じる</button>
+  </div>`;
+  modal.querySelector('#box-pick-close').addEventListener('click', () => modal.classList.add('hidden'));
+  modal.querySelectorAll('.box-pick').forEach(slot => {
+    slot.addEventListener('click', () => {
+      const b = boxAll.find(x => x.id === parseInt(slot.dataset.id));
+      if (!b) return;
+      if (currentTeam.members.length >= 6) { showToast('6匹まで'); return; }
+      currentTeam.members.push(JSON.parse(JSON.stringify(b)));
+      modal.classList.add('hidden');
+      renderTeamPage();
+      showToast(`${ja('pokemon', b.name)} をチームに追加`);
+    });
+  });
 }
 
 async function openThreatEditor(existing) {
@@ -1084,6 +1198,147 @@ function openRecordEditor(existing) {
   document.getElementById('re-cancel').addEventListener('click', () => editor.classList.add('hidden'));
 }
 
+// ===== BOX PAGE =====
+async function renderBoxPage() {
+  const boxAll = await DB.getAll('box');
+  const page = document.getElementById('page-box');
+  page.innerHTML = `
+    <div class="card">
+      <div class="row" style="align-items:center;gap:4px;flex-wrap:wrap">
+        <h3 style="flex:1;margin:0">BOX (${boxAll.length}匹)</h3>
+        <button class="btn btn-sm" id="box-export">エクスポート</button>
+        <button class="btn btn-sm btn-outline" id="box-import">インポート</button>
+        <input type="file" id="box-import-file" accept=".json" class="hidden">
+      </div>
+    </div>
+    <div id="box-list">
+      ${boxAll.length === 0 ? '<div class="card"><p style="text-align:center;color:var(--fg2)">BOXは空です。ダメ計から追加してください</p></div>' : ''}
+      ${boxAll.map(b => renderBoxSlot(b)).join('')}
+    </div>
+  `;
+
+  document.getElementById('box-export').addEventListener('click', exportData);
+  document.getElementById('box-import').addEventListener('click', () => document.getElementById('box-import-file').click());
+  document.getElementById('box-import-file').addEventListener('change', importData);
+
+  page.querySelectorAll('.box-entry').forEach(entry => {
+    const id = parseInt(entry.dataset.id);
+    entry.querySelector('.box-detail-toggle')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const detail = entry.querySelector('.box-detail');
+      detail?.classList.toggle('hidden');
+    });
+    entry.querySelector('.box-del')?.addEventListener('click', async e => {
+      e.stopPropagation();
+      await DB.del('box', id);
+      renderBoxPage();
+    });
+    entry.querySelector('.box-to-team')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const b = boxAll.find(x => x.id === id);
+      if (!b) return;
+      if (currentTeam.members.length >= 6) { showToast('チームは6匹まで'); return; }
+      currentTeam.members.push(JSON.parse(JSON.stringify(b)));
+      showToast(`${ja('pokemon', b.name)} をチームに追加`);
+    });
+    entry.querySelector('.box-to-calc')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const b = boxAll.find(x => x.id === id);
+      if (!b) return;
+      Object.assign(atkState, JSON.parse(JSON.stringify(b)));
+      switchPage('calc');
+      initCalcPage();
+      selectPokemon('atk', atkState.name);
+      restoreStateToUI('atk', atkState);
+    });
+    // Delete individual calc
+    entry.querySelectorAll('.calc-del').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const ci = parseInt(btn.dataset.ci);
+        const b = boxAll.find(x => x.id === id);
+        if (!b || !b.savedCalcs) return;
+        b.savedCalcs.splice(ci, 1);
+        await DB.put('box', b);
+        renderBoxPage();
+      });
+    });
+  });
+}
+
+function renderBoxSlot(b) {
+  const p = DATA.pokemon[b.name];
+  const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
+  const stats = DMG.getStats(b);
+  const moves = (b.moves || []).filter(Boolean).map(m => ja('moves', m) || m).join(', ');
+  const itemStr = b.item ? ja('items', b.item) : '';
+  const abilStr = b.ability ? (ja('abilities', b.ability) || b.ability) : '';
+  const nm = b.natureMods || {};
+  const calcs = b.savedCalcs || [];
+
+  return `
+    <div class="box-entry card" data-id="${b.id}" style="padding:6px">
+      <div style="display:flex;align-items:center;gap:6px">
+        ${spriteImg(b.name, 40)}
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700">${ja('pokemon', b.name)} ${types}</div>
+          <div style="font-size:.7rem;color:var(--fg2)">${[abilStr, itemStr].filter(Boolean).join(' / ')}</div>
+          <div style="font-size:.65rem;color:var(--fg2)">${moves}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <button class="btn btn-sm box-to-calc" style="font-size:.6rem;padding:2px 6px">ダメ計</button>
+          <button class="btn btn-sm btn-outline box-to-team" style="font-size:.6rem;padding:2px 6px">チーム</button>
+        </div>
+      </div>
+      ${stats ? `<div class="team-stats" style="margin-top:2px">${['hp','at','df','sa','sd','sp'].map(s =>
+        `<span class="ts-cell${nm.plus===s?' ts-plus':''}${nm.minus===s?' ts-minus':''}">${STAT_SHORT[s]}${stats[s]}</span>`
+      ).join('')}</div>` : ''}
+      ${calcs.length > 0 ? `
+        <div style="margin-top:4px">
+          <button class="btn btn-sm btn-outline box-detail-toggle" style="font-size:.65rem;width:100%;padding:2px">ダメ計結果 (${calcs.length}件)</button>
+          <div class="box-detail hidden" style="margin-top:4px">
+            ${calcs.map((c, ci) => `
+              <div style="font-size:.7rem;padding:2px 0;display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--bg3)">
+                <span style="flex:1">vs ${ja('pokemon', c.vs)}: ${ja('moves', c.move)} ${c.range} <strong>${c.ko}</strong> ${c.detail}</span>
+                <button class="btn btn-sm btn-danger calc-del" data-ci="${ci}" style="font-size:.55rem;padding:1px 4px">×</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>` : ''}
+      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+        <button class="btn btn-sm btn-danger box-del" style="font-size:.6rem;padding:2px 6px">削除</button>
+      </div>
+    </div>`;
+}
+
+// ===== JSON IMPORT / EXPORT =====
+async function exportData() {
+  const data = await DB.exportAll();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pokechamp_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('エクスポート完了');
+}
+
+async function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    await DB.importAll(data);
+    showToast(`インポート完了 (BOX:${data.box?.length||0}, チーム:${data.teams?.length||0})`);
+    renderBoxPage();
+  } catch (err) {
+    showToast('インポート失敗: ' + err.message);
+  }
+  e.target.value = '';
+}
+
 // ===== TOAST =====
 function showToast(msg) {
   const t = document.createElement('div');
@@ -1102,10 +1357,12 @@ async function init() {
   initCalcPage();
   initTeamPage();
   initRecordsPage();
+  renderBoxPage();
   document.querySelectorAll('nav button').forEach(btn => {
     btn.addEventListener('click', () => {
       const page = btn.dataset.page;
       switchPage(page);
+      if (page === 'box') renderBoxPage();
       if (page === 'team') renderTeamPage();
       if (page === 'records') renderRecordsPage();
     });
