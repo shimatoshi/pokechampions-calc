@@ -239,20 +239,40 @@ const DMG = (() => {
     const minPct = (minDmg / hp * 100).toFixed(1);
     const maxPct = (maxDmg / hp * 100).toFixed(1);
 
+    // Stealth Rock damage
+    let srDmg = 0;
+    if (field?.stealthRock) {
+      let srEff = 1;
+      for (const dt of defTypes) {
+        const chart = typeChart['Rock'];
+        if (chart && chart[dt] !== undefined) srEff *= chart[dt];
+      }
+      srDmg = Math.floor(hp * srEff / 8);
+    }
+
+    // Spikes damage (1 layer = 1/8, 2 = 1/6, 3 = 1/4)
+    let spikesDmg = 0;
+    if (field?.spikes && !defTypes.includes('Flying')) {
+      const layers = Math.min(3, field.spikes);
+      if (layers === 1) spikesDmg = Math.floor(hp / 8);
+      else if (layers === 2) spikesDmg = Math.floor(hp / 6);
+      else if (layers === 3) spikesDmg = Math.floor(hp / 4);
+    }
+
+    const hazardDmg = srDmg + spikesDmg;
+
     // End-of-turn effects for KO calc
     const defStatus = defender.status || '';
     const eot = calcEndOfTurn(hp, dItem, defStatus);
     const isToxic = defStatus === 'tox';
 
-    // Sitrus Berry: heals 25% HP when below 50%
-    const hasSitrus = dItem === 'Sitrus Berry';
+    const hasSitrus = dItem === 'Sitrus Berry' && !berryActive; // not if berry used for type resist
     const sitrusHeal = hasSitrus ? Math.floor(hp / 4) : 0;
 
-    // Grassy Terrain recovery
     const grassyHeal = (field?.terrain === 'Grassy') ? Math.floor(hp / 16) : 0;
 
-    // KO calc with recovery/chip
-    const koInfo = calcKO(results, hp, eot, isToxic, sitrusHeal, grassyHeal);
+    // KO calc with full roll probability
+    const koInfo = calcKO(results, hp, eot, isToxic, sitrusHeal, grassyHeal, hazardDmg);
 
     // Life Orb recoil info for attacker
     let atkRecoil = '';
@@ -280,63 +300,80 @@ const DMG = (() => {
     };
   }
 
-  function calcKO(rolls, hp, eot, isToxic, sitrusHeal, grassyHeal) {
-    const min = rolls[0];
-    const max = rolls[rolls.length - 1];
+  function calcKO(rolls, hp, eot, isToxic, sitrusHeal, grassyHeal, hazardDmg) {
+    const n = rolls.length; // 16 rolls
+    const effectiveHP = hp - hazardDmg; // HP after hazards on switch-in
 
     // 1HKO check
-    if (min >= hp) return { text: '確定1発', cls: 'ko-guaranteed', detail: '' };
-    if (max >= hp) {
-      const n = rolls.filter(d => d >= hp).length;
-      return { text: `乱数1発 (${(n/16*100).toFixed(1)}%)`, cls: 'ko-possible', detail: '' };
-    }
+    const ko1 = rolls.filter(d => d >= effectiveHP).length;
+    if (ko1 === n) return { text: '確定1発', cls: 'ko-guaranteed', detail: buildDetail(hazardDmg, 0, 0, 0, 0) };
+    if (ko1 > 0) return { text: `乱数1発 (${(ko1/n*100).toFixed(1)}%)`, cls: 'ko-possible', detail: buildDetail(hazardDmg, 0, 0, 0, 0) };
 
-    // Multi-hit KO with end-of-turn effects
+    // Multi-hit KO (2~6 hits) with full probability simulation
     for (let hits = 2; hits <= 6; hits++) {
-      let minTotal = 0, maxTotal = 0;
-      let sitrusUsed = false;
-
-      for (let h = 0; h < hits; h++) {
-        minTotal += min;
-        maxTotal += max;
-
-        // After each hit (except last), apply end-of-turn
-        if (h < hits - 1) {
-          // Sitrus Berry: triggers once when HP drops below 50%
-          if (!sitrusUsed && sitrusHeal > 0) {
-            if (minTotal >= hp / 2) { minTotal -= sitrusHeal; sitrusUsed = true; }
-            if (maxTotal >= hp / 2) { maxTotal -= sitrusHeal; }
-          }
-          // End-of-turn (Leftovers recovery / status damage)
-          minTotal -= eot; // eot is positive for recovery
-          maxTotal -= eot;
-          // Grassy Terrain
-          minTotal -= grassyHeal;
-          maxTotal -= grassyHeal;
-          // Toxic: increasing damage each turn
-          if (isToxic) {
-            minTotal += Math.floor(hp * (h + 1) / 16);
-            maxTotal += Math.floor(hp * (h + 1) / 16);
+      let koCount = 0;
+      // Sample all 16^hits? Too expensive for hits>2. Use min/max per roll with uniform distribution.
+      // Smogon approach: for each of 16 first-hit rolls × 16 second-hit rolls, check KO.
+      // For hits>2, approximate with uniform sampling.
+      if (hits === 2) {
+        // Exact: 16×16 = 256 combos
+        for (let i = 0; i < n; i++) {
+          for (let j = 0; j < n; j++) {
+            let total = rolls[i] + rolls[j];
+            total = applyBetweenHits(total, effectiveHP, 1, eot, isToxic, sitrusHeal, grassyHeal, hp);
+            if (total >= effectiveHP) koCount++;
           }
         }
-      }
-
-      const detail = buildKODetail(hits, hp, eot, isToxic, sitrusHeal, grassyHeal);
-
-      if (minTotal >= hp) {
-        return { text: `確定${hits}発`, cls: hits <= 2 ? 'ko-guaranteed' : 'ko-possible', detail };
-      }
-      if (maxTotal >= hp) {
-        return { text: `乱数${hits}発`, cls: 'ko-possible', detail };
+        const pct = (koCount / (n * n) * 100).toFixed(1);
+        const detail = buildDetail(hazardDmg, eot, isToxic, sitrusHeal, grassyHeal);
+        if (koCount === n * n) return { text: `確定2発`, cls: 'ko-guaranteed', detail };
+        if (koCount > 0) return { text: `乱数2発 (${pct}%)`, cls: 'ko-possible', detail };
+      } else {
+        // Approximate: use min/max with interpolation
+        // For each combo of (min..max), simulate
+        let minTotal = 0, maxTotal = 0;
+        for (let h = 0; h < hits; h++) {
+          minTotal += rolls[0];
+          maxTotal += rolls[n - 1];
+          if (h < hits - 1) {
+            minTotal = applyBetweenHits(minTotal, effectiveHP, h + 1, eot, isToxic, sitrusHeal, grassyHeal, hp);
+            maxTotal = applyBetweenHits(maxTotal, effectiveHP, h + 1, eot, isToxic, sitrusHeal, grassyHeal, hp);
+          }
+        }
+        const detail = buildDetail(hazardDmg, eot, isToxic, sitrusHeal, grassyHeal);
+        if (minTotal >= effectiveHP) return { text: `確定${hits}発`, cls: hits <= 3 ? 'ko-guaranteed' : 'ko-safe', detail };
+        if (maxTotal >= effectiveHP) {
+          // Estimate probability via linear interpolation
+          const range = maxTotal - minTotal;
+          const needed = effectiveHP - minTotal;
+          const pct = range > 0 ? Math.min(100, Math.max(0, (1 - needed / range) * 100)).toFixed(1) : '50.0';
+          return { text: `乱数${hits}発 (${pct}%)`, cls: 'ko-possible', detail };
+        }
       }
     }
 
-    const hitsNeeded = Math.ceil(hp / min);
+    const hitsNeeded = rolls[0] > 0 ? Math.ceil(effectiveHP / rolls[0]) : 999;
     return { text: `確定${hitsNeeded}発`, cls: 'ko-safe', detail: '' };
   }
 
-  function buildKODetail(hits, hp, eot, isToxic, sitrusHeal, grassyHeal) {
+  // Apply between-hits effects (after hit h, before hit h+1)
+  function applyBetweenHits(totalDmg, effectiveHP, turnNum, eot, isToxic, sitrusHeal, grassyHeal, realHP) {
+    // Sitrus Berry: triggers once when damage exceeds 50% of real HP
+    // (simplified: just subtract once)
+    if (sitrusHeal > 0 && totalDmg >= realHP / 2 && turnNum === 1) {
+      totalDmg -= sitrusHeal;
+    }
+    // End-of-turn recovery/damage
+    totalDmg -= eot;
+    totalDmg -= grassyHeal;
+    // Toxic
+    if (isToxic) totalDmg += Math.floor(realHP * turnNum / 16);
+    return totalDmg;
+  }
+
+  function buildDetail(hazardDmg, eot, isToxic, sitrusHeal, grassyHeal) {
     const parts = [];
+    if (hazardDmg > 0) parts.push(`ステロ等-${hazardDmg}`);
     if (eot > 0) parts.push(`たべのこし+${eot}`);
     if (eot < 0) parts.push(`スリップ${eot}`);
     if (isToxic) parts.push('猛毒');
