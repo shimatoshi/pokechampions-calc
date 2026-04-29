@@ -485,6 +485,7 @@ function runCalc() {
         <div class="pct">${r.minPct}% ~ ${r.maxPct}%</div>
         <div class="range">${r.minDmg} ~ ${r.maxDmg} / ${r.hp} HP</div>
         <div class="ko ${r.koClass}">${r.koText} ${r.koDetail || ''}</div>
+        ${r.berryActive ? `<div style="font-size:.75rem;color:var(--ok)">${ja('items', r.berryItem)}で半減</div>` : ''}
         ${r.atkRecoil ? `<div style="font-size:.75rem;color:var(--fg2)">${r.atkRecoil}</div>` : ''}
         <div class="effectiveness">${effText}</div>
       </div>`;

@@ -82,6 +82,16 @@ const DMG = (() => {
     return Math.floor(stat * 2 / (2 - boost));
   }
 
+  // Type-resist berries: halve super-effective damage of a specific type (consumed)
+  const RESIST_BERRY = {
+    'Occa Berry':'Fire','Passho Berry':'Water','Wacan Berry':'Electric',
+    'Rindo Berry':'Grass','Yache Berry':'Ice','Chople Berry':'Fighting',
+    'Kebia Berry':'Poison','Shuca Berry':'Ground','Coba Berry':'Flying',
+    'Payapa Berry':'Psychic','Tanga Berry':'Bug','Charti Berry':'Rock',
+    'Kasib Berry':'Ghost','Haban Berry':'Dragon','Colbur Berry':'Dark',
+    'Babiri Berry':'Steel','Roseli Berry':'Fairy','Chilan Berry':'Normal'
+  };
+
   // Per-turn recovery/damage for KO calculation
   function calcEndOfTurn(hp, defItem, defStatus) {
     let eot = 0; // positive = recovery, negative = damage
@@ -168,6 +178,14 @@ const DMG = (() => {
     const dItem = defender.item || '';
     if (dItem === 'Assault Vest' && !isPhysical) def = Math.floor(def * 1.5);
 
+    // Type-resist berry: halves SE damage of matching type
+    const resistType = RESIST_BERRY[dItem];
+    const berryActive = resistType && (
+      (resistType === move.type && typeEff > 1) ||
+      (resistType === 'Normal' && move.type === 'Normal') // Chilan Berry works on normal moves
+    );
+    const berryMod = berryActive ? 0.5 : 1;
+
     atk = Math.floor(atk * itemAtkMod);
 
     // Critical hit
@@ -186,6 +204,7 @@ const DMG = (() => {
       dmg = Math.floor(dmg * roll / 100);
       dmg = Math.floor(dmg * stabMod);
       dmg = Math.floor(dmg * typeEff);
+      dmg = Math.floor(dmg * berryMod);
       dmg = Math.floor(dmg * burnMod);
       dmg = Math.floor(dmg * terrainMod);
       dmg = Math.floor(dmg * itemMod);
@@ -231,7 +250,8 @@ const DMG = (() => {
       typeEff,
       isSTAB,
       atkStats, defStats,
-      atkRecoil
+      atkRecoil,
+      berryActive, berryItem: berryActive ? dItem : ''
     };
   }
 
