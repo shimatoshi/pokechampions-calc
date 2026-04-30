@@ -201,10 +201,15 @@ export function initCalcPage() {
   hpInput?.addEventListener('input', e => {
     const v = e.target.value.trim();
     defState.currentHP = v === '' ? null : Math.max(0, parseInt(v) || 0);
+    // 手動入力したら連鎖モードは破棄
+    defState.hpDist = null;
+    defState.chainHits = 0;
     updateHpDisplay();
   });
   document.getElementById('def-hp-reset')?.addEventListener('click', () => {
     defState.currentHP = null;
+    defState.hpDist = null;
+    defState.chainHits = 0;
     if (hpInput) hpInput.value = '';
     updateHpDisplay();
   });
@@ -275,8 +280,12 @@ export function selectPokemon(side, name) {
   const state = side === 'atk' ? atkState : defState;
   const isNewPokemon = state.name !== name;
   state.name = name;
-  // ポケモン変更時は currentHP をリセット (満タン扱い)
-  if (side === 'def' && isNewPokemon) state.currentHP = null;
+  // ポケモン変更時は HP系を全リセット (満タン扱い)
+  if (side === 'def' && isNewPokemon) {
+    state.currentHP = null;
+    state.hpDist = null;
+    state.chainHits = 0;
+  }
   const data = DATA.pokemon[name];
   if (!data) return;
 
@@ -382,6 +391,30 @@ function updateHpDisplay() {
   }
 }
 
+// hpDist は [hp, count][] (HP値 → その組み合わせ数)。total = Σcount = 16^連鎖回数
+// 既存の単一HPは [[hp, 1]] 同等として扱う
+function applyDamagesToDist(baseDist, damages) {
+  const m = new Map();
+  for (const [hp, n] of baseDist) {
+    for (const dmg of damages) {
+      const rem = Math.max(0, hp - dmg);
+      m.set(rem, (m.get(rem) || 0) + n);
+    }
+  }
+  return [...m.entries()].sort((a, b) => a[0] - b[0]);
+}
+
+function getDefHpDist() {
+  if (defState.hpDist && defState.hpDist.length) return defState.hpDist;
+  const stats = DMG.getStats(defState);
+  const cur = defState.currentHP != null ? defState.currentHP : (stats?.hp || 0);
+  return [[cur, 1]];
+}
+
+function distTotal(dist) {
+  return dist.reduce((s, [, n]) => s + n, 0);
+}
+
 function runCalc() {
   if (!atkState.name || !defState.name) return;
   const results = document.getElementById('calc-results');
@@ -400,6 +433,24 @@ function runCalc() {
     return;
   }
 
+  // 全乱数連鎖モードのヘッダ
+  const stats = DMG.getStats(defState);
+  const maxHp = stats?.hp || 0;
+  const inChain = defState.hpDist && defState.hpDist.length > 0;
+  if (inChain) {
+    const dist = defState.hpDist;
+    const total = distTotal(dist);
+    const minHp = dist[0][0], maxHpInDist = dist[dist.length - 1][0];
+    const koCombos = dist.reduce((s, [hp, n]) => s + (hp === 0 ? n : 0), 0);
+    const koPct = (koCombos / total * 100).toFixed(1);
+    html += `
+      <div class="dmg-result" style="background:var(--bg3);text-align:left;font-size:.8rem;padding:8px">
+        <div><strong>🔗 ${defState.chainHits}撃目までの累積</strong> <button class="btn btn-sm btn-outline" id="chain-reset" style="float:right;font-size:.7rem;padding:1px 8px">リセット</button></div>
+        <div style="margin-top:4px">残HP: ${minHp}〜${maxHpInDist} / ${maxHp} (全${total}通り)</div>
+        ${koCombos > 0 ? `<div style="color:var(--danger)">累積KO: ${koPct}% (${koCombos}/${total})</div>` : ''}
+      </div>`;
+  }
+
   for (const moveName of activeMoves) {
     const r = DMG.calculate(atkState, defState, moveName, fieldState);
     if (!r) continue;
@@ -410,8 +461,37 @@ function runCalc() {
     else if (r.typeEff === 0) effText = `<span class="eff-0">効果なし</span>`;
 
     const jaMove = ja('moves', moveName);
-    const avgDmg = Math.floor((r.minDmg + r.maxDmg) / 2);
     const remaining = r.curHp < r.hp ? `<span style="color:var(--warn)">残${r.curHp}/${r.hp}</span> ` : '';
+
+    // 連鎖中: この技を次撃に当てたときの累積結果をプレビュー
+    let chainPreview = '';
+    if (inChain && !r.disguiseConsumed) {
+      const baseDist = defState.hpDist;
+      let totalCombos = 0;
+      let koCombos = 0;
+      let minRem = Infinity, maxRem = -Infinity;
+      for (const [hp, n] of baseDist) {
+        for (const dmg of r.damages) {
+          const rem = Math.max(0, hp - dmg);
+          totalCombos += n;
+          if (rem === 0) koCombos += n;
+          if (rem < minRem) minRem = rem;
+          if (rem > maxRem) maxRem = rem;
+        }
+      }
+      const koPct = (koCombos / totalCombos * 100).toFixed(1);
+      const isKoFull = koCombos === totalCombos;
+      const koLine = isKoFull
+        ? `<span style="color:var(--danger);font-weight:700">確定KO (${totalCombos}/${totalCombos})</span>`
+        : koCombos > 0
+        ? `<span style="color:var(--warn)">乱数KO ${koPct}% (${koCombos}/${totalCombos})</span>`
+        : `<span style="color:var(--ok)">耐え (${totalCombos}通り)</span>`;
+      chainPreview = `
+        <div style="margin-top:4px;font-size:.78rem;background:var(--bg3);padding:4px 6px;border-radius:3px">
+          次撃: ${koLine} / 残HP ${minRem === Infinity ? '-' : `${minRem}〜${maxRem}`}
+        </div>`;
+    }
+
     html += `
       <div class="dmg-result">
         <div style="font-size:.8rem;margin-bottom:4px">
@@ -422,37 +502,49 @@ function runCalc() {
         </div>
         <div class="pct">${r.minPct}% ~ ${r.maxPct}%</div>
         <div class="range">${remaining}${r.minDmg} ~ ${r.maxDmg} / ${r.hp} HP</div>
-        <div class="ko ${r.koClass}">${r.koText} ${r.koDetail || ''}</div>
+        ${inChain ? '' : `<div class="ko ${r.koClass}">${r.koText} ${r.koDetail || ''}</div>`}
+        ${chainPreview}
         ${r.statNote ? `<div style="font-size:.7rem;color:var(--accent2)">${r.statNote}</div>` : ''}
         ${r.berryActive ? `<div style="font-size:.75rem;color:var(--ok)">${ja('items', r.berryItem)}で半減</div>` : ''}
         ${r.atkRecoil ? `<div style="font-size:.75rem;color:var(--fg2)">${r.atkRecoil}</div>` : ''}
         <div class="effectiveness">${effText}</div>
         <div class="row" style="gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center">
           ${r.disguiseConsumed
-            ? `<button class="btn btn-sm next-hit" data-dmg="${r.maxDmg}" data-consume-disguise="1" style="font-size:.7rem;padding:3px 10px">ばけのかわを消費して進む</button>`
-            : `
-              <button class="btn btn-sm btn-outline next-hit" data-dmg="${r.minDmg}" style="font-size:.7rem;padding:3px 8px">最小(-${r.minDmg})</button>
-              <button class="btn btn-sm btn-outline next-hit" data-dmg="${avgDmg}" style="font-size:.7rem;padding:3px 8px">平均(-${avgDmg})</button>
-              <button class="btn btn-sm btn-outline next-hit" data-dmg="${r.maxDmg}" style="font-size:.7rem;padding:3px 8px;border-color:var(--warn);color:var(--warn)">最大(-${r.maxDmg})</button>
-            `}
+            ? `<button class="btn btn-sm next-hit" data-move="${esc(moveName)}" data-consume-disguise="1" style="font-size:.75rem;padding:3px 10px">ばけのかわを消費して進む</button>`
+            : `<button class="btn btn-sm btn-outline next-hit" data-move="${esc(moveName)}" style="font-size:.75rem;padding:3px 14px">続ける (全乱数)</button>`}
         </div>
       </div>`;
   }
   results.innerHTML = html;
-  // 次の攻撃へボタン: 残HP更新→再計算 (ばけのかわ消費判定込み)
+
+  // リセット: hpDist消去・currentHP満タンへ
+  document.getElementById('chain-reset')?.addEventListener('click', () => {
+    defState.hpDist = null;
+    defState.chainHits = 0;
+    defState.currentHP = null;
+    const hpInput = document.getElementById('def-current-hp');
+    if (hpInput) hpInput.value = '';
+    updateHpDisplay();
+    runCalc();
+  });
+
+  // 続ける(全乱数): 現分布 × 16ロール で新分布を生成
   results.querySelectorAll('.next-hit').forEach(btn => {
     btn.addEventListener('click', () => {
-      const dmg = parseInt(btn.dataset.dmg);
+      const moveName = btn.dataset.move;
       const consumeDisguise = btn.dataset.consumeDisguise === '1';
-      const stats = DMG.getStats(defState);
-      const cur = defState.currentHP != null ? defState.currentHP : (stats?.hp || 0);
-      defState.currentHP = Math.max(0, cur - dmg);
+      const r = DMG.calculate(atkState, defState, moveName, fieldState);
+      if (!r) return;
+      const baseDist = getDefHpDist();
+      defState.hpDist = applyDamagesToDist(baseDist, r.damages);
+      defState.chainHits = (defState.chainHits || 0) + 1;
+      defState.currentHP = null; // 連鎖中は分布が真。currentHPは未使用
       if (consumeDisguise) {
         defState.disguiseIntact = false;
         updateDisguiseUI();
       }
       const hpInput = document.getElementById('def-current-hp');
-      if (hpInput) hpInput.value = defState.currentHP;
+      if (hpInput) hpInput.value = '';
       updateHpDisplay();
       runCalc();
     });
@@ -466,9 +558,13 @@ function swapSides() {
   // movesは攻撃側専用: 入替後はどちらも一度クリア (新atkで改めて選択)
   atkState.moves = ['', '', '', ''];
   defState.moves = ['', '', '', ''];
-  // currentHP/disguiseIntactもリセット (前のdef側状態は無関係になる)
+  // currentHP/hpDist/disguiseIntactもリセット (前のdef側状態は無関係になる)
   defState.currentHP = null;
   atkState.currentHP = null;
+  defState.hpDist = null;
+  atkState.hpDist = null;
+  defState.chainHits = 0;
+  atkState.chainHits = 0;
   defState.disguiseIntact = false;
   atkState.disguiseIntact = false;
   initCalcPage();

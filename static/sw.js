@@ -1,5 +1,5 @@
-// v18: 検索候補タップ修正版。過去キャッシュは引き続き全削除。
-const CACHE = 'pokechamp-v18';
+// v19: 全乱数連鎖モード追加 (続けるボタン)
+const CACHE = 'pokechamp-v19';
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 

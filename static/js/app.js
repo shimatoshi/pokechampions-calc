@@ -198,7 +198,9 @@ export function makePokemonState() {
     status: '',
     moves: ['', '', '', ''],
     currentHP: null,  // null = 満タン (実数値max)、それ以外は具体的なHP値
-    disguiseIntact: false  // ばけのかわ/Ice Face: 1発無効化が残っているか
+    disguiseIntact: false,  // ばけのかわ/Ice Face: 1発無効化が残っているか
+    hpDist: null,  // 全乱数連鎖モード: 取りうるHP値の集合 (null=単一HPモード)
+    chainHits: 0   // 連鎖累積回数 (表示用)
   };
 }
 

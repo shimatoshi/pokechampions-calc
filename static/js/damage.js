@@ -412,6 +412,7 @@ export const DMG = (() => {
         minDmg: subDmg, maxDmg: subDmg,
         minPct: (subDmg / maxHp * 100).toFixed(1),
         maxPct: (subDmg / maxHp * 100).toFixed(1),
+        damages: [subDmg],
         hp: maxHp, curHp: newCur,
         koText: `${dAbil}発動 (1/8ダメで身代わり)`, koClass: 'ko-safe', koDetail: '',
         typeEff: 1, isSTAB: false,
@@ -473,6 +474,7 @@ export const DMG = (() => {
       moveType: effectiveMoveType,
       bp, hits, hitsLabel,
       minDmg, maxDmg, minPct, maxPct,
+      damages: results,  // 16 rolls (for 全乱数連鎖)
       hp: maxHp, curHp,
       koText: koInfo.text, koClass: koInfo.cls,
       koDetail: koInfo.detail,
