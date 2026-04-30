@@ -573,6 +573,13 @@ function runCalc() {
     return;
   }
 
+  // Check if all selected moves are status moves
+  const damageMoves = activeMoves.filter(m => DATA.moves[m]?.bp > 0);
+  if (damageMoves.length === 0) {
+    results.innerHTML = '<div class="dmg-result" style="font-size:.85rem">変化技のみ選択されています（ダメージ計算対象なし）</div>';
+    return;
+  }
+
   for (const moveName of activeMoves) {
     const r = DMG.calculate(atkState, defState, moveName, fieldState);
     if (!r) continue;

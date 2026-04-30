@@ -175,7 +175,7 @@ const DMG = (() => {
     // Technician: moves with bp<=60 get 1.5x
     if (aAbil === 'Technician' && bp <= 60) bp = Math.floor(bp * 1.5);
     // Iron Fist: punch moves 1.2x
-    const punchMoves = ['Bullet Punch','Close Combat','Drain Punch','Dynamic Punch','Fire Punch','Focus Punch','Hammer Arm','Ice Punch','Mach Punch','Mega Punch','Meteor Mash','Power-Up Punch','Shadow Punch','Sky Uppercut','Sucker Punch','Thunder Punch'];
+    const punchMoves = ['Bullet Punch','Drain Punch','Dynamic Punch','Fire Punch','Focus Punch','Ice Punch','Mach Punch','Mega Punch','Meteor Mash','Power-Up Punch','Shadow Punch','Sky Uppercut','Thunder Punch','Jet Punch'];
     if (aAbil === 'Iron Fist' && punchMoves.includes(moveName)) bp = Math.floor(bp * 1.2);
     // Strong Jaw: biting moves 1.5x
     const biteMoves = ['Bite','Crunch','Fire Fang','Fishious Rend','Hyper Fang','Ice Fang','Jaw Lock','Poison Fang','Psychic Fangs','Thunder Fang'];
@@ -263,8 +263,10 @@ const DMG = (() => {
 
     // ===== DEFENDER ABILITY: Damage reduction =====
     let defAbilMod = 1;
-    // Multiscale / Shadow Shield: halves damage at full HP (simplified: toggle)
-    if (dAbil === 'Multiscale' || dAbil === 'Shadow Shield') defAbilMod = 0.5;
+    // Multiscale / Shadow Shield: halves damage at full HP
+    // Broken if hazards are set (defender takes damage on switch-in)
+    const hasHazards = field?.stealthRock || (field?.spikes && !defTypes.includes('Flying'));
+    if ((dAbil === 'Multiscale' || dAbil === 'Shadow Shield') && !hasHazards) defAbilMod = 0.5;
     // Solid Rock / Filter / Prism Armor: SE damage ×0.75
     if ((dAbil === 'Solid Rock' || dAbil === 'Filter' || dAbil === 'Prism Armor') && typeEff > 1) defAbilMod = 0.75;
     // Thick Fat: halves Fire and Ice damage
@@ -328,7 +330,7 @@ const DMG = (() => {
     // Defensive item
     const dItem = defender.item || '';
     if (dItem === 'Assault Vest' && !isPhysical) def = Math.floor(def * 1.5);
-    if (dItem === 'Eviolite') { def = Math.floor(def * 1.5); } // simplified
+    if (dItem === 'Eviolite') { def = Math.floor(def * 1.5); } // TODO: should only apply to not-fully-evolved Pokemon
 
     // Type-resist berry
     const resistType = RESIST_BERRY[dItem];
