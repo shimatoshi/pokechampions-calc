@@ -382,8 +382,9 @@ function runCalc() {
       <div class="dmg-result">
         <div style="font-size:.8rem;margin-bottom:4px">
           ${typeBadge(r.moveType)}
-          <strong>${jaMove}</strong> <span style="color:var(--fg2);font-size:.7rem">${moveName}</span> (威力${r.bp})
+          <strong>${jaMove}</strong> <span style="color:var(--fg2);font-size:.7rem">${moveName}</span> (威力${r.bp}${r.hits > 1 ? `×${r.hits}` : ''})
           ${r.isSTAB ? '<span style="color:var(--warn);font-size:.7rem">STAB</span>' : ''}
+          ${r.hitsLabel ? `<span style="font-size:.7rem;color:var(--accent2);margin-left:4px">${esc(r.hitsLabel)}</span>` : ''}
         </div>
         <div class="pct">${r.minPct}% ~ ${r.maxPct}%</div>
         <div class="range">${remaining}${r.minDmg} ~ ${r.maxDmg} / ${r.hp} HP</div>

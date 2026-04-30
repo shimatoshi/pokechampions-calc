@@ -357,7 +357,21 @@ const DMG = (() => {
     // Base damage
     const baseDmg = Math.floor(Math.floor((Math.floor(2 * 50 / 5 + 2) * bp * atk) / def) / 50 + 2);
 
-    // Apply modifiers for each roll
+    // 連続技ヒット数 (number=固定, [min,max]=範囲は期待値で近似)
+    let hits = 1;
+    let hitsLabel = '';
+    if (move.hits) {
+      if (typeof move.hits === 'number') {
+        hits = move.hits;
+        hitsLabel = `${hits}回ヒット`;
+      } else if (Array.isArray(move.hits)) {
+        const [a, b] = move.hits;
+        hits = Math.round((a + b) / 2);  // [2,5]→3 等
+        hitsLabel = `${a}〜${b}回ヒット (約${hits}回で計算)`;
+      }
+    }
+
+    // Apply modifiers for each roll (連続技は最後に hits 倍)
     const results = [];
     for (let roll = 85; roll <= 100; roll++) {
       let dmg = baseDmg;
@@ -373,7 +387,7 @@ const DMG = (() => {
       dmg = Math.floor(dmg * itemMod);
       dmg = Math.floor(dmg * defAbilMod);
       dmg = Math.max(dmg, 1);
-      results.push(dmg);
+      results.push(dmg * hits);  // 連続技は単純に hits 倍 (各撃同じ乱数想定の近似)
     }
 
     const maxHp = defStats.hp;
@@ -431,7 +445,7 @@ const DMG = (() => {
     return {
       move: moveName,
       moveType: effectiveMoveType,
-      bp,
+      bp, hits, hitsLabel,
       minDmg, maxDmg, minPct, maxPct,
       hp: maxHp, curHp,
       koText: koInfo.text, koClass: koInfo.cls,
