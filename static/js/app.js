@@ -123,6 +123,9 @@ export function setupSearch(inputEl, listEl, entries, onSelect) {
     }).join('');
     listEl.classList.add('open');
   });
+  // pointerdown で blur を抑止: tap中に input が blur → setTimeout(150ms) で list が閉じ、
+  // 後続 click が item に届かない競合を防ぐ
+  listEl.addEventListener('pointerdown', e => e.preventDefault());
   listEl.addEventListener('click', e => {
     const item = e.target.closest('.item');
     if (!item) return;
@@ -131,9 +134,9 @@ export function setupSearch(inputEl, listEl, entries, onSelect) {
     inputEl.value = jaName !== name ? `${jaName} (${name})` : name;
     inputEl.dataset.key = name;
     listEl.classList.remove('open');
+    inputEl.blur();
     onSelect(name);
   });
-  // blur時にlist閉じる + 自由入力の保存 (clickが先に発火するので遅延でlist内clickを取りこぼさない)
   inputEl.addEventListener('blur', () => {
     setTimeout(() => {
       listEl.classList.remove('open');
@@ -166,6 +169,7 @@ export function setupItemSearch(inputEl, listEl, entries, onSelect) {
   inputEl.addEventListener('change', () => {
     if (!inputEl.value.trim()) { inputEl.dataset.key = ''; onSelect(''); }
   });
+  listEl.addEventListener('pointerdown', e => e.preventDefault());
   listEl.addEventListener('click', e => {
     const item = e.target.closest('.item');
     if (!item || !item.dataset.name) return;
@@ -174,6 +178,7 @@ export function setupItemSearch(inputEl, listEl, entries, onSelect) {
     inputEl.value = jaName !== name ? `${jaName}` : name;
     inputEl.dataset.key = name;
     listEl.classList.remove('open');
+    inputEl.blur();
     onSelect(name);
   });
   inputEl.addEventListener('blur', () => {

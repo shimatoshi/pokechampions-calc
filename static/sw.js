@@ -1,5 +1,5 @@
-// v17: network-first + 過去キャッシュ全削除。ESM 化に伴う stale cache 起因の不具合を解消。
-const CACHE = 'pokechamp-v17';
+// v18: 検索候補タップ修正版。過去キャッシュは引き続き全削除。
+const CACHE = 'pokechamp-v18';
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 
