@@ -1,10 +1,14 @@
-const CACHE = 'pokechamp-v8';
+const CACHE = 'pokechamp-v9';
 
 // Relative asset list - resolved against SW scope at install time
 const ASSETS = [
   './',
   'css/style.css',
   'js/app.js',
+  'js/calc.js',
+  'js/team.js',
+  'js/box.js',
+  'js/records.js',
   'js/damage.js',
   'js/db.js',
   'data/data_pokemon.json',
