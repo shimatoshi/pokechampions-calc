@@ -1,59 +1,34 @@
-const CACHE = 'pokechamp-v15';
+// v17: network-first + 過去キャッシュ全削除。ESM 化に伴う stale cache 起因の不具合を解消。
+const CACHE = 'pokechamp-v17';
 
-// Relative asset list - resolved against SW scope at install time
-const ASSETS = [
-  './',
-  'css/style.css',
-  'js/app.js',
-  'js/calc.js',
-  'js/team.js',
-  'js/box.js',
-  'js/records.js',
-  'js/damage.js',
-  'js/db.js',
-  'data/data_pokemon.json',
-  'data/data_moves.json',
-  'data/data_types.json',
-  'data/data_natures.json',
-  'data/data_items.json',
-  'data/names_pokemon_ja.json',
-  'data/names_moves_ja.json',
-  'data/names_natures_ja.json',
-  'data/names_items_ja.json',
-  'data/names_abilities_ja.json',
-  'manifest.json'
-];
-
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => {
-      const base = self.registration.scope;
-      return c.addAll(ASSETS.map(a => new URL(a, base).href));
-    })
-  );
-  self.skipWaiting();
-});
+self.addEventListener('install', e => { self.skipWaiting(); });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+  e.waitUntil((async () => {
+    // 過去の全 cache を削除 (現バージョンも空のまま start)
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+    await self.clients.claim();
+    // 既存タブを reload して新 SW + 新コードを反映
+    const cs = await self.clients.matchAll({ type: 'window' });
+    cs.forEach(c => { try { c.navigate(c.url); } catch {} });
+  })());
 });
 
+// fetch は素通し (ネットワーク優先)。オフライン時のみ画像/データを cache フォールバック。
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(r => {
-      if (r) return r;
-      return fetch(e.request).then(res => {
-        if (res.ok && (e.request.url.includes('/img/') || e.request.url.includes('/data/'))) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => new Response('', { status: 404 }));
-    })
-  );
+  e.respondWith((async () => {
+    try {
+      const res = await fetch(e.request);
+      // 画像とデータだけバックグラウンドで cache 保存 (オフライン時保険)
+      if (res.ok && (e.request.url.includes('/img/') || e.request.url.includes('/data/'))) {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+      }
+      return res;
+    } catch {
+      const c = await caches.match(e.request);
+      return c || new Response('', { status: 503 });
+    }
+  })());
 });

@@ -1,5 +1,5 @@
 // Pokemon Champions Damage Calculator Engine
-const DMG = (() => {
+export const DMG = (() => {
   let typeChart = {};
   let moveDB = {};
   let pokeDB = {};

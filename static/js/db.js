@@ -1,5 +1,5 @@
 // IndexedDB wrapper with persistence
-const DB = (() => {
+export const DB = (() => {
   const DB_NAME = 'pokechamp';
   const DB_VER = 3;
   let db = null;

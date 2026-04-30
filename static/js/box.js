@@ -1,6 +1,13 @@
 // Pokemon Champions Calculator - Box Page
+import {
+  DATA, ja, esc, spriteImg, typeBadge,
+  atkState, showdownHTML, switchPage, showToast,
+} from './app.js';
+import { DB } from './db.js';
+import { selectPokemon, initCalcPage } from './calc.js';
+import { currentTeam } from './team.js';
 
-async function renderBoxPage() {
+export async function renderBoxPage() {
   const boxAll = await DB.getAll('box');
   const page = document.getElementById('page-box');
   page.innerHTML = `

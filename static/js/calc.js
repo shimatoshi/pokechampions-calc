@@ -1,4 +1,14 @@
 // Pokemon Champions Calculator - Calc Page
+import {
+  DATA, ja, esc, spriteImg, typeBadge, STAT_JA, STAT_SHORT,
+  atkState, defState, fieldState, pokemonNames,
+  buildNatureUI, initNatureUI, updateNatureDisplay,
+  restoreStateToUI, setupSearch, setupItemSearch,
+  showToast, switchPage, makePokemonState,
+} from './app.js';
+import { DMG } from './damage.js';
+import { DB } from './db.js';
+import { currentTeam } from './team.js';
 
 function buildSidePanel(side) {
   const s = side;
@@ -77,7 +87,7 @@ function buildSidePanel(side) {
     </div>`;
 }
 
-function initCalcPage() {
+export function initCalcPage() {
   const page = document.getElementById('page-calc');
   page.innerHTML = `
     <div class="row">
@@ -261,7 +271,7 @@ function initCalcPage() {
   document.getElementById('field-spikes').value = fieldState.spikes;
 }
 
-function selectPokemon(side, name) {
+export function selectPokemon(side, name) {
   const state = side === 'atk' ? atkState : defState;
   const isNewPokemon = state.name !== name;
   state.name = name;
@@ -328,7 +338,7 @@ function updateDisguiseUI() {
   cb.checked = eligible && defState.disguiseIntact;
 }
 
-function updateStatDisplay(side, state) {
+export function updateStatDisplay(side, state) {
   if (!state.name) return;
   const stats = DMG.getStats(state);
   if (!stats) return;

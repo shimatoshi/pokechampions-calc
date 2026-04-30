@@ -1,8 +1,10 @@
 // Pokemon Champions Calculator - Records Page
+import { esc } from './app.js';
+import { DB } from './db.js';
 
-function initRecordsPage() { renderRecordsPage(); }
+export function initRecordsPage() { renderRecordsPage(); }
 
-async function renderRecordsPage() {
+export async function renderRecordsPage() {
   const records = await DB.getAll('records');
   records.sort((a, b) => (b.date || 0) - (a.date || 0));
   const page = document.getElementById('page-records');

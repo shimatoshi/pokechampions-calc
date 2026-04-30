@@ -1,9 +1,19 @@
 // Pokemon Champions Calculator - Team & Threats Page
+import {
+  DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT,
+  atkState, defState, pokemonNames,
+  buildNatureUI, initNatureUI, updateNatureDisplay,
+  restoreStateToUI, setupSearch, setupItemSearch,
+  showToast, switchPage, makePokemonState,
+  showdownHTML, teamToShowdownText,
+} from './app.js';
+import { DB } from './db.js';
+import { selectPokemon, initCalcPage } from './calc.js';
 
-let currentTeam = { id: null, name: '新チーム', members: [], notes: '' };
+export let currentTeam = { id: null, name: '新チーム', members: [], notes: '' };
 let teamView = 'list';
 
-function initTeamPage() { renderTeamList(); }
+export function initTeamPage() { renderTeamList(); }
 
 async function renderTeamList() {
   teamView = 'list';
@@ -207,7 +217,7 @@ async function renderTeamDetail() {
   });
 }
 
-async function renderTeamPage() {
+export async function renderTeamPage() {
   if (teamView === 'detail') renderTeamDetail();
   else renderTeamList();
 }

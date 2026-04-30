@@ -1,15 +1,22 @@
-// Pokemon Champions Calculator - Core
-let DATA = { pokemon: {}, moves: {}, types: {}, natures: {}, items: {} };
-let JA = { pokemon: {}, moves: {}, natures: {}, items: {}, abilities: {} };
-let pokemonNames = [];
+// Pokemon Champions Calculator - Core (entry point)
+import { DB } from './db.js';
+import { DMG } from './damage.js';
+import { initCalcPage, updateStatDisplay } from './calc.js';
+import { initTeamPage, renderTeamPage } from './team.js';
+import { renderBoxPage } from './box.js';
+import { initRecordsPage, renderRecordsPage } from './records.js';
+
+export let DATA = { pokemon: {}, moves: {}, types: {}, natures: {}, items: {} };
+export let JA = { pokemon: {}, moves: {}, natures: {}, items: {}, abilities: {} };
+export let pokemonNames = [];
 
 // ===== HELPERS =====
-function ja(type, en) {
+export function ja(type, en) {
   return JA[type]?.[en] || en;
 }
 
 // HTML escape for user-controlled strings inserted into innerHTML
-function esc(s) {
+export function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
@@ -18,20 +25,20 @@ function spriteUrl(name) {
   return `img/${slug}.webp`;
 }
 
-function spriteImg(name, size = 40) {
+export function spriteImg(name, size = 40) {
   return `<img src="${spriteUrl(name)}" alt="${esc(ja('pokemon', name))}" width="${size}" height="${size}" style="image-rendering:pixelated" onerror="this.style.display='none'">`;
 }
 
-function typeBadge(t) {
+export function typeBadge(t) {
   const typeJa = {Normal:'ノーマル',Fire:'ほのお',Water:'みず',Grass:'くさ',Electric:'でんき',Ice:'こおり',Fighting:'かくとう',Poison:'どく',Ground:'じめん',Flying:'ひこう',Psychic:'エスパー',Bug:'むし',Rock:'いわ',Ghost:'ゴースト',Dragon:'ドラゴン',Dark:'あく',Steel:'はがね',Fairy:'フェアリー',Stellar:'ステラ'};
   return `<span class="type-badge type-${t}">${typeJa[t]||t}</span>`;
 }
 
-const STAT_JA = {hp:'HP',at:'攻撃',df:'防御',sa:'特攻',sd:'特防',sp:'素早'};
-const STAT_SHORT = {hp:'H',at:'A',df:'B',sa:'C',sd:'D',sp:'S'};
+export const STAT_JA = {hp:'HP',at:'攻撃',df:'防御',sa:'特攻',sd:'特防',sp:'素早'};
+export const STAT_SHORT = {hp:'H',at:'A',df:'B',sa:'C',sd:'D',sp:'S'};
 
 // ===== SHOWDOWN-STYLE TEXT FORMAT =====
-function toShowdownText(poke) {
+export function toShowdownText(poke) {
   const p = DATA.pokemon[poke.name];
   if (!p) return '';
   const jaName = ja('pokemon', poke.name);
@@ -66,17 +73,17 @@ function toShowdownText(poke) {
   return lines.join('\n');
 }
 
-function showdownHTML(poke) {
+export function showdownHTML(poke) {
   const text = toShowdownText(poke);
   return `<pre class="sd-text">${esc(text)}</pre>`;
 }
 
-function teamToShowdownText(team) {
+export function teamToShowdownText(team) {
   return team.members.map(m => toShowdownText(m)).join('\n\n');
 }
 
 // ===== DATA LOADING =====
-async function loadData() {
+export async function loadData() {
   const keys = ['data_pokemon','data_moves','data_types','data_natures','data_items',
                 'names_pokemon_ja','names_moves_ja','names_natures_ja','names_items_ja','names_abilities_ja'];
   const fetches = keys.map(k => fetch(`data/${k}.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})));
@@ -88,7 +95,7 @@ async function loadData() {
 }
 
 // ===== NAVIGATION =====
-function switchPage(page) {
+export function switchPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('show');
@@ -96,7 +103,7 @@ function switchPage(page) {
 }
 
 // ===== AUTOCOMPLETE SEARCH =====
-function setupSearch(inputEl, listEl, entries, onSelect) {
+export function setupSearch(inputEl, listEl, entries, onSelect) {
   inputEl.addEventListener('input', () => {
     const q = inputEl.value.toLowerCase();
     if (q.length < 1) { listEl.classList.remove('open'); return; }
@@ -139,7 +146,7 @@ function setupSearch(inputEl, listEl, entries, onSelect) {
 }
 
 // ===== ITEM SEARCH =====
-function setupItemSearch(inputEl, listEl, entries, onSelect) {
+export function setupItemSearch(inputEl, listEl, entries, onSelect) {
   inputEl.addEventListener('input', () => {
     const q = inputEl.value.toLowerCase();
     if (q.length < 1) { listEl.classList.remove('open'); return; }
@@ -175,7 +182,7 @@ function setupItemSearch(inputEl, listEl, entries, onSelect) {
 }
 
 // ===== POKEMON STATE =====
-function makePokemonState() {
+export function makePokemonState() {
   return {
     name: '',
     natureMods: { plus: '', minus: '' },
@@ -190,12 +197,12 @@ function makePokemonState() {
   };
 }
 
-const atkState = makePokemonState();
-const defState = makePokemonState();
-const fieldState = { weather: '', terrain: '', doubles: false, crit: false, stealthRock: false, spikes: 0, pinch: false };
+export const atkState = makePokemonState();
+export const defState = makePokemonState();
+export const fieldState = { weather: '', terrain: '', doubles: false, crit: false, stealthRock: false, spikes: 0, pinch: false };
 
 // ===== NATURE UI =====
-function buildNatureUI(side) {
+export function buildNatureUI(side) {
   const stats = ['at','df','sa','sd','sp'];
   return `
     <div class="nature-grid" id="${side}-nature-grid">
@@ -210,7 +217,7 @@ function buildNatureUI(side) {
     </div>`;
 }
 
-function initNatureUI(side, state) {
+export function initNatureUI(side, state) {
   const stats = ['at','df','sa','sd','sp'];
   for (const s of stats) {
     const btn = document.getElementById(`${side}-nbtn-${s}`);
@@ -233,7 +240,7 @@ function initNatureUI(side, state) {
   updateNatureDisplay(side, state);
 }
 
-function updateNatureDisplay(side, state) {
+export function updateNatureDisplay(side, state) {
   const stats = ['at','df','sa','sd','sp'];
   for (const s of stats) {
     const mark = document.getElementById(`${side}-nmark-${s}`);
@@ -260,7 +267,7 @@ function updateNatureDisplay(side, state) {
 }
 
 // ===== RESTORE STATE TO UI (shared by calc & team) =====
-function restoreStateToUI(side, state) {
+export function restoreStateToUI(side, state) {
   for (const stat of ['hp','at','df','sa','sd','sp']) {
     const input = document.getElementById(`${side}-sp-${stat}`);
     if (input) input.value = state.sp[stat] || 0;
@@ -292,7 +299,7 @@ function restoreStateToUI(side, state) {
 }
 
 // ===== TOAST =====
-function showToast(msg) {
+export function showToast(msg) {
   const t = document.createElement('div');
   t.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:8px 20px;border-radius:20px;font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s';
   t.textContent = msg;
