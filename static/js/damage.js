@@ -93,11 +93,15 @@ const DMG = (() => {
   };
 
   // Per-turn recovery/damage for KO calculation
-  function calcEndOfTurn(hp, defItem, defStatus) {
+  // defTypes is needed for Black Sludge (heals Poison type, damages others)
+  function calcEndOfTurn(hp, defItem, defStatus, defTypes) {
     let eot = 0; // positive = recovery, negative = damage
     // Recovery items
     if (defItem === 'Leftovers') eot += Math.floor(hp / 16);
-    if (defItem === 'Black Sludge') eot += Math.floor(hp / 16); // Poison type only, simplified
+    if (defItem === 'Black Sludge') {
+      if (defTypes && defTypes.includes('Poison')) eot += Math.floor(hp / 16);
+      else eot -= Math.floor(hp / 8);
+    }
     // Status damage
     if (defStatus === 'psn') eot -= Math.floor(hp / 8);
     if (defStatus === 'brn') eot -= Math.floor(hp / 16);
@@ -273,10 +277,12 @@ const DMG = (() => {
     if (dAbil === 'Thick Fat' && (effectiveMoveType === 'Fire' || effectiveMoveType === 'Ice')) defAbilMod = 0.5;
     // Fur Coat: halves physical damage
     if (dAbil === 'Fur Coat' && isPhysical) defAbilMod = 0.5;
-    // Fluffy: halves contact damage, doubles Fire damage
+    // Fluffy: halves contact damage, doubles Fire damage (重複時はFire+contactで0.5*2=1.0)
     if (dAbil === 'Fluffy') {
-      if (move.contact && effectiveMoveType !== 'Fire') defAbilMod = 0.5;
-      if (effectiveMoveType === 'Fire') defAbilMod = 2;
+      let fluffy = 1;
+      if (move.contact) fluffy *= 0.5;
+      if (effectiveMoveType === 'Fire') fluffy *= 2;
+      defAbilMod = fluffy;
     }
     // Ice Scales: halves special damage
     if (dAbil === 'Ice Scales' && !isPhysical) defAbilMod = 0.5;
@@ -330,7 +336,10 @@ const DMG = (() => {
     // Defensive item
     const dItem = defender.item || '';
     if (dItem === 'Assault Vest' && !isPhysical) def = Math.floor(def * 1.5);
-    if (dItem === 'Eviolite') { def = Math.floor(def * 1.5); } // TODO: should only apply to not-fully-evolved Pokemon
+    // Eviolite: NFEのみ。Phys/SpDef両方に1.5x
+    if (dItem === 'Eviolite' && defData.nfe) {
+      def = Math.floor(def * 1.5);
+    }
 
     // Type-resist berry
     const resistType = RESIST_BERRY[dItem];
@@ -397,7 +406,7 @@ const DMG = (() => {
 
     // End-of-turn effects for KO calc
     const defStatus = defender.status || '';
-    const eot = calcEndOfTurn(hp, dItem, defStatus);
+    const eot = calcEndOfTurn(hp, dItem, defStatus, defTypes);
     const isToxic = defStatus === 'tox';
 
     const hasSitrus = dItem === 'Sitrus Berry' && !berryActive; // not if berry used for type resist

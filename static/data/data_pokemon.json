@@ -159,7 +159,8 @@
       "Static",
       "Lightning Rod"
     ],
-    "formes": null
+    "formes": null,
+    "nfe": true
   },
   "Raichu": {
     "types": [

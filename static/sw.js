@@ -1,4 +1,4 @@
-const CACHE = 'pokechamp-v10';
+const CACHE = 'pokechamp-v11';
 
 // Relative asset list - resolved against SW scope at install time
 const ASSETS = [
