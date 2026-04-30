@@ -184,7 +184,8 @@ function makePokemonState() {
     item: '',
     ability: '',
     status: '',
-    moves: ['', '', '', '']
+    moves: ['', '', '', ''],
+    currentHP: null  // null = 満タン (実数値max)、それ以外は具体的なHP値
   };
 }
 
@@ -280,6 +281,10 @@ function restoreStateToUI(side, state) {
   } else if (itemEl) {
     itemEl.value = '';
     itemEl.dataset.key = '';
+  }
+  if (side === 'def') {
+    const hpInput = document.getElementById('def-current-hp');
+    if (hpInput) hpInput.value = state.currentHP != null ? state.currentHP : '';
   }
   updateNatureDisplay(side, state);
   updateStatDisplay(side, state);

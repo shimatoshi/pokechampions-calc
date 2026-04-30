@@ -376,13 +376,18 @@ const DMG = (() => {
       results.push(dmg);
     }
 
-    const hp = defStats.hp;
+    const maxHp = defStats.hp;
+    // currentHP: nullなら満タン。範囲を [0, maxHp] に clamp
+    const curHp = defender.currentHP == null
+      ? maxHp
+      : Math.max(0, Math.min(maxHp, defender.currentHP));
     const minDmg = results[0];
     const maxDmg = results[results.length - 1];
-    const minPct = (minDmg / hp * 100).toFixed(1);
-    const maxPct = (maxDmg / hp * 100).toFixed(1);
+    // %は実数値MAX基準 (Smogon等の慣習)
+    const minPct = (minDmg / maxHp * 100).toFixed(1);
+    const maxPct = (maxDmg / maxHp * 100).toFixed(1);
 
-    // Stealth Rock damage
+    // Stealth Rock damage (max基準で計算: 場に出たときのダメージなので)
     let srDmg = 0;
     if (field?.stealthRock) {
       let srEff = 1;
@@ -390,32 +395,32 @@ const DMG = (() => {
         const chart = typeChart['Rock'];
         if (chart && chart[dt] !== undefined) srEff *= chart[dt];
       }
-      srDmg = Math.floor(hp * srEff / 8);
+      srDmg = Math.floor(maxHp * srEff / 8);
     }
 
     // Spikes damage (1 layer = 1/8, 2 = 1/6, 3 = 1/4)
     let spikesDmg = 0;
     if (field?.spikes && !defTypes.includes('Flying')) {
       const layers = Math.min(3, field.spikes);
-      if (layers === 1) spikesDmg = Math.floor(hp / 8);
-      else if (layers === 2) spikesDmg = Math.floor(hp / 6);
-      else if (layers === 3) spikesDmg = Math.floor(hp / 4);
+      if (layers === 1) spikesDmg = Math.floor(maxHp / 8);
+      else if (layers === 2) spikesDmg = Math.floor(maxHp / 6);
+      else if (layers === 3) spikesDmg = Math.floor(maxHp / 4);
     }
 
     const hazardDmg = srDmg + spikesDmg;
 
-    // End-of-turn effects for KO calc
+    // End-of-turn effects for KO calc (max基準: 例 たべのこし は実数値の1/16)
     const defStatus = defender.status || '';
-    const eot = calcEndOfTurn(hp, dItem, defStatus, defTypes);
+    const eot = calcEndOfTurn(maxHp, dItem, defStatus, defTypes);
     const isToxic = defStatus === 'tox';
 
     const hasSitrus = dItem === 'Sitrus Berry' && !berryActive; // not if berry used for type resist
-    const sitrusHeal = hasSitrus ? Math.floor(hp / 4) : 0;
+    const sitrusHeal = hasSitrus ? Math.floor(maxHp / 4) : 0;
 
-    const grassyHeal = (field?.terrain === 'Grassy') ? Math.floor(hp / 16) : 0;
+    const grassyHeal = (field?.terrain === 'Grassy') ? Math.floor(maxHp / 16) : 0;
 
-    // KO calc with full roll probability
-    const koInfo = calcKO(results, hp, eot, isToxic, sitrusHeal, grassyHeal, hazardDmg);
+    // KO calc は curHp 基準。sitrus 50%閾値は maxHp 基準なので別途渡す
+    const koInfo = calcKO(results, curHp, eot, isToxic, sitrusHeal, grassyHeal, hazardDmg, maxHp);
 
     // Life Orb recoil info for attacker
     let atkRecoil = '';
@@ -428,7 +433,7 @@ const DMG = (() => {
       moveType: effectiveMoveType,
       bp,
       minDmg, maxDmg, minPct, maxPct,
-      hp,
+      hp: maxHp, curHp,
       koText: koInfo.text, koClass: koInfo.cls,
       koDetail: koInfo.detail,
       typeEff,
@@ -443,7 +448,8 @@ const DMG = (() => {
     };
   }
 
-  function calcKO(rolls, hp, eot, isToxic, sitrusHeal, grassyHeal, hazardDmg) {
+  // hp = 現在HP (curHp), maxHp = 実数値MAX (sitrus閾値とtoxic用)
+  function calcKO(rolls, hp, eot, isToxic, sitrusHeal, grassyHeal, hazardDmg, maxHp) {
     const n = rolls.length; // 16 rolls
     const effectiveHP = hp - hazardDmg; // HP after hazards on switch-in
 
@@ -455,15 +461,12 @@ const DMG = (() => {
     // Multi-hit KO (2~6 hits) with full probability simulation
     for (let hits = 2; hits <= 6; hits++) {
       let koCount = 0;
-      // Sample all 16^hits? Too expensive for hits>2. Use min/max per roll with uniform distribution.
-      // Smogon approach: for each of 16 first-hit rolls × 16 second-hit rolls, check KO.
-      // For hits>2, approximate with uniform sampling.
       if (hits === 2) {
         // Exact: 16×16 = 256 combos
         for (let i = 0; i < n; i++) {
           for (let j = 0; j < n; j++) {
             let total = rolls[i] + rolls[j];
-            total = applyBetweenHits(total, effectiveHP, 1, eot, isToxic, sitrusHeal, grassyHeal, hp);
+            total = applyBetweenHits(total, effectiveHP, 1, eot, isToxic, sitrusHeal, grassyHeal, maxHp);
             if (total >= effectiveHP) koCount++;
           }
         }
@@ -472,21 +475,19 @@ const DMG = (() => {
         if (koCount === n * n) return { text: `確定2発`, cls: 'ko-guaranteed', detail };
         if (koCount > 0) return { text: `乱数2発 (${pct}%)`, cls: 'ko-possible', detail };
       } else {
-        // Approximate: use min/max with interpolation
-        // For each combo of (min..max), simulate
+        // Approximate with min/max
         let minTotal = 0, maxTotal = 0;
         for (let h = 0; h < hits; h++) {
           minTotal += rolls[0];
           maxTotal += rolls[n - 1];
           if (h < hits - 1) {
-            minTotal = applyBetweenHits(minTotal, effectiveHP, h + 1, eot, isToxic, sitrusHeal, grassyHeal, hp);
-            maxTotal = applyBetweenHits(maxTotal, effectiveHP, h + 1, eot, isToxic, sitrusHeal, grassyHeal, hp);
+            minTotal = applyBetweenHits(minTotal, effectiveHP, h + 1, eot, isToxic, sitrusHeal, grassyHeal, maxHp);
+            maxTotal = applyBetweenHits(maxTotal, effectiveHP, h + 1, eot, isToxic, sitrusHeal, grassyHeal, maxHp);
           }
         }
         const detail = buildDetail(hazardDmg, eot, isToxic, sitrusHeal, grassyHeal);
         if (minTotal >= effectiveHP) return { text: `確定${hits}発`, cls: hits <= 3 ? 'ko-guaranteed' : 'ko-safe', detail };
         if (maxTotal >= effectiveHP) {
-          // Estimate probability via linear interpolation
           const range = maxTotal - minTotal;
           const needed = effectiveHP - minTotal;
           const pct = range > 0 ? Math.min(100, Math.max(0, (1 - needed / range) * 100)).toFixed(1) : '50.0';
@@ -499,7 +500,7 @@ const DMG = (() => {
     return { text: `確定${hitsNeeded}発`, cls: 'ko-safe', detail: '' };
   }
 
-  // Apply between-hits effects (after hit h, before hit h+1)
+  // Apply between-hits effects (after hit h, before hit h+1). realHP = maxHp
   function applyBetweenHits(totalDmg, effectiveHP, turnNum, eot, isToxic, sitrusHeal, grassyHeal, realHP) {
     // Sitrus Berry: triggers once when damage exceeds 50% of real HP
     // (simplified: just subtract once)

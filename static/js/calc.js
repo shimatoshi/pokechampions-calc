@@ -30,6 +30,14 @@ function buildSidePanel(side) {
         <option value="tox">もうどく</option>
         <option value="par">まひ</option>
       </select>
+      ${s === 'def' ? `
+      <label>現在HP <span style="font-size:.7rem;color:var(--fg2)">(連続攻撃シミュ用、空欄=満タン)</span></label>
+      <div class="row" style="gap:4px;align-items:center">
+        <input type="number" id="def-current-hp" min="0" placeholder="満タン" style="flex:1">
+        <span id="def-hp-max-display" style="font-size:.85rem;color:var(--fg2);white-space:nowrap">/-</span>
+        <button class="btn btn-sm btn-outline" id="def-hp-reset" style="font-size:.7rem;padding:2px 8px">満タン</button>
+      </div>
+      ` : ''}
       <label>SP配分 <span id="${s}-sp-total" class="sp-total">0/66</span></label>
       <div id="${s}-sp">
         ${['hp','at','df','sa','sd','sp'].map(stat => `
@@ -175,6 +183,19 @@ function initCalcPage() {
     }
   }
 
+  // 現在HP入力 (defのみ)
+  const hpInput = document.getElementById('def-current-hp');
+  hpInput?.addEventListener('input', e => {
+    const v = e.target.value.trim();
+    defState.currentHP = v === '' ? null : Math.max(0, parseInt(v) || 0);
+    updateHpDisplay();
+  });
+  document.getElementById('def-hp-reset')?.addEventListener('click', () => {
+    defState.currentHP = null;
+    if (hpInput) hpInput.value = '';
+    updateHpDisplay();
+  });
+
   // SP +/- /0/32 buttons
   page.addEventListener('click', e => {
     const btn = e.target.closest('.sp-btn');
@@ -235,7 +256,10 @@ function initCalcPage() {
 
 function selectPokemon(side, name) {
   const state = side === 'atk' ? atkState : defState;
+  const isNewPokemon = state.name !== name;
   state.name = name;
+  // ポケモン変更時は currentHP をリセット (満タン扱い)
+  if (side === 'def' && isNewPokemon) state.currentHP = null;
   const data = DATA.pokemon[name];
   if (!data) return;
 
@@ -300,6 +324,28 @@ function updateStatDisplay(side, state) {
     totalEl.textContent = `${total}/66`;
     totalEl.classList.toggle('over', total > 66);
   }
+  if (side === 'def') {
+    // SP変更でmaxHpが変わるので currentHP を clamp
+    if (state.currentHP != null && state.currentHP > stats.hp) state.currentHP = stats.hp;
+    updateHpDisplay();
+  }
+}
+
+function updateHpDisplay() {
+  const stats = defState.name ? DMG.getStats(defState) : null;
+  const maxEl = document.getElementById('def-hp-max-display');
+  const inputEl = document.getElementById('def-current-hp');
+  if (!stats) {
+    if (maxEl) maxEl.textContent = '/-';
+    return;
+  }
+  if (maxEl) maxEl.textContent = `/${stats.hp}`;
+  if (inputEl) {
+    inputEl.max = stats.hp;
+    if (defState.currentHP != null && document.activeElement !== inputEl) {
+      inputEl.value = defState.currentHP;
+    }
+  }
 }
 
 function runCalc() {
@@ -330,6 +376,8 @@ function runCalc() {
     else if (r.typeEff === 0) effText = `<span class="eff-0">効果なし</span>`;
 
     const jaMove = ja('moves', moveName);
+    const avgDmg = Math.floor((r.minDmg + r.maxDmg) / 2);
+    const remaining = r.curHp < r.hp ? `<span style="color:var(--warn)">残${r.curHp}/${r.hp}</span> ` : '';
     html += `
       <div class="dmg-result">
         <div style="font-size:.8rem;margin-bottom:4px">
@@ -338,15 +386,33 @@ function runCalc() {
           ${r.isSTAB ? '<span style="color:var(--warn);font-size:.7rem">STAB</span>' : ''}
         </div>
         <div class="pct">${r.minPct}% ~ ${r.maxPct}%</div>
-        <div class="range">${r.minDmg} ~ ${r.maxDmg} / ${r.hp} HP</div>
+        <div class="range">${remaining}${r.minDmg} ~ ${r.maxDmg} / ${r.hp} HP</div>
         <div class="ko ${r.koClass}">${r.koText} ${r.koDetail || ''}</div>
         ${r.statNote ? `<div style="font-size:.7rem;color:var(--accent2)">${r.statNote}</div>` : ''}
         ${r.berryActive ? `<div style="font-size:.75rem;color:var(--ok)">${ja('items', r.berryItem)}で半減</div>` : ''}
         ${r.atkRecoil ? `<div style="font-size:.75rem;color:var(--fg2)">${r.atkRecoil}</div>` : ''}
         <div class="effectiveness">${effText}</div>
+        <div class="row" style="gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center">
+          <button class="btn btn-sm btn-outline next-hit" data-dmg="${r.minDmg}" style="font-size:.7rem;padding:3px 8px">最小(-${r.minDmg})</button>
+          <button class="btn btn-sm btn-outline next-hit" data-dmg="${avgDmg}" style="font-size:.7rem;padding:3px 8px">平均(-${avgDmg})</button>
+          <button class="btn btn-sm btn-outline next-hit" data-dmg="${r.maxDmg}" style="font-size:.7rem;padding:3px 8px;border-color:var(--warn);color:var(--warn)">最大(-${r.maxDmg})</button>
+        </div>
       </div>`;
   }
   results.innerHTML = html;
+  // 次の攻撃へボタン: 残HP更新→再計算
+  results.querySelectorAll('.next-hit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const dmg = parseInt(btn.dataset.dmg);
+      const stats = DMG.getStats(defState);
+      const cur = defState.currentHP != null ? defState.currentHP : (stats?.hp || 0);
+      defState.currentHP = Math.max(0, cur - dmg);
+      const hpInput = document.getElementById('def-current-hp');
+      if (hpInput) hpInput.value = defState.currentHP;
+      updateHpDisplay();
+      runCalc();
+    });
+  });
 }
 
 function swapSides() {
@@ -356,6 +422,9 @@ function swapSides() {
   // movesは攻撃側専用: 入替後はどちらも一度クリア (新atkで改めて選択)
   atkState.moves = ['', '', '', ''];
   defState.moves = ['', '', '', ''];
+  // currentHPもリセット (前のdef側残HPは無関係になる)
+  defState.currentHP = null;
+  atkState.currentHP = null;
   initCalcPage();
   if (atkState.name) { selectPokemon('atk', atkState.name); restoreStateToUI('atk', atkState); }
   if (defState.name) { selectPokemon('def', defState.name); restoreStateToUI('def', defState); }
