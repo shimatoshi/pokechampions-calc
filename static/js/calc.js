@@ -353,6 +353,9 @@ function swapSides() {
   const tmp = JSON.parse(JSON.stringify(atkState));
   Object.assign(atkState, JSON.parse(JSON.stringify(defState)));
   Object.assign(defState, tmp);
+  // movesは攻撃側専用: 入替後はどちらも一度クリア (新atkで改めて選択)
+  atkState.moves = ['', '', '', ''];
+  defState.moves = ['', '', '', ''];
   initCalcPage();
   if (atkState.name) { selectPokemon('atk', atkState.name); restoreStateToUI('atk', atkState); }
   if (defState.name) { selectPokemon('def', defState.name); restoreStateToUI('def', defState); }

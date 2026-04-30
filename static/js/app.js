@@ -126,16 +126,15 @@ function setupSearch(inputEl, listEl, entries, onSelect) {
     listEl.classList.remove('open');
     onSelect(name);
   });
-  // Allow free text (for status moves etc) - save raw text as key on blur
+  // blur時にlist閉じる + 自由入力の保存 (clickが先に発火するので遅延でlist内clickを取りこぼさない)
   inputEl.addEventListener('blur', () => {
-    if (!inputEl.dataset.key && inputEl.value.trim()) {
-      inputEl.dataset.key = inputEl.value.trim();
-      onSelect(inputEl.value.trim());
-    }
-  });
-  document.addEventListener('click', e => {
-    if (!inputEl.contains(e.target) && !listEl.contains(e.target))
+    setTimeout(() => {
       listEl.classList.remove('open');
+      if (!inputEl.dataset.key && inputEl.value.trim()) {
+        inputEl.dataset.key = inputEl.value.trim();
+        onSelect(inputEl.value.trim());
+      }
+    }, 150);
   });
 }
 
@@ -170,9 +169,8 @@ function setupItemSearch(inputEl, listEl, entries, onSelect) {
     listEl.classList.remove('open');
     onSelect(name);
   });
-  document.addEventListener('click', e => {
-    if (!inputEl.contains(e.target) && !listEl.contains(e.target))
-      listEl.classList.remove('open');
+  inputEl.addEventListener('blur', () => {
+    setTimeout(() => listEl.classList.remove('open'), 150);
   });
 }
 
