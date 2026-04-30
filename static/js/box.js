@@ -105,14 +105,14 @@ function renderBoxSlot(b) {
                 : `自分の${ja('moves', c.move)}→${ja('pokemon', c.vs)}`;
               return `
               <div style="font-size:.7rem;padding:2px 0;display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--bg3)">
-                <span style="flex:1">${icon} ${label} ${c.range} <strong>${c.ko}</strong> ${c.detail}</span>
+                <span style="flex:1">${icon} ${esc(label)} ${esc(c.range)} <strong>${esc(c.ko)}</strong> ${esc(c.detail)}</span>
                 <button class="btn btn-sm btn-danger calc-del" data-ci="${ci}" style="font-size:.55rem;padding:1px 4px">×</button>
               </div>`;
             }).join('')}
           </div>
         </div>` : ''}
       <div style="margin-top:4px">
-        <textarea class="box-notes" data-id="${b.id}" rows="2" placeholder="メモ（調整意図、立ち回り等）" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:4px;font-size:.7rem;resize:vertical">${b.notes||''}</textarea>
+        <textarea class="box-notes" data-id="${b.id}" rows="2" placeholder="メモ（調整意図、立ち回り等）" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:4px;font-size:.7rem;resize:vertical">${esc(b.notes||'')}</textarea>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-top:2px">
         <button class="btn btn-sm btn-danger box-del" style="font-size:.6rem;padding:2px 6px">削除</button>

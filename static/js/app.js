@@ -8,13 +8,18 @@ function ja(type, en) {
   return JA[type]?.[en] || en;
 }
 
+// HTML escape for user-controlled strings inserted into innerHTML
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function spriteUrl(name) {
   const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   return `img/${slug}.webp`;
 }
 
 function spriteImg(name, size = 40) {
-  return `<img src="${spriteUrl(name)}" alt="${ja('pokemon', name)}" width="${size}" height="${size}" style="image-rendering:pixelated" onerror="this.style.display='none'">`;
+  return `<img src="${spriteUrl(name)}" alt="${esc(ja('pokemon', name))}" width="${size}" height="${size}" style="image-rendering:pixelated" onerror="this.style.display='none'">`;
 }
 
 function typeBadge(t) {
@@ -63,7 +68,7 @@ function toShowdownText(poke) {
 
 function showdownHTML(poke) {
   const text = toShowdownText(poke);
-  return `<pre class="sd-text">${text}</pre>`;
+  return `<pre class="sd-text">${esc(text)}</pre>`;
 }
 
 function teamToShowdownText(team) {

@@ -31,10 +31,10 @@ function renderRecord(r) {
     <div class="record">
       <div class="meta">${date}</div>
       <span class="result-tag ${r.result==='win'?'result-win':'result-lose'}">${r.result==='win'?'勝ち':'負け'}</span>
-      <strong style="margin-left:8px">${r.opponent || '不明'}</strong>
-      ${r.myTeam ? `<div style="font-size:.75rem;color:var(--fg2);margin-top:2px">自分: ${r.myTeam}</div>` : ''}
-      ${r.oppTeam ? `<div style="font-size:.75rem;color:var(--fg2)">相手: ${r.oppTeam}</div>` : ''}
-      ${r.notes ? `<div class="notes">${r.notes}</div>` : ''}
+      <strong style="margin-left:8px">${esc(r.opponent || '不明')}</strong>
+      ${r.myTeam ? `<div style="font-size:.75rem;color:var(--fg2);margin-top:2px">自分: ${esc(r.myTeam)}</div>` : ''}
+      ${r.oppTeam ? `<div style="font-size:.75rem;color:var(--fg2)">相手: ${esc(r.oppTeam)}</div>` : ''}
+      ${r.notes ? `<div class="notes">${esc(r.notes)}</div>` : ''}
       <div class="record-actions">
         <button class="btn btn-sm btn-outline" data-action="edit" data-id="${r.id}">編集</button>
         <button class="btn btn-sm btn-danger" data-action="delete" data-id="${r.id}">削除</button>
@@ -55,13 +55,13 @@ function openRecordEditor(existing) {
         <option value="lose"${r.result==='lose'?' selected':''}>負け</option>
       </select>
       <label>相手</label>
-      <input type="text" id="re-opponent" value="${r.opponent||''}">
+      <input type="text" id="re-opponent" value="${esc(r.opponent||'')}">
       <label>自分のチーム</label>
-      <input type="text" id="re-myteam" value="${r.myTeam||''}" placeholder="ガブリアス, ミミッキュ...">
+      <input type="text" id="re-myteam" value="${esc(r.myTeam||'')}" placeholder="ガブリアス, ミミッキュ...">
       <label>相手のチーム</label>
-      <input type="text" id="re-oppteam" value="${r.oppTeam||''}" placeholder="ドラパルト, キョジオーン...">
+      <input type="text" id="re-oppteam" value="${esc(r.oppTeam||'')}" placeholder="ドラパルト, キョジオーン...">
       <label>メモ</label>
-      <textarea id="re-notes" rows="3" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:6px;font-size:.85rem">${r.notes||''}</textarea>
+      <textarea id="re-notes" rows="3" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:6px;font-size:.85rem">${esc(r.notes||'')}</textarea>
       <div class="row mt">
         <button class="btn" id="re-save">保存</button>
         <button class="btn btn-outline" id="re-cancel">キャンセル</button>

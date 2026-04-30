@@ -245,8 +245,8 @@ function selectPokemon(side, name) {
     <div style="display:flex;align-items:center;gap:6px;margin:4px 0">
       ${spriteImg(name, 48)}
       <div>
-        <div style="font-weight:700">${jaName}</div>
-        <div style="font-size:.7rem;color:var(--fg2)">${name}</div>
+        <div style="font-weight:700">${esc(jaName)}</div>
+        <div style="font-size:.7rem;color:var(--fg2)">${esc(name)}</div>
         <div>${data.types.map(t => typeBadge(t)).join(' ')}</div>
       </div>
     </div>`;
@@ -254,7 +254,7 @@ function selectPokemon(side, name) {
   // Formes
   if (data.formes && data.formes.length > 1) {
     info.innerHTML += `<div style="font-size:.75rem;margin-top:2px">${data.formes.map(f =>
-      `<span class="btn btn-sm btn-outline" style="margin:1px;padding:2px 6px;font-size:.7rem;cursor:pointer" data-forme="${f}">${ja('pokemon', f) || f}</span>`
+      `<span class="btn btn-sm btn-outline" style="margin:1px;padding:2px 6px;font-size:.7rem;cursor:pointer" data-forme="${esc(f)}">${esc(ja('pokemon', f) || f)}</span>`
     ).join('')}</div>`;
     info.querySelectorAll('[data-forme]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -369,11 +369,11 @@ async function openLoadPicker(side) {
     <div class="card" style="border:2px solid var(--accent);max-height:60vh;overflow-y:auto">
       <h3>${side === 'atk' ? '攻撃側' : '防御側'}に読込</h3>
       ${members.length > 0 ? `
-        <div style="font-size:.75rem;color:var(--fg2);margin:4px 0">チーム: ${currentTeam.name}</div>
+        <div style="font-size:.75rem;color:var(--fg2);margin:4px 0">チーム: ${esc(currentTeam.name)}</div>
         ${members.map((m, i) => `
           <div class="team-slot pick-slot" data-src="team" data-idx="${i}">
             ${spriteImg(m.name, 28)}
-            <div class="name">${ja('pokemon', m.name)}</div>
+            <div class="name">${esc(ja('pokemon', m.name))}</div>
             ${DATA.pokemon[m.name]?.types.map(t => typeBadge(t)).join('')||''}
           </div>`).join('')}
       ` : '<div style="font-size:.8rem;color:var(--fg2);margin:4px 0">チームなし</div>'}
@@ -382,9 +382,9 @@ async function openLoadPicker(side) {
       ${threats.length > 0 ? threats.map(t => `
         <div class="team-slot pick-slot" data-src="threat" data-idx="${t.id}">
           ${spriteImg(t.name, 28)}
-          <div class="name">${ja('pokemon', t.name)}</div>
+          <div class="name">${esc(ja('pokemon', t.name))}</div>
           ${DATA.pokemon[t.name]?.types.map(tp => typeBadge(tp)).join('')||''}
-          ${t.item ? `<span style="font-size:.65rem;color:var(--fg2)">${ja('items',t.item)}</span>` : ''}
+          ${t.item ? `<span style="font-size:.65rem;color:var(--fg2)">${esc(ja('items',t.item))}</span>` : ''}
         </div>`).join('') : '<div style="font-size:.8rem;color:var(--fg2)">対策表が空です（編成タブで追加）</div>'}
       <button class="btn btn-outline mt" id="pick-close">閉じる</button>
     </div>`;

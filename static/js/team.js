@@ -114,7 +114,7 @@ function renderTeamRow(team) {
   return `
     <div class="team-row card" data-id="${team.id}" style="cursor:pointer">
       <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
-        <strong style="flex:1">${team.name}</strong>
+        <strong style="flex:1">${esc(team.name)}</strong>
         <button class="btn btn-sm btn-outline tr-export" style="font-size:.6rem;padding:2px 6px">出力</button>
         <button class="btn btn-sm btn-danger tr-del" style="font-size:.6rem;padding:2px 6px">×</button>
       </div>
@@ -129,7 +129,7 @@ async function renderTeamDetail() {
     <div class="card">
       <div class="row" style="align-items:center;gap:4px">
         <button class="btn btn-sm btn-outline" id="td-back">← 一覧</button>
-        <input type="text" id="team-name" value="${currentTeam.name}" style="font-weight:700;font-size:1rem;flex:1">
+        <input type="text" id="team-name" value="${esc(currentTeam.name)}" style="font-weight:700;font-size:1rem;flex:1">
         <button class="btn btn-sm" id="team-save">保存</button>
       </div>
     </div>
@@ -154,11 +154,11 @@ async function renderTeamDetail() {
         <h3 style="flex:1;margin:0">テキスト</h3>
         <button class="btn btn-sm btn-outline" id="team-copy-sd">コピー</button>
       </div>
-      <pre class="sd-text" style="max-height:200px;overflow-y:auto;margin-top:4px">${currentTeam.members.length > 0 ? teamToShowdownText(currentTeam) : '（ポケモンを追加してください）'}</pre>
+      <pre class="sd-text" style="max-height:200px;overflow-y:auto;margin-top:4px">${currentTeam.members.length > 0 ? esc(teamToShowdownText(currentTeam)) : '（ポケモンを追加してください）'}</pre>
     </div>
     <div class="card mt">
       <h3>概要・戦略メモ</h3>
-      <textarea id="team-notes" rows="4" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:6px;font-size:.85rem" placeholder="チームの戦略、選出パターン、戦績メモ...">${currentTeam.notes || ''}</textarea>
+      <textarea id="team-notes" rows="4" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:6px;font-size:.85rem" placeholder="チームの戦略、選出パターン、戦績メモ...">${esc(currentTeam.notes || '')}</textarea>
     </div>
     <div id="team-editor" class="hidden"></div>
     <div id="team-load-modal" class="hidden"></div>
@@ -220,7 +220,7 @@ function renderTeamSlot(member, idx) {
       <div class="team-slot" data-idx="${idx}">
         ${spriteImg(member.name, 40)}
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700">${ja('pokemon', member.name)} ${types}</div>
+          <div style="font-weight:700">${esc(ja('pokemon', member.name))} ${types}</div>
         </div>
         <button class="btn btn-sm to-calc-btn" style="font-size:.6rem;padding:2px 6px">ダメ計</button>
         <button class="btn btn-sm btn-outline edit-btn">編集</button>
@@ -240,8 +240,8 @@ function renderThreatSlot(t) {
       <div class="team-slot">
         ${spriteImg(t.name, 32)}
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:.85rem">${ja('pokemon', t.name)} ${types}</div>
-          <div style="font-size:.65rem;color:var(--fg2)">${[itemStr, moves].filter(Boolean).join(' | ')}</div>
+          <div style="font-weight:700;font-size:.85rem">${esc(ja('pokemon', t.name))} ${types}</div>
+          <div style="font-size:.65rem;color:var(--fg2)">${esc([itemStr, moves].filter(Boolean).join(' | '))}</div>
         </div>
         <button class="btn btn-sm btn-outline threat-edit">編集</button>
         <button class="btn btn-sm btn-danger threat-del">×</button>
@@ -259,7 +259,7 @@ async function openAddFromBox() {
     ${boxAll.map(b => `
       <div class="team-slot box-pick" data-id="${b.id}">
         ${spriteImg(b.name, 28)}
-        <div class="name">${ja('pokemon', b.name)}</div>
+        <div class="name">${esc(ja('pokemon', b.name))}</div>
         ${DATA.pokemon[b.name]?.types.map(t => typeBadge(t)).join('')||''}
       </div>`).join('')}
     <button class="btn btn-outline mt" id="box-pick-close">閉じる</button>
@@ -290,14 +290,14 @@ async function openThreatEditor(existing) {
     <div class="card" style="border:2px solid var(--warn)">
       <h3>${isNew ? '仮想敵を追加' : '仮想敵を編集'}</h3>
       <div class="search-wrap">
-        <input type="text" id="th-search" value="${threat.name ? ja('pokemon', threat.name) : ''}" placeholder="ポケモン名..." autocomplete="off">
+        <input type="text" id="th-search" value="${esc(threat.name ? ja('pokemon', threat.name) : '')}" placeholder="ポケモン名..." autocomplete="off">
         <div class="search-list" id="th-list"></div>
       </div>
       <div id="th-info"></div>
       ${buildNatureUI('th')}
       <label>もちもの</label>
       <div class="search-wrap">
-        <input type="text" id="th-item-search" value="${threat.item ? ja('items', threat.item) : ''}" placeholder="もちもの検索..." autocomplete="off">
+        <input type="text" id="th-item-search" value="${esc(threat.item ? ja('items', threat.item) : '')}" placeholder="もちもの検索..." autocomplete="off">
         <div class="search-list" id="th-item-list"></div>
       </div>
       <label>とくせい</label>
@@ -312,7 +312,7 @@ async function openThreatEditor(existing) {
       <label>わざ</label>
       ${[0,1,2,3].map(i => `
         <div class="search-wrap" style="margin-bottom:4px">
-          <input type="text" id="th-move-${i}" value="${threat.moves[i] ? ja('moves', threat.moves[i]) : ''}" placeholder="わざ${i+1}..." autocomplete="off">
+          <input type="text" id="th-move-${i}" value="${esc(threat.moves[i] ? ja('moves', threat.moves[i]) : '')}" placeholder="わざ${i+1}..." autocomplete="off">
           <div class="search-list" id="th-movelist-${i}"></div>
         </div>
       `).join('')}
@@ -385,14 +385,14 @@ function openTeamEditor(idx) {
     <div class="card" style="border:2px solid var(--accent)">
       <h3>${isNew ? 'ポケモン追加' : '編集'}</h3>
       <div class="search-wrap">
-        <input type="text" id="te-search" value="${member.name ? ja('pokemon', member.name) : ''}" placeholder="ポケモン名..." autocomplete="off">
+        <input type="text" id="te-search" value="${esc(member.name ? ja('pokemon', member.name) : '')}" placeholder="ポケモン名..." autocomplete="off">
         <div class="search-list" id="te-list"></div>
       </div>
       <div id="te-info"></div>
       ${buildNatureUI('te')}
       <label>もちもの</label>
       <div class="search-wrap">
-        <input type="text" id="te-item-search" value="${member.item ? ja('items', member.item) : ''}" placeholder="もちもの検索..." autocomplete="off">
+        <input type="text" id="te-item-search" value="${esc(member.item ? ja('items', member.item) : '')}" placeholder="もちもの検索..." autocomplete="off">
         <div class="search-list" id="te-item-list"></div>
       </div>
       <label>とくせい</label>
@@ -407,7 +407,7 @@ function openTeamEditor(idx) {
       <label>わざ</label>
       ${[0,1,2,3].map(i => `
         <div class="search-wrap" style="margin-bottom:4px">
-          <input type="text" id="te-move-${i}" value="${member.moves[i] ? ja('moves', member.moves[i]) : ''}" placeholder="わざ${i+1}..." autocomplete="off">
+          <input type="text" id="te-move-${i}" value="${esc(member.moves[i] ? ja('moves', member.moves[i]) : '')}" placeholder="わざ${i+1}..." autocomplete="off">
           <div class="search-list" id="te-movelist-${i}"></div>
         </div>
       `).join('')}
@@ -485,7 +485,7 @@ async function loadTeamList() {
     ${teams.length === 0 ? '<p style="color:var(--fg2)">保存されたチームはありません</p>' : ''}
     ${teams.map(t => `
       <div class="team-slot" data-id="${t.id}">
-        <div class="name" style="flex:1">${t.name} (${t.members.length}匹)</div>
+        <div class="name" style="flex:1">${esc(t.name)} (${t.members.length}匹)</div>
         <button class="btn btn-sm" data-action="load" data-id="${t.id}">読込</button>
         <button class="btn btn-sm btn-outline" data-action="export" data-id="${t.id}">出力</button>
         <button class="btn btn-sm btn-danger" data-action="delete" data-id="${t.id}">削除</button>
