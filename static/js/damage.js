@@ -395,6 +395,32 @@ const DMG = (() => {
     const curHp = defender.currentHP == null
       ? maxHp
       : Math.max(0, Math.min(maxHp, defender.currentHP));
+
+    // ばけのかわ/こおりのすがた: 1発無効 + 最大HPの1/8固定ダメ
+    // (Ice Faceは物理のみ、Disguiseは技種類問わず)
+    const disguiseHit =
+      defender.disguiseIntact && (
+        dAbil === 'Disguise' ||
+        (dAbil === 'Ice Face' && isPhysical)
+      );
+    if (disguiseHit) {
+      const subDmg = Math.floor(maxHp / 8);
+      const newCur = Math.max(0, curHp - subDmg);
+      return {
+        move: moveName, moveType: effectiveMoveType, bp,
+        hits: 1, hitsLabel: '',
+        minDmg: subDmg, maxDmg: subDmg,
+        minPct: (subDmg / maxHp * 100).toFixed(1),
+        maxPct: (subDmg / maxHp * 100).toFixed(1),
+        hp: maxHp, curHp: newCur,
+        koText: `${dAbil}発動 (1/8ダメで身代わり)`, koClass: 'ko-safe', koDetail: '',
+        typeEff: 1, isSTAB: false,
+        atkStats, defStats, atkRecoil: '',
+        berryActive: false, berryItem: '',
+        statNote: `${dAbil}で1発無効化、代わりに最大HPの1/8ダメージ`,
+        disguiseConsumed: true
+      };
+    }
     const minDmg = results[0];
     const maxDmg = results[results.length - 1];
     // %は実数値MAX基準 (Smogon等の慣習)

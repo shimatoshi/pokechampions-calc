@@ -37,6 +37,9 @@ function buildSidePanel(side) {
         <span id="def-hp-max-display" style="font-size:.85rem;color:var(--fg2);white-space:nowrap">/-</span>
         <button class="btn btn-sm btn-outline" id="def-hp-reset" style="font-size:.7rem;padding:2px 8px">満タン</button>
       </div>
+      <label id="def-disguise-wrap" class="hidden" style="margin-top:4px">
+        <input type="checkbox" id="def-disguise"> ばけのかわ/こおりのすがた 生存
+      </label>
       ` : ''}
       <label>SP配分 <span id="${s}-sp-total" class="sp-total">0/66</span></label>
       <div id="${s}-sp">
@@ -195,6 +198,10 @@ function initCalcPage() {
     if (hpInput) hpInput.value = '';
     updateHpDisplay();
   });
+  // ばけのかわ生存チェック
+  document.getElementById('def-disguise')?.addEventListener('change', e => {
+    defState.disguiseIntact = e.target.checked;
+  });
 
   // SP +/- /0/32 buttons
   page.addEventListener('click', e => {
@@ -298,10 +305,27 @@ function selectPokemon(side, name) {
     abilWrap.classList.remove('hidden');
     abilSel.innerHTML = data.abilities.map(a => `<option value="${a}">${ja('abilities', a) || a}</option>`).join('');
     state.ability = data.abilities[0];
-    abilSel.onchange = e => state.ability = e.target.value;
+    abilSel.onchange = e => {
+      state.ability = e.target.value;
+      if (side === 'def') updateDisguiseUI();
+    };
   }
 
+  if (side === 'def') {
+    // 新規選択時はばけのかわ生存をデフォルトON (該当特性のときのみ)
+    if (isNewPokemon) state.disguiseIntact = ['Disguise', 'Ice Face'].includes(state.ability);
+    updateDisguiseUI();
+  }
   updateStatDisplay(side, state);
+}
+
+function updateDisguiseUI() {
+  const wrap = document.getElementById('def-disguise-wrap');
+  const cb = document.getElementById('def-disguise');
+  if (!wrap || !cb) return;
+  const eligible = ['Disguise', 'Ice Face'].includes(defState.ability);
+  wrap.classList.toggle('hidden', !eligible);
+  cb.checked = eligible && defState.disguiseIntact;
 }
 
 function updateStatDisplay(side, state) {
@@ -394,20 +418,29 @@ function runCalc() {
         ${r.atkRecoil ? `<div style="font-size:.75rem;color:var(--fg2)">${r.atkRecoil}</div>` : ''}
         <div class="effectiveness">${effText}</div>
         <div class="row" style="gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center">
-          <button class="btn btn-sm btn-outline next-hit" data-dmg="${r.minDmg}" style="font-size:.7rem;padding:3px 8px">最小(-${r.minDmg})</button>
-          <button class="btn btn-sm btn-outline next-hit" data-dmg="${avgDmg}" style="font-size:.7rem;padding:3px 8px">平均(-${avgDmg})</button>
-          <button class="btn btn-sm btn-outline next-hit" data-dmg="${r.maxDmg}" style="font-size:.7rem;padding:3px 8px;border-color:var(--warn);color:var(--warn)">最大(-${r.maxDmg})</button>
+          ${r.disguiseConsumed
+            ? `<button class="btn btn-sm next-hit" data-dmg="${r.maxDmg}" data-consume-disguise="1" style="font-size:.7rem;padding:3px 10px">ばけのかわを消費して進む</button>`
+            : `
+              <button class="btn btn-sm btn-outline next-hit" data-dmg="${r.minDmg}" style="font-size:.7rem;padding:3px 8px">最小(-${r.minDmg})</button>
+              <button class="btn btn-sm btn-outline next-hit" data-dmg="${avgDmg}" style="font-size:.7rem;padding:3px 8px">平均(-${avgDmg})</button>
+              <button class="btn btn-sm btn-outline next-hit" data-dmg="${r.maxDmg}" style="font-size:.7rem;padding:3px 8px;border-color:var(--warn);color:var(--warn)">最大(-${r.maxDmg})</button>
+            `}
         </div>
       </div>`;
   }
   results.innerHTML = html;
-  // 次の攻撃へボタン: 残HP更新→再計算
+  // 次の攻撃へボタン: 残HP更新→再計算 (ばけのかわ消費判定込み)
   results.querySelectorAll('.next-hit').forEach(btn => {
     btn.addEventListener('click', () => {
       const dmg = parseInt(btn.dataset.dmg);
+      const consumeDisguise = btn.dataset.consumeDisguise === '1';
       const stats = DMG.getStats(defState);
       const cur = defState.currentHP != null ? defState.currentHP : (stats?.hp || 0);
       defState.currentHP = Math.max(0, cur - dmg);
+      if (consumeDisguise) {
+        defState.disguiseIntact = false;
+        updateDisguiseUI();
+      }
       const hpInput = document.getElementById('def-current-hp');
       if (hpInput) hpInput.value = defState.currentHP;
       updateHpDisplay();
@@ -423,9 +456,11 @@ function swapSides() {
   // movesは攻撃側専用: 入替後はどちらも一度クリア (新atkで改めて選択)
   atkState.moves = ['', '', '', ''];
   defState.moves = ['', '', '', ''];
-  // currentHPもリセット (前のdef側残HPは無関係になる)
+  // currentHP/disguiseIntactもリセット (前のdef側状態は無関係になる)
   defState.currentHP = null;
   atkState.currentHP = null;
+  defState.disguiseIntact = false;
+  atkState.disguiseIntact = false;
   initCalcPage();
   if (atkState.name) { selectPokemon('atk', atkState.name); restoreStateToUI('atk', atkState); }
   if (defState.name) { selectPokemon('def', defState.name); restoreStateToUI('def', defState); }

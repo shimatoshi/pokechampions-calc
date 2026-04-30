@@ -185,7 +185,8 @@ function makePokemonState() {
     ability: '',
     status: '',
     moves: ['', '', '', ''],
-    currentHP: null  // null = 満タン (実数値max)、それ以外は具体的なHP値
+    currentHP: null,  // null = 満タン (実数値max)、それ以外は具体的なHP値
+    disguiseIntact: false  // ばけのかわ/Ice Face: 1発無効化が残っているか
   };
 }
 
