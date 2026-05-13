@@ -24,6 +24,11 @@
     "cat": "Physical",
     "contact": true
   },
+  "Agility": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
+  },
   "Air Cutter": {
     "bp": 60,
     "type": "Flying",
@@ -41,6 +46,16 @@
     "type": "Fairy",
     "cat": "Special",
     "secondary": true
+  },
+  "Ally Switch": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
+  },
+  "Amnesia": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
   },
   "Ancient Power": {
     "bp": 60,
@@ -84,6 +99,11 @@
     "type": "Fire",
     "cat": "Special"
   },
+  "Aromatherapy": {
+    "bp": 0,
+    "type": "Grass",
+    "cat": "Status"
+  },
   "Assurance": {
     "bp": 60,
     "type": "Dark",
@@ -101,6 +121,11 @@
     "cat": "Physical",
     "secondary": true
   },
+  "Aurora Veil": {
+    "bp": 0,
+    "type": "Ice",
+    "cat": "Status"
+  },
   "Avalanche": {
     "bp": 60,
     "type": "Ice",
@@ -113,6 +138,16 @@
     "cat": "Physical",
     "contact": true,
     "secondary": true
+  },
+  "Baneful Bunker": {
+    "bp": 0,
+    "type": "Poison",
+    "cat": "Status"
+  },
+  "Baton Pass": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Beak Blast": {
     "bp": 120,
@@ -128,6 +163,11 @@
     "bp": 120,
     "type": "Poison",
     "cat": "Special"
+  },
+  "Belly Drum": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Bind": {
     "bp": 15,
@@ -240,6 +280,11 @@
     "cat": "Special",
     "secondary": true
   },
+  "Bulk Up": {
+    "bp": 0,
+    "type": "Fighting",
+    "cat": "Status"
+  },
   "Bulldoze": {
     "bp": 60,
     "type": "Ground",
@@ -275,6 +320,11 @@
     "secondary": true,
     "spread": true
   },
+  "Calm Mind": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
+  },
   "Ceaseless Edge": {
     "bp": 65,
     "type": "Dark",
@@ -287,6 +337,11 @@
     "type": "Electric",
     "cat": "Special",
     "secondary": true
+  },
+  "Charm": {
+    "bp": 0,
+    "type": "Fairy",
+    "cat": "Status"
   },
   "Chilling Water": {
     "bp": 50,
@@ -317,17 +372,32 @@
     "cat": "Physical",
     "contact": true
   },
+  "Coil": {
+    "bp": 0,
+    "type": "Poison",
+    "cat": "Status"
+  },
   "Comeuppance": {
     "bp": 1,
     "type": "Dark",
     "cat": "Physical",
     "contact": true
   },
+  "Confuse Ray": {
+    "bp": 0,
+    "type": "Ghost",
+    "cat": "Status"
+  },
   "Counter": {
     "bp": 1,
     "type": "Fighting",
     "cat": "Physical",
     "contact": true
+  },
+  "Court Change": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Covet": {
     "bp": 60,
@@ -367,6 +437,11 @@
     "cat": "Physical",
     "contact": true
   },
+  "Curse": {
+    "bp": 0,
+    "type": "Ghost",
+    "cat": "Status"
+  },
   "Dark Pulse": {
     "bp": 80,
     "type": "Dark",
@@ -385,6 +460,21 @@
     "cat": "Special",
     "spread": true
   },
+  "Defog": {
+    "bp": 0,
+    "type": "Flying",
+    "cat": "Status"
+  },
+  "Destiny Bond": {
+    "bp": 0,
+    "type": "Ghost",
+    "cat": "Status"
+  },
+  "Detect": {
+    "bp": 0,
+    "type": "Fighting",
+    "cat": "Status"
+  },
   "Dig": {
     "bp": 80,
     "type": "Ground",
@@ -397,6 +487,11 @@
     "cat": "Physical",
     "contact": true,
     "secondary": true
+  },
+  "Disable": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Discharge": {
     "bp": 80,
@@ -434,6 +529,11 @@
     "type": "Dragon",
     "cat": "Physical",
     "contact": true
+  },
+  "Dragon Dance": {
+    "bp": 0,
+    "type": "Dragon",
+    "cat": "Status"
   },
   "Dragon Darts": {
     "bp": 50,
@@ -532,6 +632,11 @@
     "secondary": true,
     "spread": true
   },
+  "Encore": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
   "Endeavor": {
     "bp": 1,
     "type": "Normal",
@@ -587,6 +692,16 @@
     "contact": true,
     "secondary": true,
     "priority": true
+  },
+  "Fake Tears": {
+    "bp": 0,
+    "type": "Dark",
+    "cat": "Status"
+  },
+  "Feather Dance": {
+    "bp": 0,
+    "type": "Flying",
+    "cat": "Status"
   },
   "Feint": {
     "bp": 30,
@@ -732,6 +847,11 @@
     "cat": "Physical",
     "contact": true
   },
+  "Follow Me": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
   "Foul Play": {
     "bp": 95,
     "type": "Dark",
@@ -774,6 +894,11 @@
     "bp": 160,
     "type": "Steel",
     "cat": "Physical"
+  },
+  "Glare": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Grass Knot": {
     "bp": 1,
@@ -823,6 +948,11 @@
     "cat": "Physical",
     "contact": true
   },
+  "Haze": {
+    "bp": 0,
+    "type": "Ice",
+    "cat": "Status"
+  },
   "Head Smash": {
     "bp": 150,
     "type": "Rock",
@@ -834,6 +964,11 @@
     "type": "Ground",
     "cat": "Physical",
     "contact": true
+  },
+  "Heal Bell": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Heat Crash": {
     "bp": 1,
@@ -853,6 +988,11 @@
     "type": "Steel",
     "cat": "Physical",
     "contact": true
+  },
+  "Helping Hand": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Hex": {
     "bp": 65,
@@ -909,6 +1049,11 @@
     "type": "Normal",
     "cat": "Special",
     "spread": true
+  },
+  "Hypnosis": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
   },
   "Ice Beam": {
     "bp": 90,
@@ -970,6 +1115,11 @@
     "secondary": true,
     "spread": true
   },
+  "Imprison": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
+  },
   "Infernal Parade": {
     "bp": 65,
     "type": "Ghost",
@@ -987,6 +1137,11 @@
     "type": "Bug",
     "cat": "Special",
     "contact": true
+  },
+  "Iron Defense": {
+    "bp": 0,
+    "type": "Steel",
+    "cat": "Status"
   },
   "Iron Head": {
     "bp": 80,
@@ -1008,6 +1163,11 @@
     "cat": "Physical",
     "contact": true,
     "priority": true
+  },
+  "King's Shield": {
+    "bp": 0,
+    "type": "Steel",
+    "cat": "Status"
   },
   "Knock Off": {
     "bp": 65,
@@ -1061,6 +1221,16 @@
     "type": "Bug",
     "cat": "Physical",
     "contact": true
+  },
+  "Leech Seed": {
+    "bp": 0,
+    "type": "Grass",
+    "cat": "Status"
+  },
+  "Light Screen": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
   },
   "Light of Ruin": {
     "bp": 140,
@@ -1126,6 +1296,11 @@
     "cat": "Physical",
     "contact": true
   },
+  "Memento": {
+    "bp": 0,
+    "type": "Dark",
+    "cat": "Status"
+  },
   "Metal Burst": {
     "bp": 1,
     "type": "Steel",
@@ -1159,6 +1334,11 @@
     "type": "Fairy",
     "cat": "Special",
     "secondary": true
+  },
+  "Moonlight": {
+    "bp": 0,
+    "type": "Fairy",
+    "cat": "Status"
   },
   "Mortal Spin": {
     "bp": 30,
@@ -1197,6 +1377,11 @@
     "cat": "Special",
     "secondary": true
   },
+  "Nasty Plot": {
+    "bp": 0,
+    "type": "Dark",
+    "cat": "Status"
+  },
   "Night Daze": {
     "bp": 90,
     "type": "Dark",
@@ -1232,17 +1417,32 @@
     "type": "Fire",
     "cat": "Special"
   },
+  "Pain Split": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
   "Parabolic Charge": {
     "bp": 65,
     "type": "Electric",
     "cat": "Special",
     "spread": true
   },
+  "Parting Shot": {
+    "bp": 0,
+    "type": "Dark",
+    "cat": "Status"
+  },
   "Payback": {
     "bp": 50,
     "type": "Dark",
     "cat": "Physical",
     "contact": true
+  },
+  "Perish Song": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Petal Blizzard": {
     "bp": 90,
@@ -1342,6 +1542,11 @@
     "cat": "Physical",
     "contact": true
   },
+  "Protect": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
   "Psychic": {
     "bp": 90,
     "type": "Psychic",
@@ -1384,6 +1589,21 @@
     "contact": true,
     "priority": true
   },
+  "Quick Guard": {
+    "bp": 0,
+    "type": "Fighting",
+    "cat": "Status"
+  },
+  "Quiver Dance": {
+    "bp": 0,
+    "type": "Bug",
+    "cat": "Status"
+  },
+  "Rage Powder": {
+    "bp": 0,
+    "type": "Bug",
+    "cat": "Status"
+  },
   "Raging Bull": {
     "bp": 90,
     "type": "Normal",
@@ -1409,16 +1629,41 @@
     "contact": true,
     "secondary": true
   },
+  "Recover": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
+  "Reflect": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
+  },
+  "Rest": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
+  },
   "Reversal": {
     "bp": 1,
     "type": "Fighting",
     "cat": "Physical",
     "contact": true
   },
+  "Revival Blessing": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
   "Rising Voltage": {
     "bp": 70,
     "type": "Electric",
     "cat": "Special"
+  },
+  "Roar": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Rock Blast": {
     "bp": 25,
@@ -1447,6 +1692,11 @@
     "type": "Rock",
     "cat": "Physical"
   },
+  "Roost": {
+    "bp": 0,
+    "type": "Flying",
+    "cat": "Status"
+  },
   "Round": {
     "bp": 60,
     "type": "Normal",
@@ -1457,6 +1707,11 @@
     "type": "Fighting",
     "cat": "Physical",
     "contact": true
+  },
+  "Safeguard": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Salt Cure": {
     "bp": 40,
@@ -1483,6 +1738,11 @@
       2,
       5
     ]
+  },
+  "Scary Face": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Scorching Sands": {
     "bp": 70,
@@ -1532,6 +1792,11 @@
     "contact": true,
     "priority": true
   },
+  "Shed Tail": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
   "Sheer Cold": {
     "bp": 1,
     "type": "Ice",
@@ -1542,6 +1807,16 @@
     "type": "Poison",
     "cat": "Special",
     "secondary": true
+  },
+  "Shell Smash": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
+  "Shift Gear": {
+    "bp": 0,
+    "type": "Steel",
+    "cat": "Status"
   },
   "Skitter Smack": {
     "bp": 70,
@@ -1555,6 +1830,21 @@
     "type": "Flying",
     "cat": "Physical",
     "secondary": true
+  },
+  "Slack Off": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
+  "Sleep Powder": {
+    "bp": 0,
+    "type": "Grass",
+    "cat": "Status"
+  },
+  "Sleep Talk": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Sludge Bomb": {
     "bp": 90,
@@ -1599,6 +1889,11 @@
     "cat": "Special",
     "secondary": true
   },
+  "Soft-Boiled": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
   "Solar Beam": {
     "bp": 120,
     "type": "Grass",
@@ -1617,11 +1912,26 @@
     "secondary": true,
     "spread": true
   },
+  "Spikes": {
+    "bp": 0,
+    "type": "Ground",
+    "cat": "Status"
+  },
   "Spirit Shackle": {
     "bp": 90,
     "type": "Ghost",
     "cat": "Physical",
     "secondary": true
+  },
+  "Spore": {
+    "bp": 0,
+    "type": "Grass",
+    "cat": "Status"
+  },
+  "Stealth Rock": {
+    "bp": 0,
+    "type": "Rock",
+    "cat": "Status"
   },
   "Steel Beam": {
     "bp": 140,
@@ -1640,6 +1950,11 @@
     "cat": "Physical",
     "contact": true,
     "secondary": true
+  },
+  "Sticky Web": {
+    "bp": 0,
+    "type": "Bug",
+    "cat": "Status"
   },
   "Stomping Tantrum": {
     "bp": 75,
@@ -1670,6 +1985,11 @@
     "cat": "Physical",
     "contact": true
   },
+  "Strength Sap": {
+    "bp": 0,
+    "type": "Grass",
+    "cat": "Status"
+  },
   "Struggle": {
     "bp": 50,
     "type": "Normal",
@@ -1682,6 +2002,16 @@
     "cat": "Special",
     "secondary": true,
     "spread": true
+  },
+  "Stun Spore": {
+    "bp": 0,
+    "type": "Grass",
+    "cat": "Status"
+  },
+  "Substitute": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Sucker Punch": {
     "bp": 70,
@@ -1714,6 +2044,26 @@
     "cat": "Special",
     "spread": true
   },
+  "Swagger": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
+  "Switcheroo": {
+    "bp": 0,
+    "type": "Dark",
+    "cat": "Status"
+  },
+  "Swords Dance": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
+  "Synthesis": {
+    "bp": 0,
+    "type": "Grass",
+    "cat": "Status"
+  },
   "Syrup Bomb": {
     "bp": 60,
     "type": "Grass",
@@ -1729,6 +2079,21 @@
       2,
       5
     ]
+  },
+  "Tailwind": {
+    "bp": 0,
+    "type": "Flying",
+    "cat": "Status"
+  },
+  "Taunt": {
+    "bp": 0,
+    "type": "Dark",
+    "cat": "Status"
+  },
+  "Teleport": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
   },
   "Temper Flare": {
     "bp": 75,
@@ -1780,17 +2145,37 @@
     "contact": true,
     "secondary": true
   },
+  "Thunder Wave": {
+    "bp": 0,
+    "type": "Electric",
+    "cat": "Status"
+  },
   "Thunderbolt": {
     "bp": 90,
     "type": "Electric",
     "cat": "Special",
     "secondary": true
   },
+  "Tidy Up": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
   "Torch Song": {
     "bp": 80,
     "type": "Fire",
     "cat": "Special",
     "secondary": true
+  },
+  "Toxic": {
+    "bp": 0,
+    "type": "Poison",
+    "cat": "Status"
+  },
+  "Toxic Spikes": {
+    "bp": 0,
+    "type": "Poison",
+    "cat": "Status"
   },
   "Trailblaze": {
     "bp": 50,
@@ -1804,6 +2189,16 @@
     "type": "Normal",
     "cat": "Special",
     "secondary": true
+  },
+  "Trick": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
+  },
+  "Trick Room": {
+    "bp": 0,
+    "type": "Psychic",
+    "cat": "Status"
   },
   "Triple Arrows": {
     "bp": 90,
@@ -1917,11 +2312,31 @@
     "type": "Water",
     "cat": "Special"
   },
+  "Whirlwind": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
+  "Wide Guard": {
+    "bp": 0,
+    "type": "Rock",
+    "cat": "Status"
+  },
   "Wild Charge": {
     "bp": 90,
     "type": "Electric",
     "cat": "Physical",
     "contact": true
+  },
+  "Will-O-Wisp": {
+    "bp": 0,
+    "type": "Fire",
+    "cat": "Status"
+  },
+  "Wish": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
   },
   "Wood Hammer": {
     "bp": 120,
@@ -1941,6 +2356,11 @@
     "cat": "Physical",
     "contact": true
   },
+  "Yawn": {
+    "bp": 0,
+    "type": "Normal",
+    "cat": "Status"
+  },
   "Zap Cannon": {
     "bp": 120,
     "type": "Electric",
@@ -1953,385 +2373,5 @@
     "cat": "Physical",
     "contact": true,
     "secondary": true
-  },
-  "Protect": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Detect": {
-    "bp": 0,
-    "type": "Fighting",
-    "cat": "Status"
-  },
-  "Stealth Rock": {
-    "bp": 0,
-    "type": "Rock",
-    "cat": "Status"
-  },
-  "Spikes": {
-    "bp": 0,
-    "type": "Ground",
-    "cat": "Status"
-  },
-  "Toxic Spikes": {
-    "bp": 0,
-    "type": "Poison",
-    "cat": "Status"
-  },
-  "Sticky Web": {
-    "bp": 0,
-    "type": "Bug",
-    "cat": "Status"
-  },
-  "Tailwind": {
-    "bp": 0,
-    "type": "Flying",
-    "cat": "Status"
-  },
-  "Trick Room": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Will-O-Wisp": {
-    "bp": 0,
-    "type": "Fire",
-    "cat": "Status"
-  },
-  "Thunder Wave": {
-    "bp": 0,
-    "type": "Electric",
-    "cat": "Status"
-  },
-  "Toxic": {
-    "bp": 0,
-    "type": "Poison",
-    "cat": "Status"
-  },
-  "Swords Dance": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Nasty Plot": {
-    "bp": 0,
-    "type": "Dark",
-    "cat": "Status"
-  },
-  "Dragon Dance": {
-    "bp": 0,
-    "type": "Dragon",
-    "cat": "Status"
-  },
-  "Calm Mind": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Quiver Dance": {
-    "bp": 0,
-    "type": "Bug",
-    "cat": "Status"
-  },
-  "Shell Smash": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Belly Drum": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Bulk Up": {
-    "bp": 0,
-    "type": "Fighting",
-    "cat": "Status"
-  },
-  "Iron Defense": {
-    "bp": 0,
-    "type": "Steel",
-    "cat": "Status"
-  },
-  "Amnesia": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Agility": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Shift Gear": {
-    "bp": 0,
-    "type": "Steel",
-    "cat": "Status"
-  },
-  "Coil": {
-    "bp": 0,
-    "type": "Poison",
-    "cat": "Status"
-  },
-  "Substitute": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Encore": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Taunt": {
-    "bp": 0,
-    "type": "Dark",
-    "cat": "Status"
-  },
-  "Trick": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Switcheroo": {
-    "bp": 0,
-    "type": "Dark",
-    "cat": "Status"
-  },
-  "Defog": {
-    "bp": 0,
-    "type": "Flying",
-    "cat": "Status"
-  },
-  "Wish": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Recover": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Roost": {
-    "bp": 0,
-    "type": "Flying",
-    "cat": "Status"
-  },
-  "Slack Off": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Rest": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Sleep Talk": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Heal Bell": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Aromatherapy": {
-    "bp": 0,
-    "type": "Grass",
-    "cat": "Status"
-  },
-  "Light Screen": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Reflect": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Aurora Veil": {
-    "bp": 0,
-    "type": "Ice",
-    "cat": "Status"
-  },
-  "Leech Seed": {
-    "bp": 0,
-    "type": "Grass",
-    "cat": "Status"
-  },
-  "Yawn": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Sleep Powder": {
-    "bp": 0,
-    "type": "Grass",
-    "cat": "Status"
-  },
-  "Spore": {
-    "bp": 0,
-    "type": "Grass",
-    "cat": "Status"
-  },
-  "Stun Spore": {
-    "bp": 0,
-    "type": "Grass",
-    "cat": "Status"
-  },
-  "Glare": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Parting Shot": {
-    "bp": 0,
-    "type": "Dark",
-    "cat": "Status"
-  },
-  "Baton Pass": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Teleport": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Helping Hand": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Follow Me": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Rage Powder": {
-    "bp": 0,
-    "type": "Bug",
-    "cat": "Status"
-  },
-  "Wide Guard": {
-    "bp": 0,
-    "type": "Rock",
-    "cat": "Status"
-  },
-  "Quick Guard": {
-    "bp": 0,
-    "type": "Fighting",
-    "cat": "Status"
-  },
-  "Ally Switch": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Haze": {
-    "bp": 0,
-    "type": "Ice",
-    "cat": "Status"
-  },
-  "Whirlwind": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Destiny Bond": {
-    "bp": 0,
-    "type": "Ghost",
-    "cat": "Status"
-  },
-  "Perish Song": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Pain Split": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Strength Sap": {
-    "bp": 0,
-    "type": "Grass",
-    "cat": "Status"
-  },
-  "Fake Tears": {
-    "bp": 0,
-    "type": "Dark",
-    "cat": "Status"
-  },
-  "Charm": {
-    "bp": 0,
-    "type": "Fairy",
-    "cat": "Status"
-  },
-  "Scary Face": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Disable": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Imprison": {
-    "bp": 0,
-    "type": "Psychic",
-    "cat": "Status"
-  },
-  "Curse": {
-    "bp": 0,
-    "type": "Ghost",
-    "cat": "Status"
-  },
-  "Court Change": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Safeguard": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Confuse Ray": {
-    "bp": 0,
-    "type": "Ghost",
-    "cat": "Status"
-  },
-  "Swagger": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Feather Dance": {
-    "bp": 0,
-    "type": "Flying",
-    "cat": "Status"
-  },
-  "Tidy Up": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Revival Blessing": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
-  },
-  "Shed Tail": {
-    "bp": 0,
-    "type": "Normal",
-    "cat": "Status"
   }
 }
