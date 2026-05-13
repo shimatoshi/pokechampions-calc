@@ -76,14 +76,13 @@ function buildSidePanel(side) {
           </div>
         `).join('')}
       </div>
-      ${s === 'atk' ? `
       <label>わざ</label>
       ${[0,1,2,3].map(i => `
         <div class="search-wrap" style="margin-bottom:4px">
           <input type="text" id="${s}-move-${i}" placeholder="わざ${i+1}..." autocomplete="off">
           <div class="search-list" id="${s}-movelist-${i}"></div>
         </div>
-      `).join('')}` : ''}
+      `).join('')}
     </div>`;
 }
 
@@ -157,10 +156,13 @@ export function initCalcPage() {
   setupSearch(document.getElementById('atk-search'), document.getElementById('atk-list'), pokemonNames, n => selectPokemon('atk', n));
   setupSearch(document.getElementById('def-search'), document.getElementById('def-list'), pokemonNames, n => selectPokemon('def', n));
 
-  // Move search
+  // Move search (both sides)
   const moveNames = Object.keys(DATA.moves).sort();
-  for (let i = 0; i < 4; i++) {
-    setupSearch(document.getElementById(`atk-move-${i}`), document.getElementById(`atk-movelist-${i}`), moveNames, name => { atkState.moves[i] = name; });
+  for (const side of ['atk', 'def']) {
+    const state = side === 'atk' ? atkState : defState;
+    for (let i = 0; i < 4; i++) {
+      setupSearch(document.getElementById(`${side}-move-${i}`), document.getElementById(`${side}-movelist-${i}`), moveNames, name => { state.moves[i] = name; });
+    }
   }
 
   // Nature UI

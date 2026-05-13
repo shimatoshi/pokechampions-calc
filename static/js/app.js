@@ -279,14 +279,12 @@ export function restoreStateToUI(side, state) {
     const input = document.getElementById(`${side}-sp-${stat}`);
     if (input) input.value = state.sp[stat] || 0;
   }
-  if (side === 'atk') {
-    for (let i = 0; i < 4; i++) {
-      const input = document.getElementById(`${side}-move-${i}`);
-      if (input) {
-        const m = state.moves[i];
-        input.value = m ? `${ja('moves', m)} (${m})` : '';
-        input.dataset.key = m || '';
-      }
+  for (let i = 0; i < 4; i++) {
+    const input = document.getElementById(`${side}-move-${i}`);
+    if (input) {
+      const m = state.moves[i];
+      input.value = m ? `${ja('moves', m)} (${m})` : '';
+      input.dataset.key = m || '';
     }
   }
   const itemEl = document.getElementById(`${side}-item-search`);
