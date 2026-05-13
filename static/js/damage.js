@@ -168,8 +168,19 @@ export const DMG = (() => {
       def = isPhysical ? defStats.df : defStats.sd;
       defBoost = isPhysical ? (defender.boosts?.df || 0) : (defender.boosts?.sd || 0);
     }
-    atk = applyBoost(atk, atkBoost);
-    def = applyBoost(def, defBoost);
+    // Unaware: ignore opponent's stat boosts
+    // Defender's Unaware: ignore attacker's positive Atk/SpA boosts
+    if (dAbil === 'Unaware') {
+      atk = applyBoost(atk, Math.min(0, atkBoost)); // only negative boosts apply
+    } else {
+      atk = applyBoost(atk, atkBoost);
+    }
+    // Attacker's Unaware: ignore defender's positive Def/SpD boosts
+    if (aAbil === 'Unaware') {
+      def = applyBoost(def, Math.min(0, defBoost));
+    } else {
+      def = applyBoost(def, defBoost);
+    }
 
     let bp = move.bp;
     const aAbil = attacker.ability || '';
@@ -292,6 +303,12 @@ export const DMG = (() => {
     if (dAbil === 'Dry Skin' && effectiveMoveType === 'Fire') defAbilMod = 1.25;
     // Purifying Salt: halves Ghost damage
     if (dAbil === 'Purifying Salt' && effectiveMoveType === 'Ghost') defAbilMod = 0.5;
+    // Marvel Scale: 1.5x Defense when statused
+    if (dAbil === 'Marvel Scale' && defender.status && isPhysical) def = Math.floor(def * 1.5);
+    // Grass Pelt: 1.5x Defense on Grassy Terrain
+    if (dAbil === 'Grass Pelt' && field?.terrain === 'Grassy' && isPhysical) def = Math.floor(def * 1.5);
+    // Ice Face: blocks first physical hit (Eiscue) — treated as immune for calc
+    if (dAbil === 'Ice Face' && isPhysical && !hasHazards) return makeImmune(moveName, effectiveMoveType, bp, atkStats, defStats, dAbil);
 
     // ===== DEFENDER ABILITY: Intimidate (Atk -1 on switch-in, simplified) =====
     // Intimidate is a switch-in effect; the user should set Atk -1 boost manually.
@@ -461,13 +478,26 @@ export const DMG = (() => {
     const grassyHeal = (field?.terrain === 'Grassy') ? Math.floor(maxHp / 16) : 0;
 
     // KO calc は curHp 基準。sitrus 50%閾値は maxHp 基準なので別途渡す
-    const koInfo = calcKO(results, curHp, eot, isToxic, sitrusHeal, grassyHeal, hazardDmg, maxHp);
+    let koInfo = calcKO(results, curHp, eot, isToxic, sitrusHeal, grassyHeal, hazardDmg, maxHp);
+
+    // Sturdy: survives any single hit at full HP with 1 HP remaining
+    const isSturdy = dAbil === 'Sturdy' && !hasHazards && curHp === maxHp;
+    if (isSturdy && koInfo.text.includes('1発')) {
+      koInfo = { text: 'がんじょうで耐え (HP1)', cls: 'ko-safe', detail: koInfo.detail };
+    }
 
     // Life Orb recoil info for attacker
     let atkRecoil = '';
     if (item === 'Life Orb') {
       atkRecoil = `(LO反動: ${Math.floor(atkStats.hp / 10)}ダメージ)`;
     }
+
+    // statNote: special ability/move notes
+    let statNote = moveName === 'Body Press' ? '防御でダメージ計算'
+      : moveName === 'Foul Play' ? '相手の攻撃でダメージ計算'
+      : (moveName === 'Psyshock' || moveName === 'Psystrike' || moveName === 'Secret Sword') ? '相手の防御にダメージ'
+      : '';
+    if (dAbil === 'Unaware') statNote += (statNote ? ' / ' : '') + 'てんねん(ランク無視)';
 
     return {
       move: moveName,
@@ -483,10 +513,7 @@ export const DMG = (() => {
       atkStats, defStats,
       atkRecoil,
       berryActive, berryItem: berryActive ? dItem : '',
-      statNote: moveName === 'Body Press' ? '防御でダメージ計算'
-        : moveName === 'Foul Play' ? '相手の攻撃でダメージ計算'
-        : (moveName === 'Psyshock' || moveName === 'Psystrike' || moveName === 'Secret Sword') ? '相手の防御にダメージ'
-        : ''
+      statNote
     };
   }
 
