@@ -94,6 +94,7 @@ function renderBoxSlot(b) {
       <div style="display:flex;align-items:flex-start;gap:6px">
         ${spriteImg(b.name, 40)}
         <div style="flex:1;min-width:0">
+          ${b.uid ? `<div style="font-size:.55rem;color:var(--fg2);font-family:monospace">ID: ${esc(b.uid.slice(0,8))}</div>` : ''}
           ${showdownHTML(b)}
         </div>
         <div style="display:flex;flex-direction:column;gap:2px">

@@ -4,7 +4,7 @@ import {
   atkState, defState, fieldState, pokemonNames,
   buildNatureUI, initNatureUI, updateNatureDisplay,
   restoreStateToUI, setupSearch, setupItemSearch,
-  showToast, switchPage, makePokemonState,
+  showToast, switchPage, makePokemonState, generateUid,
 } from './app.js';
 import { DMG } from './damage.js';
 import { DB } from './db.js';
@@ -627,16 +627,10 @@ async function openLoadPicker(side) {
 }
 
 // ===== INDIVIDUAL IDENTITY =====
-function buildFingerprint(state) {
-  const sp = state.sp || {};
-  const nm = state.natureMods || {};
-  const moves = (state.moves || []).filter(Boolean).sort().join(',');
-  return `${state.name}|${sp.hp||0},${sp.at||0},${sp.df||0},${sp.sa||0},${sp.sd||0},${sp.sp||0}|${nm.plus||''},${nm.minus||''}|${moves}|${state.item||''}`;
-}
-
 function findBoxMatch(boxAll, state) {
-  const fp = buildFingerprint(state);
-  return boxAll.find(b => buildFingerprint(b) === fp);
+  // uid優先: uidがあればそれで探す
+  if (state.uid) return boxAll.find(b => b.uid === state.uid);
+  return null;
 }
 
 // ===== ADD TO BOX / THREATS FROM CALC =====
@@ -644,13 +638,21 @@ async function addCalcToBox(side) {
   const state = side === 'atk' ? atkState : defState;
   if (!state.name) { showToast('ポケモンを選択してください'); return; }
   const boxAll = await DB.getAll('box');
-  if (findBoxMatch(boxAll, state)) { showToast('同じ個体がBOXに存在します'); return; }
+  // uid重複チェック
+  if (state.uid && boxAll.find(b => b.uid === state.uid)) {
+    showToast('同じ個体がBOXに存在します');
+    return;
+  }
   const entry = JSON.parse(JSON.stringify(state));
   delete entry.id;
+  // uid未発行なら新規発行
+  if (!entry.uid) entry.uid = generateUid();
   entry.savedCalcs = [];
   entry.notes = '';
   await DB.add('box', entry);
-  showToast(`${ja('pokemon', state.name)} をBOXに追加`);
+  // ダメ計側のstateにもuidを反映
+  state.uid = entry.uid;
+  showToast(`${ja('pokemon', state.name)} をBOXに追加 (${entry.uid.slice(0,8)})`);
 }
 
 async function addToThreat(side) {
@@ -658,6 +660,8 @@ async function addToThreat(side) {
   if (!state.name) { showToast('ポケモンを選択してください'); return; }
   const entry = JSON.parse(JSON.stringify(state));
   delete entry.id;
+  if (!entry.uid) entry.uid = generateUid();
+  state.uid = entry.uid;
   await DB.add('threats', entry);
   showToast(`${ja('pokemon', state.name)} を仮想敵に追加`);
 }
@@ -686,7 +690,13 @@ async function saveCalcToBox() {
 
   if (atkCalcs.length > 0) {
     let atkBox = findBoxMatch(boxAll, atkState);
-    if (!atkBox) { atkBox = JSON.parse(JSON.stringify(atkState)); delete atkBox.id; atkBox.savedCalcs = []; atkBox.notes = ''; }
+    if (!atkBox) {
+      atkBox = JSON.parse(JSON.stringify(atkState));
+      delete atkBox.id;
+      if (!atkBox.uid) atkBox.uid = generateUid();
+      atkState.uid = atkBox.uid;
+      atkBox.savedCalcs = []; atkBox.notes = '';
+    }
     if (!atkBox.savedCalcs) atkBox.savedCalcs = [];
     for (const cr of atkCalcs) {
       if (!atkBox.savedCalcs.some(s => s.dir === cr.dir && s.vs === cr.vs && s.move === cr.move && s.range === cr.range)) { atkBox.savedCalcs.push(cr); saved++; }
@@ -697,7 +707,13 @@ async function saveCalcToBox() {
 
   if (defCalcs.length > 0) {
     let defBox = findBoxMatch(boxAll, defState);
-    if (!defBox) { defBox = JSON.parse(JSON.stringify(defState)); delete defBox.id; defBox.savedCalcs = []; defBox.notes = ''; }
+    if (!defBox) {
+      defBox = JSON.parse(JSON.stringify(defState));
+      delete defBox.id;
+      if (!defBox.uid) defBox.uid = generateUid();
+      defState.uid = defBox.uid;
+      defBox.savedCalcs = []; defBox.notes = '';
+    }
     if (!defBox.savedCalcs) defBox.savedCalcs = [];
     for (const cr of defCalcs) {
       if (!defBox.savedCalcs.some(s => s.dir === cr.dir && s.vs === cr.vs && s.move === cr.move && s.range === cr.range)) { defBox.savedCalcs.push(cr); saved++; }
@@ -712,9 +728,15 @@ function addCalcToTeam(side) {
   const state = side === 'atk' ? atkState : defState;
   if (!state.name) { showToast('ポケモンを選択してください'); return; }
   if (currentTeam.members.length >= 6) { showToast('チームは6匹まで'); return; }
-  const fp = buildFingerprint(state);
-  if (currentTeam.members.some(m => buildFingerprint(m) === fp)) { showToast(`同じ個体が既にチームにいます`); return; }
+  // uid重複チェック
+  if (state.uid && currentTeam.members.some(m => m.uid === state.uid)) {
+    showToast('同じ個体が既にチームにいます');
+    return;
+  }
   const member = JSON.parse(JSON.stringify(state));
+  // uid未発行なら発行
+  if (!member.uid) member.uid = generateUid();
+  state.uid = member.uid;
   currentTeam.members.push(member);
   showToast(`${ja('pokemon', state.name)} をチームに追加しました (${currentTeam.members.length}/6)`);
 }

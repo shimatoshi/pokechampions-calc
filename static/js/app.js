@@ -187,8 +187,18 @@ export function setupItemSearch(inputEl, listEl, entries, onSelect) {
 }
 
 // ===== POKEMON STATE =====
+export function generateUid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  // Fallback for older browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
 export function makePokemonState() {
   return {
+    uid: null,        // 個体ID: BOX登録時に発行、チーム・ダメ計で一貫参照
     name: '',
     natureMods: { plus: '', minus: '' },
     sp: { hp: 0, at: 0, df: 0, sa: 0, sd: 0, sp: 0 },

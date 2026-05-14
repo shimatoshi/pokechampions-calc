@@ -4,7 +4,7 @@ import {
   atkState, defState, pokemonNames,
   buildNatureUI, initNatureUI, updateNatureDisplay,
   restoreStateToUI, setupSearch, setupItemSearch,
-  showToast, switchPage, makePokemonState,
+  showToast, switchPage, makePokemonState, generateUid,
   showdownHTML, teamToShowdownText,
 } from './app.js';
 import { DB } from './db.js';
@@ -375,6 +375,7 @@ async function openThreatEditor(existing) {
       threat.moves[i] = el.dataset?.key || el.value || '';
     }
     if (existing?.id) threat.id = existing.id;
+    if (!threat.uid) threat.uid = generateUid();
     await DB.put('threats', threat);
     editor.classList.add('hidden');
     renderTeamPage();
@@ -470,8 +471,12 @@ function openTeamEditor(idx) {
       const el = document.getElementById(`te-move-${i}`);
       member.moves[i] = el.dataset?.key || el.value || '';
     }
-    if (isNew) currentTeam.members.push(member);
-    else currentTeam.members[idx] = member;
+    if (isNew) {
+      if (!member.uid) member.uid = generateUid();
+      currentTeam.members.push(member);
+    } else {
+      currentTeam.members[idx] = member;
+    }
     editor.classList.add('hidden');
     renderTeamPage();
   });
