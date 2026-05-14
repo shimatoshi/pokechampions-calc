@@ -1,5 +1,5 @@
-// v19: 全乱数連鎖モード追加 (続けるボタン)
-const CACHE = 'pokechamp-v19';
+// v20: Champions固有learnsetに差し替え（PokeAPI→Serebii）
+const CACHE = 'pokechamp-v20';
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 

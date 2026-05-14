@@ -156,12 +156,13 @@ export function initCalcPage() {
   setupSearch(document.getElementById('atk-search'), document.getElementById('atk-list'), pokemonNames, n => selectPokemon('atk', n));
   setupSearch(document.getElementById('def-search'), document.getElementById('def-list'), pokemonNames, n => selectPokemon('def', n));
 
-  // Move search (both sides)
-  const moveNames = Object.keys(DATA.moves).sort();
+  // Move search (both sides) - uses mutable array so learnset filter works
+  const allMoveNames = Object.keys(DATA.moves).sort();
   for (const side of ['atk', 'def']) {
     const state = side === 'atk' ? atkState : defState;
+    state._moveEntries = [...allMoveNames];
     for (let i = 0; i < 4; i++) {
-      setupSearch(document.getElementById(`${side}-move-${i}`), document.getElementById(`${side}-movelist-${i}`), moveNames, name => { state.moves[i] = name; });
+      setupSearch(document.getElementById(`${side}-move-${i}`), document.getElementById(`${side}-movelist-${i}`), state._moveEntries, name => { state.moves[i] = name; });
     }
   }
 
@@ -317,6 +318,15 @@ export function selectPokemon(side, name) {
         selectPokemon(side, forme);
       });
     });
+  }
+
+  // Update move candidates based on learnset
+  if (state._moveEntries && data.learnset) {
+    const learnset = new Set(data.learnset);
+    state._moveEntries.length = 0;
+    for (const m of Object.keys(DATA.moves).sort()) {
+      if (learnset.has(m)) state._moveEntries.push(m);
+    }
   }
 
   // Ability

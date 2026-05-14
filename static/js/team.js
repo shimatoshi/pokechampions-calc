@@ -351,9 +351,11 @@ async function openThreatEditor(existing) {
   setupItemSearch(document.getElementById('th-item-search'), document.getElementById('th-item-list'), thItemEntries, name => { threat.item = name; });
   if (threat.item) document.getElementById('th-item-search').dataset.key = threat.item;
 
-  const moveNames = Object.keys(DATA.moves).sort();
+  const thMoveEntries = threat.name && DATA.pokemon[threat.name]?.learnset
+    ? DATA.pokemon[threat.name].learnset.filter(m => m in DATA.moves).sort()
+    : Object.keys(DATA.moves).sort();
   for (let i = 0; i < 4; i++) {
-    setupSearch(document.getElementById(`th-move-${i}`), document.getElementById(`th-movelist-${i}`), moveNames, name => { threat.moves[i] = name; });
+    setupSearch(document.getElementById(`th-move-${i}`), document.getElementById(`th-movelist-${i}`), thMoveEntries, name => { threat.moves[i] = name; });
   }
 
   if (threat.name && DATA.pokemon[threat.name]) {
@@ -448,9 +450,11 @@ function openTeamEditor(idx) {
   setupItemSearch(document.getElementById('te-item-search'), document.getElementById('te-item-list'), teItemEntries, name => { member.item = name; });
   if (member.item) document.getElementById('te-item-search').dataset.key = member.item;
 
-  const moveNames = Object.keys(DATA.moves).sort();
+  const teMoveEntries = member.name && DATA.pokemon[member.name]?.learnset
+    ? DATA.pokemon[member.name].learnset.filter(m => m in DATA.moves).sort()
+    : Object.keys(DATA.moves).sort();
   for (let i = 0; i < 4; i++) {
-    setupSearch(document.getElementById(`te-move-${i}`), document.getElementById(`te-movelist-${i}`), moveNames, name => { member.moves[i] = name; });
+    setupSearch(document.getElementById(`te-move-${i}`), document.getElementById(`te-movelist-${i}`), teMoveEntries, name => { member.moves[i] = name; });
   }
 
   if (member.name && DATA.pokemon[member.name]) {
