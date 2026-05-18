@@ -186,6 +186,10 @@ export const DMG = (() => {
       def = applyBoost(def, defBoost);
     }
 
+    // ===== MOVE-SPECIFIC BP modifiers =====
+    // Knock Off: 1.5x if defender has an item
+    if (moveName === 'Knock Off' && defender.item) bp = Math.floor(bp * 1.5);
+
     // ===== ATTACKER ABILITY: BP modifiers =====
     // Technician: moves with bp<=60 get 1.5x
     if (aAbil === 'Technician' && bp <= 60) bp = Math.floor(bp * 1.5);
@@ -252,7 +256,12 @@ export const DMG = (() => {
 
     // Type effectiveness (use effective move type for -ate)
     const defTypes = defData.types;
-    const typeEff = getTypeEff(effectiveMoveType, defTypes);
+    let typeEff = getTypeEff(effectiveMoveType, defTypes);
+    // Freeze-Dry: Ice move that is super effective against Water
+    if (moveName === 'Freeze-Dry' && defTypes.includes('Water')) {
+      // Water normally resists Ice (0.5x) → override to SE (2x), net ×4 correction
+      typeEff *= 4;
+    }
 
     // ===== DEFENDER ABILITY: Immunities =====
     // Levitate: immune to Ground
@@ -496,6 +505,8 @@ export const DMG = (() => {
     let statNote = moveName === 'Body Press' ? '防御でダメージ計算'
       : moveName === 'Foul Play' ? '相手の攻撃でダメージ計算'
       : (moveName === 'Psyshock' || moveName === 'Psystrike' || moveName === 'Secret Sword') ? '相手の防御にダメージ'
+      : moveName === 'Knock Off' && defender.item ? 'アイテム所持で威力1.5倍'
+      : moveName === 'Freeze-Dry' && defTypes.includes('Water') ? 'みずタイプに抜群'
       : '';
     if (dAbil === 'Unaware') statNote += (statNote ? ' / ' : '') + 'てんねん(ランク無視)';
 
