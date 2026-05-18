@@ -168,6 +168,10 @@ export const DMG = (() => {
       def = isPhysical ? defStats.df : defStats.sd;
       defBoost = isPhysical ? (defender.boosts?.df || 0) : (defender.boosts?.sd || 0);
     }
+    let bp = move.bp;
+    const aAbil = attacker.ability || '';
+    const dAbil = defender.ability || '';
+
     // Unaware: ignore opponent's stat boosts
     // Defender's Unaware: ignore attacker's positive Atk/SpA boosts
     if (dAbil === 'Unaware') {
@@ -181,10 +185,6 @@ export const DMG = (() => {
     } else {
       def = applyBoost(def, defBoost);
     }
-
-    let bp = move.bp;
-    const aAbil = attacker.ability || '';
-    const dAbil = defender.ability || '';
 
     // ===== ATTACKER ABILITY: BP modifiers =====
     // Technician: moves with bp<=60 get 1.5x
