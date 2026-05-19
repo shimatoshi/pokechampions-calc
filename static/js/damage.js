@@ -308,9 +308,20 @@ export const DMG = (() => {
     const item = attacker.item || '';
     const dItem = defender.item || '';
 
+    // Type-boosting items (1.2x)
+    const TYPE_BOOST_ITEM = {
+      'Black Belt': 'Fighting', 'Black Glasses': 'Dark', 'Charcoal': 'Fire',
+      'Dragon Fang': 'Dragon', 'Fairy Feather': 'Fairy', 'Hard Stone': 'Rock',
+      'Magnet': 'Electric', 'Metal Coat': 'Steel', 'Miracle Seed': 'Grass',
+      'Mystic Water': 'Water', 'Never-Melt Ice': 'Ice', 'Poison Barb': 'Poison',
+      'Sharp Beak': 'Flying', 'Silk Scarf': 'Normal', 'Silver Powder': 'Bug',
+      'Soft Sand': 'Ground', 'Spell Tag': 'Ghost', 'Twisted Spoon': 'Psychic',
+    };
+
     let itemMod = 1;
     if (item === 'Life Orb') itemMod = 1.3;
-    if (item === 'Expert Belt' && typeEff > 1) itemMod = 1.2;
+    else if (item === 'Expert Belt' && typeEff > 1) itemMod = 1.2;
+    else if (TYPE_BOOST_ITEM[item] === effectiveMoveType) itemMod = 1.2;
 
     // Type-resist berry
     const resistType = RESIST_BERRY[dItem];
