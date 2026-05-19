@@ -170,6 +170,10 @@ export const DMG = (() => {
     if (aAbil === 'Sheer Force' && move.secondary) bp = Math.floor(bp * 1.3);
     if (aAbil === 'Tough Claws' && move.contact) bp = Math.floor(bp * 1.3);
 
+    // Terrain-boosted moves
+    if (moveName === 'Expanding Force' && field?.terrain === 'Psychic') bp = Math.floor(bp * 1.5);
+    if (moveName === 'Rising Voltage' && field?.terrain === 'Electric') bp *= 2;
+
     // Pinch abilities
     if (field?.pinch) {
       if (aAbil === 'Overgrow' && move.type === 'Grass') bp = Math.floor(bp * 1.5);
@@ -377,13 +381,15 @@ export const DMG = (() => {
 
   // ===== STAT NOTE =====
 
-  function buildStatNote(moveName, defender, dAbil, defTypes) {
+  function buildStatNote(moveName, defender, dAbil, defTypes, field) {
     let note = moveName === 'Body Press' ? '防御でダメージ計算'
       : moveName === 'Foul Play' ? '相手の攻撃でダメージ計算'
       : (moveName === 'Psyshock' || moveName === 'Psystrike' || moveName === 'Secret Sword') ? '相手の防御にダメージ'
       : moveName === 'Knock Off' && defender.item ? 'アイテム所持で威力1.5倍'
       : moveName === 'Freeze-Dry' && defTypes.includes('Water') ? 'みずタイプに抜群'
       : moveName === 'Hex' && defender.status ? '状態異常で威力2倍'
+      : moveName === 'Expanding Force' && field?.terrain === 'Psychic' ? 'サイコフィールドで威力1.5倍'
+      : moveName === 'Rising Voltage' && field?.terrain === 'Electric' ? 'エレキフィールドで威力2倍'
       : '';
     if (dAbil === 'Unaware') note += (note ? ' / ' : '') + 'てんねん(ランク無視)';
     return note;
@@ -529,7 +535,7 @@ export const DMG = (() => {
       atkStats, defStats,
       atkRecoil: items.item === 'Life Orb' ? `(LO反動: ${Math.floor(atkStats.hp / 10)}ダメージ)` : '',
       berryActive: items.berryActive, berryItem: items.berryActive ? items.dItem : '',
-      statNote: buildStatNote(moveName, defender, dAbil, defTypes)
+      statNote: buildStatNote(moveName, defender, dAbil, defTypes, field)
     };
   }
 
