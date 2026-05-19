@@ -2,6 +2,7 @@
 import {
   DATA, ja, esc, spriteImg, typeBadge,
   atkState, showdownHTML, switchPage, showToast,
+  restoreStateToUI,
 } from './app.js';
 import { DB } from './db.js';
 import { selectPokemon, initCalcPage } from './calc.js';
