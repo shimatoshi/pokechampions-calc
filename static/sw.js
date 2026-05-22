@@ -5,9 +5,9 @@ self.addEventListener('install', e => { self.skipWaiting(); });
 
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
-    // 過去の全 cache を削除 (現バージョンも空のまま start)
+    // 旧バージョンのキャッシュのみ削除（他PWAのキャッシュは触らない）
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => k.startsWith('pokechamp-') && k !== CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
     // 既存タブを reload して新 SW + 新コードを反映
     const cs = await self.clients.matchAll({ type: 'window' });
