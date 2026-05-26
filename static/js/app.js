@@ -2,6 +2,7 @@
 import { DB } from './db.js';
 import { DMG } from './damage.js';
 import { initCalcPage, updateStatDisplay } from './calc.js';
+import { initSimPage } from './sim.js';
 import { initTeamPage, renderTeamPage } from './team.js';
 import { renderBoxPage } from './box.js';
 import { initRecordsPage, renderRecordsPage } from './records.js';
@@ -218,6 +219,29 @@ export const atkState = makePokemonState();
 export const defState = makePokemonState();
 export const fieldState = { weather: '', terrain: '', doubles: false, crit: false, stealthRock: false, spikes: 0, pinch: false };
 
+// ===== CALC SESSION PERSISTENCE =====
+const SESSION_KEY = 'pokechamp_calc_session';
+export function saveCalcSession() {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ atk: atkState, def: defState, field: fieldState }));
+  } catch (_) {}
+}
+let _saveTimer = null;
+export function scheduleSessionSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveCalcSession, 500);
+}
+export function restoreCalcSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return;
+    const { atk, def, field } = JSON.parse(raw);
+    if (atk) Object.assign(atkState, atk);
+    if (def) Object.assign(defState, def);
+    if (field) Object.assign(fieldState, field);
+  } catch (_) {}
+}
+
 // ===== NATURE UI =====
 export function buildNatureUI(side) {
   const stats = ['at','df','sa','sd','sp'];
@@ -252,6 +276,7 @@ export function initNatureUI(side, state) {
       }
       updateNatureDisplay(side, state);
       updateStatDisplay(side, state);
+      scheduleSessionSave();
     });
   }
   updateNatureDisplay(side, state);
@@ -328,7 +353,9 @@ async function init() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
   DB.persist();
   await loadData();
+  restoreCalcSession();
   initCalcPage();
+  initSimPage();
   initTeamPage();
   initRecordsPage();
   renderBoxPage();

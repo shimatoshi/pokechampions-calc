@@ -1,7 +1,37 @@
-// v20: Champions固有learnsetに差し替え（PokeAPI→Serebii）
-const CACHE = 'pokechamp-v20';
+// v21: オフライン完全対応 (HTML/JS/CSSもプリキャッシュ)
+const CACHE = 'pokechamp-v21';
 
-self.addEventListener('install', e => { self.skipWaiting(); });
+const PRECACHE = [
+  './',
+  './index.html',
+  './css/style.css',
+  './js/app.js',
+  './js/calc.js',
+  './js/damage.js',
+  './js/db.js',
+  './js/team.js',
+  './js/box.js',
+  './js/records.js',
+  './js/sim.js',
+  './manifest.json',
+  './data/data_pokemon.json',
+  './data/data_moves.json',
+  './data/data_types.json',
+  './data/data_natures.json',
+  './data/data_items.json',
+  './data/names_pokemon_ja.json',
+  './data/names_moves_ja.json',
+  './data/names_natures_ja.json',
+  './data/names_items_ja.json',
+  './data/names_abilities_ja.json',
+];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(PRECACHE))
+  );
+  self.skipWaiting();
+});
 
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
@@ -15,13 +45,12 @@ self.addEventListener('activate', e => {
   })());
 });
 
-// fetch は素通し (ネットワーク優先)。オフライン時のみ画像/データを cache フォールバック。
+// ネットワーク優先、失敗時キャッシュフォールバック。成功時はキャッシュ更新。
 self.addEventListener('fetch', e => {
   e.respondWith((async () => {
     try {
       const res = await fetch(e.request);
-      // 画像とデータだけバックグラウンドで cache 保存 (オフライン時保険)
-      if (res.ok && (e.request.url.includes('/img/') || e.request.url.includes('/data/'))) {
+      if (res.ok) {
         const clone = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
       }
