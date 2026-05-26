@@ -370,9 +370,14 @@ function startBattle() {
   if (!statsA || !statsB) return;
 
   runtime = {
-    a: { hp: statsA.hp, maxHp: statsA.hp, toxicCount: 0, leechSeed: false, selectedMove: '', boosts: { at: 0, df: 0, sa: 0, sd: 0, sp: 0 } },
-    b: { hp: statsB.hp, maxHp: statsB.hp, toxicCount: 0, leechSeed: false, selectedMove: '', boosts: { at: 0, df: 0, sa: 0, sd: 0, sp: 0 } },
+    a: { hp: statsA.hp, maxHp: statsA.hp, toxicCount: 0, leechSeed: false, selectedMove: '', boosts: { at: 0, df: 0, sa: 0, sd: 0, sp: 0 }, disguise: false },
+    b: { hp: statsB.hp, maxHp: statsB.hp, toxicCount: 0, leechSeed: false, selectedMove: '', boosts: { at: 0, df: 0, sa: 0, sd: 0, sp: 0 }, disguise: false },
   };
+  // ばけのかわ / こおりのすがた 初期化
+  for (const s of ['a','b']) {
+    const abil = sides[s].ability;
+    runtime[s].disguise = (abil === 'Disguise' || abil === 'Ice Face');
+  }
   turnLog = [];
   turnNum = 0;
 
@@ -542,6 +547,7 @@ function renderBattleSide(side) {
       <div class="sim-hp-bar"><div class="sim-hp-fill ${hpClass}" style="width:${pct}%"></div></div>
       <div class="sim-hp-text">${rt.hp} / ${rt.maxHp}</div>
       ${stats ? `<div style="font-size:.65rem;color:var(--fg2);text-align:center">S: ${stats.sp}</div>` : ''}
+      ${rt.disguise ? `<div style="font-size:.7rem;text-align:center;color:var(--accent2);font-weight:700">${sides[side].ability === 'Disguise' ? 'ばけのかわ' : 'こおりのすがた'} 生存</div>` : ''}
       <div class="sim-hp-btns">
         <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/16}">+1/16</button>
         <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/8}">+1/8</button>
@@ -653,7 +659,7 @@ function executeAttack(atkSide, defSide, moveName) {
 
   // Set up temp state for DMG.calculate
   const atkState = { ...sides[atkSide], boosts: { ...runtime[atkSide].boosts }, currentHP: runtime[atkSide].hp };
-  const defState = { ...sides[defSide], boosts: { ...runtime[defSide].boosts }, currentHP: runtime[defSide].hp };
+  const defState = { ...sides[defSide], boosts: { ...runtime[defSide].boosts }, currentHP: runtime[defSide].hp, disguiseIntact: runtime[defSide].disguise };
 
   const result = DMG.calculate(atkState, defState, moveName, simField);
   if (!result) {
@@ -664,6 +670,17 @@ function executeAttack(atkSide, defSide, moveName) {
   if (result.typeEff === 0) {
     addLog(`${atkLabel}の${ja('moves', moveName)}！ → 効果なし`);
     return;
+  }
+
+  // ばけのかわ / こおりのすがた 発動
+  if (result.disguiseConsumed) {
+    const abilName = sides[defSide].ability === 'Disguise' ? 'ばけのかわ' : 'こおりのすがた';
+    const subDmg = result.minDmg; // 1/8 max HP
+    runtime[defSide].hp = Math.max(0, runtime[defSide].hp - subDmg);
+    runtime[defSide].disguise = false;
+    addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}の${abilName}がはがれた！ (${subDmg}ダメージ)`, false, 'dmg-line');
+    addLog(`  ${defLabel}: HP ${runtime[defSide].hp}/${runtime[defSide].maxHp}`);
+    return; // ばけのかわ消費で攻撃は終了 (反動・接触ダメなし)
   }
 
   // Use average damage (midpoint of 16 rolls)
