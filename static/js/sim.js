@@ -4,25 +4,15 @@ import {
   showToast,
 } from './app.js';
 import { DMG } from './damage.js';
+import {
+  TWO_TURN_MOVES, SKIN_ABILITIES, applyBoost,
+  getRecoilFrac as _getRecoilFrac, getDrainFrac as _getDrainFrac,
+  getEffectiveMoveType as _getEffectiveMoveType,
+} from './poke-data.js';
 
-// ===== CONSTANTS =====
-// Fallback for moves missing recoil/drain in data
-const RECOIL_FB = {'Brave Bird':1/3,'Double-Edge':1/3,'Flare Blitz':1/3,'Head Smash':1/2,'Light of Ruin':1/2,'Submission':1/4,'Take Down':1/4,'Volt Tackle':1/3,'Wild Charge':1/4,'Wood Hammer':1/3,'Wave Crash':1/3,'Head Charge':1/4};
-const DRAIN_FB = {'Drain Punch':1/2,'Giga Drain':1/2,'Horn Leech':1/2,'Leech Life':1/2,'Parabolic Charge':1/2,'Absorb':1/2,'Mega Drain':1/2,'Oblivion Wing':3/4,'Draining Kiss':3/4};
-function getRecoilFrac(m) { return DATA.moves[m]?.recoil || RECOIL_FB[m] || 0; }
-function getDrainFrac(m) { return DATA.moves[m]?.drain || DRAIN_FB[m] || 0; }
-
-// -ate skin abilities: resolve effective move type for display
-const SKIN_ABILITIES = { 'Pixilate':'Fairy','Aerilate':'Flying','Refrigerate':'Ice','Galvanize':'Electric','Dragonize':'Dragon' };
-function getEffectiveMoveType(moveName, ability) {
-  const move = DATA.moves[moveName];
-  if (!move) return '';
-  if (move.type === 'Normal' && SKIN_ABILITIES[ability]) return SKIN_ABILITIES[ability];
-  return move.type;
-}
-
-// Two-turn moves
-const TWO_TURN_MOVES = new Set(['Phantom Force','Shadow Force','Fly','Dig','Dive','Bounce','Sky Attack','Solar Beam','Solar Blade','Meteor Beam','Geomancy','Skull Bash']);
+function getRecoilFrac(m) { return _getRecoilFrac(m, DATA.moves[m]); }
+function getDrainFrac(m) { return _getDrainFrac(m, DATA.moves[m]); }
+function getEffectiveMoveType(m, ability) { return _getEffectiveMoveType(m, DATA.moves[m], ability); }
 
 // Mega evolution helpers
 function getMegaFormes(poke) {
@@ -408,15 +398,11 @@ function getEffectiveSpeed(side) {
   const rt = getActiveRt(side);
   const stats = DMG.getStats(poke);
   let spd = stats?.sp || 0;
-  spd = applyBoostVal(spd, rt.boosts.sp);
+  spd = applyBoost(spd, rt.boosts.sp);
   if (rt.status === 'par') spd = Math.floor(spd / 2);
   return spd;
 }
 
-function applyBoostVal(stat, boost) {
-  if (boost >= 0) return Math.floor(stat * (2 + boost) / 2);
-  return Math.floor(stat * 2 / (2 - boost));
-}
 
 function doSwitch(side, toIdx) {
   const label = side === 'a' ? '自分' : '相手';
