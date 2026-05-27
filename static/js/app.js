@@ -10,6 +10,8 @@ import { initRecordsPage, renderRecordsPage } from './records.js';
 export let DATA = { pokemon: {}, moves: {}, types: {}, natures: {}, items: {} };
 export let JA = { pokemon: {}, moves: {}, natures: {}, items: {}, abilities: {} };
 export let pokemonNames = [];
+export const pageDirty = { box: true, team: true, records: true };
+export function markDirty(page) { pageDirty[page] = true; }
 
 // ===== HELPERS =====
 export function ja(type, en) {
@@ -368,6 +370,7 @@ async function init() {
   restoreCalcSession();
   initCalcPage(); // 起動時はダメ計ページだけ初期化
   const initialized = { calc: true, sim: false, team: false, records: false, box: false };
+  // pageDirty is module-level export
   document.querySelectorAll('nav button').forEach(btn => {
     btn.addEventListener('click', () => {
       const page = btn.dataset.page;
@@ -378,10 +381,12 @@ async function init() {
         if (page === 'records') initRecordsPage();
         if (page === 'box') renderBoxPage();
         initialized[page] = true;
-      } else {
+        pageDirty[page] = false;
+      } else if (pageDirty[page]) {
         if (page === 'box') renderBoxPage();
         if (page === 'team') renderTeamPage();
         if (page === 'records') renderRecordsPage();
+        pageDirty[page] = false;
       }
     });
   });
