@@ -10,18 +10,11 @@ import { DB } from './db.js';
 import { currentTeam } from './team.js';
 
 // ===== CONSTANTS =====
-const RECOIL_MOVES = {
-  'Brave Bird':1/3,'Double-Edge':1/3,'Flare Blitz':1/3,'Head Smash':1/2,
-  'Light of Ruin':1/2,'Submission':1/4,'Take Down':1/4,'Volt Tackle':1/3,
-  'Wild Charge':1/4,'Wood Hammer':1/3,'Wave Crash':1/3,'Head Charge':1/4,
-};
-const DRAIN_MOVES = {
-  'Drain Punch':1/2,'Giga Drain':1/2,'Horn Leech':1/2,'Leech Life':1/2,
-  'Parabolic Charge':1/2,'Absorb':1/2,'Mega Drain':1/2,
-  'Oblivion Wing':3/4,'Draining Kiss':3/4,
-};
-function getRecoilFrac(m) { return DATA.moves[m]?.recoil || RECOIL_MOVES[m] || 0; }
-function getDrainFrac(m) { return DATA.moves[m]?.drain || DRAIN_MOVES[m] || 0; }
+// Fallback for moves missing recoil/drain in data
+const RECOIL_FB = {'Brave Bird':1/3,'Double-Edge':1/3,'Flare Blitz':1/3,'Head Smash':1/2,'Light of Ruin':1/2,'Submission':1/4,'Take Down':1/4,'Volt Tackle':1/3,'Wild Charge':1/4,'Wood Hammer':1/3,'Wave Crash':1/3,'Head Charge':1/4};
+const DRAIN_FB = {'Drain Punch':1/2,'Giga Drain':1/2,'Horn Leech':1/2,'Leech Life':1/2,'Parabolic Charge':1/2,'Absorb':1/2,'Mega Drain':1/2,'Oblivion Wing':3/4,'Draining Kiss':3/4};
+function getRecoilFrac(m) { return DATA.moves[m]?.recoil || RECOIL_FB[m] || 0; }
+function getDrainFrac(m) { return DATA.moves[m]?.drain || DRAIN_FB[m] || 0; }
 
 // -ate skin abilities: resolve effective move type for display
 const SKIN_ABILITIES = { 'Pixilate':'Fairy','Aerilate':'Flying','Refrigerate':'Ice','Galvanize':'Electric','Dragonize':'Dragon' };
@@ -501,7 +494,7 @@ function renderSelectSide(side) {
           const sel = selection[side].includes(i);
           const order = sel ? selection[side].indexOf(i) + 1 : '';
           return `
-            <div class="sel-slot" data-side="${side}" data-idx="${i}" style="text-align:center;cursor:pointer;padding:4px;border-radius:var(--radius);border:2px solid ${sel ? 'var(--accent)' : 'var(--bg3)'};background:${sel ? 'rgba(233,69,96,.1)' : 'var(--bg)'}">
+            <div class="sel-slot${sel ? ' sel-active' : ''}" data-side="${side}" data-idx="${i}">
               ${spriteImg(p.name, 44)}
               <div style="font-size:.7rem;font-weight:700">${esc(ja('pokemon', p.name))}</div>
               ${sel ? `<div style="font-size:.65rem;color:var(--accent)">${order === 1 ? '先発' : order + '番手'}</div>` : ''}
@@ -602,12 +595,12 @@ function renderBattle() {
         const delta = Math.floor(rt.maxHp * Math.abs(frac)) * Math.sign(frac);
         rt.hp = Math.max(0, Math.min(rt.maxHp, rt.hp + delta));
         addLog(`${s === 'a' ? '自分' : '相手'}: HP${delta >= 0 ? '+' : ''}${delta} → ${rt.hp}/${rt.maxHp}`);
-        renderBattle();
+        updateBattleLight();
       });
     });
     document.getElementById(`sim-hp-set-${s}`)?.addEventListener('click', () => {
       const v = parseInt(document.getElementById(`sim-hp-input-${s}`).value);
-      if (!isNaN(v)) { rt.hp = Math.max(0, Math.min(rt.maxHp, v)); renderBattle(); }
+      if (!isNaN(v)) { rt.hp = Math.max(0, Math.min(rt.maxHp, v)); updateBattleLight(); }
     });
   }
 
@@ -659,10 +652,6 @@ function renderBattle() {
   document.getElementById('sim-exec').addEventListener('click', executeTurn);
   document.getElementById('sim-eot').addEventListener('click', executeEndOfTurn);
   document.getElementById('sim-end').addEventListener('click', () => { phase = 'setup'; renderSetup(); });
-
-  // Scroll log to bottom
-  const logEl = document.getElementById('sim-log');
-  logEl.scrollTop = logEl.scrollHeight;
 }
 
 function renderBattleSide(side) {
@@ -690,11 +679,11 @@ function renderBattleSide(side) {
           <div style="font-size:.6rem;color:var(--fg2)">${esc(abilityJa)}</div>
         </div>
       </div>
-      ${canMega ? `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(megaForme)}" style="width:100%;margin:3px 0;background:linear-gradient(135deg,var(--accent),var(--accent2));font-size:.75rem">メガシンカ → ${esc(ja('pokemon', megaForme))}</button>` : ''}
-      ${!canMega && !isMega(poke.name) && !battle.megaUsed[side] && getMegaFormes(poke).length > 1 ? getMegaFormes(poke).map(mf => `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(mf)}" style="width:100%;margin:2px 0;background:linear-gradient(135deg,var(--accent),var(--accent2));font-size:.7rem">メガシンカ → ${esc(ja('pokemon', mf))}</button>`).join('') : ''}
-      ${isAegi ? `<button class="btn btn-sm sim-aegis-btn" data-side="${side}" style="width:100%;margin:3px 0;background:var(--accent2);font-size:.75rem">${poke.name.includes('Blade') ? 'シールドフォルムへ' : 'ブレードフォルムへ'}</button>` : ''}
-      <div class="sim-hp-bar"><div class="sim-hp-fill ${hpClass}" style="width:${pct}%"></div></div>
-      <div class="sim-hp-text">${rt.hp} / ${rt.maxHp}</div>
+      ${canMega ? `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(megaForme)}">メガシンカ → ${esc(ja('pokemon', megaForme))}</button>` : ''}
+      ${!canMega && !isMega(poke.name) && !battle.megaUsed[side] && getMegaFormes(poke).length > 1 ? getMegaFormes(poke).map(mf => `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(mf)}">メガシンカ → ${esc(ja('pokemon', mf))}</button>`).join('') : ''}
+      ${isAegi ? `<button class="btn btn-sm sim-aegis-btn" data-side="${side}">${poke.name.includes('Blade') ? 'シールドフォルムへ' : 'ブレードフォルムへ'}</button>` : ''}
+      <div class="sim-hp-bar"><div class="sim-hp-fill ${hpClass}" id="sim-hpbar-${side}" style="width:${pct}%"></div></div>
+      <div class="sim-hp-text" id="sim-hptext-${side}">${rt.hp} / ${rt.maxHp}</div>
       ${stats ? `<div style="font-size:.65rem;color:var(--fg2);text-align:center">S:${stats.sp} ${poke.item ? '@ ' + esc(ja('items', poke.item)) : ''}</div>` : ''}
       ${rt.disguise ? `<div style="font-size:.7rem;text-align:center;color:var(--accent2);font-weight:700">${poke.ability === 'Disguise' ? 'ばけのかわ' : 'こおりのすがた'} 生存</div>` : ''}
       <div class="sim-hp-btns">
@@ -747,7 +736,7 @@ function renderBench(side) {
             style="display:flex;align-items:center;gap:3px;${!alive ? 'opacity:.4;pointer-events:none' : ''};${sel ? 'background:var(--accent2)' : ''}" ${!alive ? 'disabled' : ''}>
             ${spriteImg(poke.name, 22)}
             <span style="font-size:.7rem">${esc(ja('pokemon', poke.name))}</span>
-            <span style="font-size:.6rem;color:var(--fg2)">${rt.hp}/${rt.maxHp}</span>
+            <span class="sim-bench-hp" data-side="${side}" data-idx="${i}" style="font-size:.6rem;color:var(--fg2)">${rt.hp}/${rt.maxHp}</span>
           </button>`;
       }).join('')}
     </div>`;
@@ -821,7 +810,7 @@ function executeTurn() {
 
   // Clear actions
   battle.actions = { a: null, b: null };
-  renderBattle();
+  updateBattleLight();
 }
 
 function getEffectiveSpeed(side) {
@@ -998,7 +987,45 @@ function executeEndOfTurn() {
   for (const s of ['a','b']) {
     if (getActiveRt(s).hp <= 0) addLog(`${s === 'a' ? '自分' : '相手'}の${ja('pokemon', getActive(s).name)}はたおれた！`, false, 'ko-line');
   }
-  renderBattle();
+  updateBattleLight();
+}
+
+// ===== TARGETED DOM UPDATES (no full rebuild) =====
+function updateHpUI(side) {
+  const rt = getActiveRt(side);
+  const pct = rt.maxHp > 0 ? (rt.hp / rt.maxHp * 100) : 0;
+  const hpClass = pct > 50 ? 'hp-high' : pct > 25 ? 'hp-mid' : 'hp-low';
+  const bar = document.getElementById(`sim-hpbar-${side}`);
+  const text = document.getElementById(`sim-hptext-${side}`);
+  if (bar) { bar.className = `sim-hp-fill ${hpClass}`; bar.style.width = `${pct}%`; }
+  if (text) text.textContent = `${rt.hp} / ${rt.maxHp}`;
+  // Update bench HP display
+  document.querySelectorAll(`.sim-bench-hp[data-side="${side}"]`).forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    const brt = battle.rt[side][idx];
+    if (brt) el.textContent = `${brt.hp}/${brt.maxHp}`;
+  });
+}
+
+let _logRendered = 0; // tracks how many log entries are already in DOM
+function appendNewLogs() {
+  const logEl = document.getElementById('sim-log');
+  if (!logEl || !battle) return;
+  const entries = battle.log.slice(_logRendered);
+  if (entries.length === 0) return;
+  let html = '';
+  for (const e of entries) {
+    html += `<div class="sim-turn-entry${e.isHeader ? ' turn-header' : ''}">${e.cls ? `<span class="${e.cls}">` : ''}${esc(e.text)}${e.cls ? '</span>' : ''}</div>`;
+  }
+  logEl.insertAdjacentHTML('beforeend', html);
+  _logRendered = battle.log.length;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function updateBattleLight() {
+  updateHpUI('a');
+  updateHpUI('b');
+  appendNewLogs();
 }
 
 // ===== LOG =====
@@ -1007,7 +1034,7 @@ function addLog(text, isHeader = false, cls = '') {
 }
 function renderLog() {
   if (!battle) return '';
-  // 直近100件のみ描画(パフォーマンス対策)
+  _logRendered = battle.log.length;
   const entries = battle.log.length > 100 ? battle.log.slice(-100) : battle.log;
   return entries.map(e =>
     `<div class="sim-turn-entry${e.isHeader ? ' turn-header' : ''}">${e.cls ? `<span class="${e.cls}">` : ''}${esc(e.text)}${e.cls ? '</span>' : ''}</div>`
