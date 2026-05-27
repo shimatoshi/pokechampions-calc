@@ -1,5 +1,5 @@
-// v21: オフライン完全対応 (HTML/JS/CSSもプリキャッシュ)
-const CACHE = 'pokechamp-v21';
+// v22: install耐性向上 + GETのみキャッシュ
+const CACHE = 'pokechamp-v22';
 
 const PRECACHE = [
   './',
@@ -27,26 +27,29 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(PRECACHE))
-  );
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    // 個別にキャッシュ: 1ファイル失敗しても他は保存される
+    await Promise.all(PRECACHE.map(url =>
+      cache.add(url).catch(() => console.warn('SW precache skip:', url))
+    ));
+  })());
   self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
-    // 旧バージョンのキャッシュのみ削除（他PWAのキャッシュは触らない）
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k.startsWith('pokechamp-') && k !== CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
-    // 既存タブを reload して新 SW + 新コードを反映
     const cs = await self.clients.matchAll({ type: 'window' });
     cs.forEach(c => { try { c.navigate(c.url); } catch {} });
   })());
 });
 
-// ネットワーク優先、失敗時キャッシュフォールバック。成功時はキャッシュ更新。
+// ネットワーク優先、失敗時キャッシュフォールバック。GETのみキャッシュ更新。
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
   e.respondWith((async () => {
     try {
       const res = await fetch(e.request);

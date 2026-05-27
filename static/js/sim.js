@@ -66,8 +66,6 @@ function getAegislashAlternateForme(name) {
 function applyFormeChange(side, selIdx, newName) {
   const oldPoke = parties[side][selection[side][selIdx]];
   const rt = battle.rt[side][selIdx];
-  const oldMax = rt.maxHp;
-  // Change species
   oldPoke.name = newName;
   // Update ability to new forme's first ability
   const newData = DATA.pokemon[newName];
@@ -250,12 +248,7 @@ function openEditor(side, idx) {
       for (const m of Object.keys(DATA.moves).sort()) { if (data.learnset.includes(m)) state._moveEntries.push(m); }
     }
     // Ability
-    const abilWrap = document.getElementById('ed-ability-wrap');
-    const abilSel = document.getElementById('ed-ability');
-    abilWrap.classList.remove('hidden');
-    abilSel.innerHTML = data.abilities.map(a => `<option value="${a}">${ja('abilities', a) || a}</option>`).join('');
-    state.ability = data.abilities[0];
-    abilSel.value = state.ability;
+    updateEdAbility(state, data);
     edUpdateStats(state);
   });
 
@@ -268,14 +261,9 @@ function openEditor(side, idx) {
   // Nature
   initNatureUI('ed', state);
 
-  // Ability select
+  // Ability select (for pre-existing state)
   if (state.name && DATA.pokemon[state.name]) {
-    const data = DATA.pokemon[state.name];
-    const abilSel = document.getElementById('ed-ability');
-    document.getElementById('ed-ability-wrap').classList.remove('hidden');
-    abilSel.innerHTML = data.abilities.map(a => `<option value="${a}">${ja('abilities', a) || a}</option>`).join('');
-    abilSel.value = state.ability || data.abilities[0];
-    abilSel.addEventListener('change', e => { state.ability = e.target.value; });
+    updateEdAbility(state, DATA.pokemon[state.name]);
   }
 
   // Moves
@@ -338,6 +326,17 @@ function openEditor(side, idx) {
     showToast(`${ja('pokemon', state.name)} をBOXに追加`);
   });
   document.getElementById('ed-cancel').addEventListener('click', () => modal.remove());
+}
+
+function updateEdAbility(state, data) {
+  const abilWrap = document.getElementById('ed-ability-wrap');
+  const abilSel = document.getElementById('ed-ability');
+  if (!data?.abilities?.length) return;
+  abilWrap.classList.remove('hidden');
+  abilSel.innerHTML = data.abilities.map(a => `<option value="${a}">${ja('abilities', a) || a}</option>`).join('');
+  if (!data.abilities.includes(state.ability)) state.ability = data.abilities[0];
+  abilSel.value = state.ability;
+  abilSel.onchange = e => { state.ability = e.target.value; };
 }
 
 function edUpdateStats(state) {
@@ -985,7 +984,7 @@ function executeEndOfTurn() {
     // Leech Seed
     if (rt.leechSeed && oppRt.hp > 0) {
       const d = Math.floor(rt.maxHp / 8); rt.hp = Math.max(0, rt.hp - d);
-      const heal = Math.min(d, oppRt.maxHp - oppRt.hp); oppRt.hp = Math.min(oppRt.maxHp, oppRt.hp + d);
+      const heal = Math.min(d, oppRt.maxHp - oppRt.hp); oppRt.hp += heal;
       addLog(`${label}: やどりぎ -${d} → HP ${rt.hp}/${rt.maxHp}`, false, 'dmg-line');
       if (heal > 0) addLog(`${opp === 'a' ? '自分' : '相手'}: やどりぎ回復 +${heal} → HP ${oppRt.hp}/${oppRt.maxHp}`, false, 'heal-line');
     }
@@ -1008,7 +1007,9 @@ function addLog(text, isHeader = false, cls = '') {
 }
 function renderLog() {
   if (!battle) return '';
-  return battle.log.map(e =>
+  // 直近100件のみ描画(パフォーマンス対策)
+  const entries = battle.log.length > 100 ? battle.log.slice(-100) : battle.log;
+  return entries.map(e =>
     `<div class="sim-turn-entry${e.isHeader ? ' turn-header' : ''}">${e.cls ? `<span class="${e.cls}">` : ''}${esc(e.text)}${e.cls ? '</span>' : ''}</div>`
   ).join('');
 }
