@@ -687,6 +687,8 @@ function updateBattleLight() {
   updateHpUI('a');
   updateHpUI('b');
   appendNewLogs();
+  const undoBtn = document.getElementById('sim-undo');
+  if (undoBtn) undoBtn.disabled = _undoStack.length === 0;
 }
 
 // ===== LOG =====
