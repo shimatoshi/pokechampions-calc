@@ -12,6 +12,8 @@ const PRECACHE = [
   './js/team.js',
   './js/box.js',
   './js/records.js',
+  './js/poke-data.js',
+  './js/ui.js',
   './js/sim.js',
   './js/sim-setup.js',
   './manifest.json',
