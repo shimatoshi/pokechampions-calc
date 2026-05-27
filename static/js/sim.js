@@ -65,6 +65,7 @@ export const field = { weather: '', terrain: '' };
 
 // Battle state
 let battle = null; // initialized on battle start
+let _undoStack = []; // snapshots for undo
 function makeBattleRuntime(poke) {
   const stats = DMG.getStats(poke);
   return {
@@ -74,6 +75,47 @@ function makeBattleRuntime(poke) {
     disguise: (poke.ability === 'Disguise' || poke.ability === 'Ice Face'),
     status: '',
   };
+}
+
+// ===== UNDO: snapshot / restore =====
+function snapshotBattle() {
+  // Deep-clone battle state + parties (forme changes mutate parties)
+  const snap = {
+    battle: {
+      active: { ...battle.active },
+      rt: { a: battle.rt.a.map(r => ({ ...r, boosts: { ...r.boosts } })),
+             b: battle.rt.b.map(r => ({ ...r, boosts: { ...r.boosts } })) },
+      log: battle.log.slice(),
+      turnNum: battle.turnNum,
+      actions: { a: battle.actions.a ? { ...battle.actions.a } : null,
+                 b: battle.actions.b ? { ...battle.actions.b } : null },
+      megaUsed: { ...battle.megaUsed },
+    },
+    parties: {
+      a: parties.a.map(p => JSON.parse(JSON.stringify(p))),
+      b: parties.b.map(p => JSON.parse(JSON.stringify(p))),
+    },
+  };
+  _undoStack.push(snap);
+  if (_undoStack.length > 30) _undoStack.shift(); // cap memory
+}
+function undoBattle() {
+  if (_undoStack.length === 0) { showToast('これ以上戻せません'); return; }
+  const snap = _undoStack.pop();
+  battle.active = snap.battle.active;
+  battle.rt = snap.battle.rt;
+  battle.log = snap.battle.log;
+  battle.turnNum = snap.battle.turnNum;
+  battle.actions = snap.battle.actions;
+  battle.megaUsed = snap.battle.megaUsed;
+  // Restore parties (forme changes are written directly to parties)
+  for (const s of ['a','b']) {
+    parties[s].length = 0;
+    snap.parties[s].forEach(p => parties[s].push(p));
+  }
+  _logRendered = 0; // force full log rebuild
+  renderBattle();
+  showToast('1手戻しました');
 }
 
 // ===== ENTRY =====
@@ -105,6 +147,7 @@ export function startBattle() {
     battle.rt[s] = selection[s].map(pi => makeBattleRuntime(parties[s][pi]));
   }
   battle.log.push({ text: 'バトル開始！', isHeader: true });
+  _undoStack = [];
   renderBattle();
 }
 
@@ -142,9 +185,11 @@ function renderBattle() {
         ${renderBoostUI('b')}
       </div>
     </div>
+    ${renderPartyOverview()}
     <div class="sim-actions">
       <button class="btn btn-sm" id="sim-exec" style="background:var(--accent);flex:2">ターン実行</button>
       <button class="btn btn-sm btn-outline" id="sim-eot">EOT処理</button>
+      <button class="btn btn-sm btn-outline" id="sim-undo" ${_undoStack.length === 0 ? 'disabled' : ''} style="color:var(--accent2);border-color:var(--accent2)">↩ 戻す</button>
       <button class="btn btn-sm btn-danger" id="sim-end">終了</button>
     </div>
     <div class="sim-turn-log" id="sim-log">
@@ -207,6 +252,7 @@ function renderBattle() {
       const s = btn.dataset.side;
       const targetForme = btn.dataset.forme;
       if (!targetForme || battle.megaUsed[s]) return;
+      snapshotBattle();
       const poke = getActive(s);
       applyFormeChange(s, battle.active[s], targetForme);
       battle.megaUsed[s] = true;
@@ -220,6 +266,7 @@ function renderBattle() {
   document.querySelectorAll('.sim-aegis-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const s = btn.dataset.side;
+      snapshotBattle();
       const poke = getActive(s);
       const altForme = getAegislashAlternateForme(poke.name);
       applyFormeChange(s, battle.active[s], altForme);
@@ -231,6 +278,7 @@ function renderBattle() {
 
   document.getElementById('sim-exec').addEventListener('click', executeTurn);
   document.getElementById('sim-eot').addEventListener('click', executeEndOfTurn);
+  document.getElementById('sim-undo').addEventListener('click', undoBattle);
   document.getElementById('sim-end').addEventListener('click', () => import('./sim-setup.js').then(m => m.renderSetup()));
 }
 
@@ -322,6 +370,41 @@ function renderBench(side) {
     </div>`;
 }
 
+function renderPartyOverview() {
+  const renderSide = (side) => {
+    const label = side === 'a' ? '自分' : '相手';
+    const selSet = new Set(selection[side]);
+    return `
+      <div>
+        <div style="font-size:.7rem;font-weight:700;margin-bottom:2px">${label}のパーティ</div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap">
+          ${parties[side].map((p, i) => {
+            const inSel = selSet.has(i);
+            const selIdx = selection[side].indexOf(i);
+            const rt = selIdx >= 0 ? battle.rt[side][selIdx] : null;
+            const isActive = selIdx >= 0 && selIdx === battle.active[side];
+            const alive = rt ? rt.hp > 0 : true;
+            const hpText = rt ? `${rt.hp}/${rt.maxHp}` : '';
+            const pct = rt && rt.maxHp > 0 ? (rt.hp / rt.maxHp * 100) : 100;
+            const hpColor = pct > 50 ? 'var(--ok)' : pct > 25 ? 'var(--warn)' : 'var(--danger)';
+            return `<div style="text-align:center;padding:3px 4px;border-radius:4px;min-width:48px;
+              border:2px solid ${isActive ? 'var(--accent)' : inSel ? 'var(--accent2)' : 'var(--bg3)'};
+              background:${isActive ? 'rgba(233,69,96,.1)' : 'var(--bg)'};
+              ${!alive ? 'opacity:.4' : ''}">
+              ${spriteImg(p.name, 28)}
+              <div style="font-size:.6rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px">${esc(ja('pokemon', p.name))}</div>
+              ${rt ? `<div style="height:3px;background:var(--bg3);border-radius:2px;margin-top:1px"><div style="width:${pct}%;height:100%;background:${hpColor};border-radius:2px"></div></div>
+              <div style="font-size:.5rem;color:var(--fg2)">${hpText}</div>` : `<div style="font-size:.5rem;color:var(--fg2)">未選出</div>`}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  };
+  return `<div class="card" style="margin-top:6px;padding:6px">
+    <div class="col2">${renderSide('a')}${renderSide('b')}</div>
+  </div>`;
+}
+
 function renderBoostUI(side) {
   const rt = getActiveRt(side);
   const label = side === 'a' ? '自分' : '相手';
@@ -345,6 +428,7 @@ function executeTurn() {
   const actA = battle.actions.a;
   const actB = battle.actions.b;
   if (!actA && !actB) { showToast('行動を選択してください'); return; }
+  snapshotBattle();
 
   battle.turnNum++;
   addLog(`--- ターン ${battle.turnNum} ---`, true);
@@ -510,6 +594,7 @@ function executeAttack(atkSide, defSide, moveName) {
 
 // ===== END OF TURN =====
 function executeEndOfTurn() {
+  snapshotBattle();
   addLog(`--- EOT ---`, true);
   for (const s of ['a','b']) {
     const poke = getActive(s);
