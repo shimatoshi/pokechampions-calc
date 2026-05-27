@@ -10,7 +10,7 @@ import {
 import { DMG } from './damage.js';
 import { DB } from './db.js';
 import { currentTeam } from './team.js';
-import { updateStatDisplay as _updateStatDisplay } from './ui.js';
+import { updateStatDisplay as _updateStatDisplay, getFilteredMoves } from './ui.js';
 
 function buildSidePanel(side) {
   const s = side;
@@ -345,12 +345,9 @@ export function selectPokemon(side, name) {
   }
 
   // Update move candidates based on learnset
-  if (state._moveEntries && data.learnset) {
-    const learnset = new Set(data.learnset);
+  if (state._moveEntries) {
     state._moveEntries.length = 0;
-    for (const m of Object.keys(DATA.moves).sort()) {
-      if (learnset.has(m)) state._moveEntries.push(m);
-    }
+    getFilteredMoves(name).forEach(m => state._moveEntries.push(m));
   }
 
   // Ability
