@@ -358,18 +358,23 @@ async function init() {
   DB.persist();
   await loadData();
   restoreCalcSession();
-  initCalcPage();
-  initSimPage();
-  initTeamPage();
-  initRecordsPage();
-  renderBoxPage();
+  initCalcPage(); // 起動時はダメ計ページだけ初期化
+  const initialized = { calc: true, sim: false, team: false, records: false, box: false };
   document.querySelectorAll('nav button').forEach(btn => {
     btn.addEventListener('click', () => {
       const page = btn.dataset.page;
       switchPage(page);
-      if (page === 'box') renderBoxPage();
-      if (page === 'team') renderTeamPage();
-      if (page === 'records') renderRecordsPage();
+      if (!initialized[page]) {
+        if (page === 'sim') initSimPage();
+        if (page === 'team') initTeamPage();
+        if (page === 'records') initRecordsPage();
+        if (page === 'box') renderBoxPage();
+        initialized[page] = true;
+      } else {
+        if (page === 'box') renderBoxPage();
+        if (page === 'team') renderTeamPage();
+        if (page === 'records') renderRecordsPage();
+      }
     });
   });
 }
