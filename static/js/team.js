@@ -1,14 +1,14 @@
 // Pokemon Champions Calculator - Team & Threats Page
 import {
-  DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT,
-  atkState, defState, pokemonNames,
-  buildNatureUI, initNatureUI, updateNatureDisplay,
-  restoreStateToUI, setupSearch, setupItemSearch,
+  DATA, ja, esc, spriteImg, typeBadge,
+  atkState, defState,
+  restoreStateToUI,
   showToast, switchPage, makePokemonState, generateUid,
   showdownHTML, teamToShowdownText,
 } from './app.js';
 import { DB } from './db.js';
 import { selectPokemon, initCalcPage } from './calc.js';
+import { buildMiniEditor } from './ui.js';
 
 export let currentTeam = { id: null, name: '新チーム', members: [], notes: '' };
 let teamView = 'list';
@@ -296,94 +296,18 @@ async function openThreatEditor(existing) {
 
   const editor = document.getElementById('threat-editor');
   editor.classList.remove('hidden');
-  editor.innerHTML = `
-    <div class="card" style="border:2px solid var(--warn)">
-      <h3>${isNew ? '仮想敵を追加' : '仮想敵を編集'}</h3>
-      <div class="search-wrap">
-        <input type="text" id="th-search" value="${esc(threat.name ? ja('pokemon', threat.name) : '')}" placeholder="ポケモン名..." autocomplete="off">
-        <div class="search-list" id="th-list"></div>
-      </div>
-      <div id="th-info"></div>
-      ${buildNatureUI('th')}
-      <label>もちもの</label>
-      <div class="search-wrap">
-        <input type="text" id="th-item-search" value="${esc(threat.item ? ja('items', threat.item) : '')}" placeholder="もちもの検索..." autocomplete="off">
-        <div class="search-list" id="th-item-list"></div>
-      </div>
-      <label>とくせい</label>
-      <select id="th-ability"></select>
-      <label>SP配分</label>
-      ${['hp','at','df','sa','sd','sp'].map(stat => `
-        <div class="sp-row">
-          <span class="sp-label">${STAT_SHORT[stat]}</span>
-          <input type="number" id="th-sp-${stat}" min="0" max="32" value="${threat.sp?.[stat] || 0}">
-        </div>
-      `).join('')}
-      <label>わざ</label>
-      ${[0,1,2,3].map(i => `
-        <div class="search-wrap" style="margin-bottom:4px">
-          <input type="text" id="th-move-${i}" value="${esc(threat.moves[i] ? ja('moves', threat.moves[i]) : '')}" placeholder="わざ${i+1}..." autocomplete="off">
-          <div class="search-list" id="th-movelist-${i}"></div>
-        </div>
-      `).join('')}
-      <div class="row mt">
-        <button class="btn" id="th-ok">${isNew ? '追加' : '更新'}</button>
-        <button class="btn btn-outline" id="th-cancel">キャンセル</button>
-      </div>
-    </div>`;
-
-  setupSearch(document.getElementById('th-search'), document.getElementById('th-list'), pokemonNames, name => {
-    threat.name = name;
-    const p = DATA.pokemon[name];
-    if (p) {
-      document.getElementById('th-info').innerHTML = `${spriteImg(name,48)} ${p.types.map(t => typeBadge(t)).join(' ')}`;
-      const abilSel = document.getElementById('th-ability');
-      abilSel.innerHTML = p.abilities.map(a => `<option value="${a}">${ja('abilities',a)||a}</option>`).join('');
-      threat.ability = p.abilities[0];
-    }
+  buildMiniEditor(editor, threat, 'th', {
+    title: isNew ? '仮想敵を追加' : '仮想敵を編集',
+    onSave: async (t) => {
+      if (existing?.id) t.id = existing.id;
+      if (!t.uid) t.uid = generateUid();
+      await DB.put('threats', t);
+      editor.classList.add('hidden');
+      renderTeamPage();
+      showToast(isNew ? '仮想敵を追加しました' : '仮想敵を更新しました');
+    },
+    onCancel: () => editor.classList.add('hidden'),
   });
-
-  const thNature = { natureMods: { ...threat.natureMods } };
-  initNatureUI('th', thNature);
-  updateNatureDisplay('th', thNature);
-
-  const thItemEntries = Object.keys(DATA.items).sort().map(k => ({ key: k, ja: ja('items', k) }));
-  setupItemSearch(document.getElementById('th-item-search'), document.getElementById('th-item-list'), thItemEntries, name => { threat.item = name; });
-  if (threat.item) document.getElementById('th-item-search').dataset.key = threat.item;
-
-  const thMoveEntries = threat.name && DATA.pokemon[threat.name]?.learnset
-    ? DATA.pokemon[threat.name].learnset.filter(m => m in DATA.moves).sort()
-    : Object.keys(DATA.moves).sort();
-  for (let i = 0; i < 4; i++) {
-    setupSearch(document.getElementById(`th-move-${i}`), document.getElementById(`th-movelist-${i}`), thMoveEntries, name => { threat.moves[i] = name; });
-  }
-
-  if (threat.name && DATA.pokemon[threat.name]) {
-    const p = DATA.pokemon[threat.name];
-    document.getElementById('th-info').innerHTML = `${spriteImg(threat.name,48)} ${p.types.map(t => typeBadge(t)).join(' ')}`;
-    const abilSel = document.getElementById('th-ability');
-    abilSel.innerHTML = p.abilities.map(a => `<option value="${a}"${a===threat.ability?' selected':''}>${ja('abilities',a)||a}</option>`).join('');
-  }
-
-  document.getElementById('th-ok').addEventListener('click', async () => {
-    if (!threat.name) return;
-    threat.natureMods = { ...thNature.natureMods };
-    threat.item = document.getElementById('th-item-search').dataset?.key || '';
-    threat.ability = document.getElementById('th-ability').value;
-    for (const stat of ['hp','at','df','sa','sd','sp'])
-      threat.sp[stat] = parseInt(document.getElementById(`th-sp-${stat}`).value) || 0;
-    for (let i = 0; i < 4; i++) {
-      const el = document.getElementById(`th-move-${i}`);
-      threat.moves[i] = el.dataset?.key || el.value || '';
-    }
-    if (existing?.id) threat.id = existing.id;
-    if (!threat.uid) threat.uid = generateUid();
-    await DB.put('threats', threat);
-    editor.classList.add('hidden');
-    renderTeamPage();
-    showToast(isNew ? '仮想敵を追加しました' : '仮想敵を更新しました');
-  });
-  document.getElementById('th-cancel').addEventListener('click', () => editor.classList.add('hidden'));
 }
 
 function openTeamEditor(idx) {
@@ -394,97 +318,16 @@ function openTeamEditor(idx) {
 
   const editor = document.getElementById('team-editor');
   editor.classList.remove('hidden');
-  editor.innerHTML = `
-    <div class="card" style="border:2px solid var(--accent)">
-      <h3>${isNew ? 'ポケモン追加' : '編集'}</h3>
-      <div class="search-wrap">
-        <input type="text" id="te-search" value="${esc(member.name ? ja('pokemon', member.name) : '')}" placeholder="ポケモン名..." autocomplete="off">
-        <div class="search-list" id="te-list"></div>
-      </div>
-      <div id="te-info"></div>
-      ${buildNatureUI('te')}
-      <label>もちもの</label>
-      <div class="search-wrap">
-        <input type="text" id="te-item-search" value="${esc(member.item ? ja('items', member.item) : '')}" placeholder="もちもの検索..." autocomplete="off">
-        <div class="search-list" id="te-item-list"></div>
-      </div>
-      <label>とくせい</label>
-      <select id="te-ability"></select>
-      <label>SP配分</label>
-      ${['hp','at','df','sa','sd','sp'].map(stat => `
-        <div class="sp-row">
-          <span class="sp-label">${STAT_SHORT[stat]}</span>
-          <input type="number" id="te-sp-${stat}" min="0" max="32" value="${member.sp?.[stat] || 0}">
-        </div>
-      `).join('')}
-      <label>わざ</label>
-      ${[0,1,2,3].map(i => `
-        <div class="search-wrap" style="margin-bottom:4px">
-          <input type="text" id="te-move-${i}" value="${esc(member.moves[i] ? ja('moves', member.moves[i]) : '')}" placeholder="わざ${i+1}..." autocomplete="off">
-          <div class="search-list" id="te-movelist-${i}"></div>
-        </div>
-      `).join('')}
-      <div class="row mt">
-        <button class="btn" id="te-ok">${isNew ? '追加' : '更新'}</button>
-        <button class="btn btn-outline" id="te-cancel">キャンセル</button>
-      </div>
-    </div>
-  `;
-
-  setupSearch(document.getElementById('te-search'), document.getElementById('te-list'), pokemonNames, name => {
-    member.name = name;
-    const p = DATA.pokemon[name];
-    if (p) {
-      document.getElementById('te-info').innerHTML = `${spriteImg(name,48)} ${p.types.map(t => typeBadge(t)).join(' ')}`;
-      const abilSel = document.getElementById('te-ability');
-      abilSel.innerHTML = p.abilities.map(a => `<option value="${a}">${ja('abilities',a)||a}</option>`).join('');
-      member.ability = p.abilities[0];
-    }
+  buildMiniEditor(editor, member, 'te', {
+    title: isNew ? 'ポケモン追加' : '編集',
+    onSave: (m) => {
+      if (isNew) { if (!m.uid) m.uid = generateUid(); currentTeam.members.push(m); }
+      else { currentTeam.members[idx] = m; }
+      editor.classList.add('hidden');
+      renderTeamPage();
+    },
+    onCancel: () => editor.classList.add('hidden'),
   });
-
-  const teNature = { natureMods: { ...member.natureMods } };
-  initNatureUI('te', teNature);
-  updateNatureDisplay('te', teNature);
-
-  const teItemEntries = Object.keys(DATA.items).sort().map(k => ({ key: k, ja: ja('items', k) }));
-  setupItemSearch(document.getElementById('te-item-search'), document.getElementById('te-item-list'), teItemEntries, name => { member.item = name; });
-  if (member.item) document.getElementById('te-item-search').dataset.key = member.item;
-
-  const teMoveEntries = member.name && DATA.pokemon[member.name]?.learnset
-    ? DATA.pokemon[member.name].learnset.filter(m => m in DATA.moves).sort()
-    : Object.keys(DATA.moves).sort();
-  for (let i = 0; i < 4; i++) {
-    setupSearch(document.getElementById(`te-move-${i}`), document.getElementById(`te-movelist-${i}`), teMoveEntries, name => { member.moves[i] = name; });
-  }
-
-  if (member.name && DATA.pokemon[member.name]) {
-    const p = DATA.pokemon[member.name];
-    document.getElementById('te-info').innerHTML = `${spriteImg(member.name,48)} ${p.types.map(t => typeBadge(t)).join(' ')}`;
-    const abilSel = document.getElementById('te-ability');
-    abilSel.innerHTML = p.abilities.map(a => `<option value="${a}"${a===member.ability?' selected':''}>${ja('abilities',a)||a}</option>`).join('');
-  }
-
-  document.getElementById('te-ok').addEventListener('click', () => {
-    if (!member.name) return;
-    member.natureMods = { ...teNature.natureMods };
-    member.item = document.getElementById('te-item-search').dataset?.key || '';
-    member.ability = document.getElementById('te-ability').value;
-    for (const stat of ['hp','at','df','sa','sd','sp'])
-      member.sp[stat] = parseInt(document.getElementById(`te-sp-${stat}`).value) || 0;
-    for (let i = 0; i < 4; i++) {
-      const el = document.getElementById(`te-move-${i}`);
-      member.moves[i] = el.dataset?.key || el.value || '';
-    }
-    if (isNew) {
-      if (!member.uid) member.uid = generateUid();
-      currentTeam.members.push(member);
-    } else {
-      currentTeam.members[idx] = member;
-    }
-    editor.classList.add('hidden');
-    renderTeamPage();
-  });
-  document.getElementById('te-cancel').addEventListener('click', () => editor.classList.add('hidden'));
 }
 
 async function saveTeam() {
