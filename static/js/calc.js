@@ -5,10 +5,12 @@ import {
   buildNatureUI, initNatureUI, updateNatureDisplay,
   restoreStateToUI, setupSearch, setupItemSearch,
   showToast, switchPage, makePokemonState, generateUid,
+  scheduleSessionSave,
 } from './app.js';
 import { DMG } from './damage.js';
 import { DB } from './db.js';
 import { currentTeam } from './team.js';
+import { updateStatDisplay as _updateStatDisplay } from './ui.js';
 
 function buildSidePanel(side) {
   const s = side;
@@ -162,7 +164,7 @@ export function initCalcPage() {
     const state = side === 'atk' ? atkState : defState;
     state._moveEntries = [...allMoveNames];
     for (let i = 0; i < 4; i++) {
-      setupSearch(document.getElementById(`${side}-move-${i}`), document.getElementById(`${side}-movelist-${i}`), state._moveEntries, name => { state.moves[i] = name; });
+      setupSearch(document.getElementById(`${side}-move-${i}`), document.getElementById(`${side}-movelist-${i}`), state._moveEntries, name => { state.moves[i] = name; scheduleSessionSave(); });
     }
   }
 
@@ -179,7 +181,7 @@ export function initCalcPage() {
       document.getElementById(`${side}-item-search`),
       document.getElementById(`${side}-item-list`),
       itemEntries,
-      name => { state.item = name; }
+      name => { state.item = name; scheduleSessionSave(); }
     );
   }
 
@@ -190,12 +192,13 @@ export function initCalcPage() {
       document.getElementById(`${side}-sp-${stat}`).addEventListener('input', e => {
         state.sp[stat] = Math.max(0, Math.min(32, parseInt(e.target.value) || 0));
         updateStatDisplay(side, state);
+        scheduleSessionSave();
       });
     }
-    document.getElementById(`${side}-status`).addEventListener('change', e => state.status = e.target.value);
+    document.getElementById(`${side}-status`).addEventListener('change', e => { state.status = e.target.value; scheduleSessionSave(); });
     const boostStats = side === 'atk' ? ['at','sa','sp'] : ['df','sd','sp'];
     for (const stat of boostStats) {
-      document.getElementById(`${side}-boost-${stat}`).addEventListener('change', e => state.boosts[stat] = parseInt(e.target.value));
+      document.getElementById(`${side}-boost-${stat}`).addEventListener('change', e => { state.boosts[stat] = parseInt(e.target.value); scheduleSessionSave(); });
     }
   }
 
@@ -208,6 +211,7 @@ export function initCalcPage() {
     defState.hpDist = null;
     defState.chainHits = 0;
     updateHpDisplay();
+    scheduleSessionSave();
   });
   document.getElementById('def-hp-reset')?.addEventListener('click', () => {
     defState.currentHP = null;
@@ -236,6 +240,7 @@ export function initCalcPage() {
     state.sp[stat] = val;
     input.value = val;
     updateStatDisplay(side, state);
+    scheduleSessionSave();
   });
 
   // Add to team buttons
@@ -261,13 +266,13 @@ export function initCalcPage() {
   document.getElementById('save-calc-result').addEventListener('click', saveCalcToBox);
 
   document.getElementById('calc-btn').addEventListener('click', runCalc);
-  document.getElementById('field-weather').addEventListener('change', e => fieldState.weather = e.target.value);
-  document.getElementById('field-terrain').addEventListener('change', e => fieldState.terrain = e.target.value);
-  document.getElementById('field-doubles').addEventListener('change', e => fieldState.doubles = e.target.checked);
-  document.getElementById('field-crit').addEventListener('change', e => fieldState.crit = e.target.checked);
-  document.getElementById('field-pinch').addEventListener('change', e => fieldState.pinch = e.target.checked);
-  document.getElementById('field-sr').addEventListener('change', e => fieldState.stealthRock = e.target.checked);
-  document.getElementById('field-spikes').addEventListener('change', e => fieldState.spikes = parseInt(e.target.value));
+  document.getElementById('field-weather').addEventListener('change', e => { fieldState.weather = e.target.value; scheduleSessionSave(); });
+  document.getElementById('field-terrain').addEventListener('change', e => { fieldState.terrain = e.target.value; scheduleSessionSave(); });
+  document.getElementById('field-doubles').addEventListener('change', e => { fieldState.doubles = e.target.checked; scheduleSessionSave(); });
+  document.getElementById('field-crit').addEventListener('change', e => { fieldState.crit = e.target.checked; scheduleSessionSave(); });
+  document.getElementById('field-pinch').addEventListener('change', e => { fieldState.pinch = e.target.checked; scheduleSessionSave(); });
+  document.getElementById('field-sr').addEventListener('change', e => { fieldState.stealthRock = e.target.checked; scheduleSessionSave(); });
+  document.getElementById('field-spikes').addEventListener('change', e => { fieldState.spikes = parseInt(e.target.value); scheduleSessionSave(); });
 
   // Restore field UI from state
   document.getElementById('field-weather').value = fieldState.weather;
@@ -277,6 +282,25 @@ export function initCalcPage() {
   document.getElementById('field-pinch').checked = fieldState.pinch;
   document.getElementById('field-sr').checked = fieldState.stealthRock;
   document.getElementById('field-spikes').value = fieldState.spikes;
+
+  // Restore atk/def UI from persisted session
+  for (const side of ['atk', 'def']) {
+    const state = side === 'atk' ? atkState : defState;
+    if (!state.name) continue;
+    const searchEl = document.getElementById(`${side}-search`);
+    const jaName = ja('pokemon', state.name);
+    searchEl.value = jaName !== state.name ? `${jaName} (${state.name})` : jaName;
+    searchEl.dataset.key = state.name;
+    selectPokemon(side, state.name);
+    restoreStateToUI(side, state);
+    const statusEl = document.getElementById(`${side}-status`);
+    if (statusEl) statusEl.value = state.status || '';
+    const boostStats = side === 'atk' ? ['at','sa','sp'] : ['df','sd','sp'];
+    for (const stat of boostStats) {
+      const el = document.getElementById(`${side}-boost-${stat}`);
+      if (el) el.value = state.boosts[stat] || 0;
+    }
+  }
 }
 
 export function selectPokemon(side, name) {
@@ -335,10 +359,12 @@ export function selectPokemon(side, name) {
   if (data.abilities.length > 0) {
     abilWrap.classList.remove('hidden');
     abilSel.innerHTML = data.abilities.map(a => `<option value="${a}">${ja('abilities', a) || a}</option>`).join('');
-    state.ability = data.abilities[0];
+    if (!data.abilities.includes(state.ability)) state.ability = data.abilities[0];
+    abilSel.value = state.ability;
     abilSel.onchange = e => {
       state.ability = e.target.value;
       if (side === 'def') updateDisguiseUI();
+      scheduleSessionSave();
     };
   }
 
@@ -348,6 +374,7 @@ export function selectPokemon(side, name) {
     updateDisguiseUI();
   }
   updateStatDisplay(side, state);
+  scheduleSessionSave();
 }
 
 function updateDisguiseUI() {
@@ -360,27 +387,8 @@ function updateDisguiseUI() {
 }
 
 export function updateStatDisplay(side, state) {
-  if (!state.name) return;
-  const stats = DMG.getStats(state);
-  if (!stats) return;
-  let total = 0;
-  for (const stat of ['hp','at','df','sa','sd','sp']) {
-    const el = document.getElementById(`${side}-val-${stat}`);
-    if (el) {
-      el.textContent = stats[stat];
-      if (state.natureMods?.plus === stat) el.style.color = '#e74c3c';
-      else if (state.natureMods?.minus === stat) el.style.color = '#3498db';
-      else el.style.color = '';
-    }
-    total += (state.sp[stat] || 0);
-  }
-  const totalEl = document.getElementById(`${side}-sp-total`);
-  if (totalEl) {
-    totalEl.textContent = `${total}/66`;
-    totalEl.classList.toggle('over', total > 66);
-  }
-  if (side === 'def') {
-    // SP変更でmaxHpが変わるので currentHP を clamp
+  const stats = _updateStatDisplay(side, state);
+  if (side === 'def' && stats) {
     if (state.currentHP != null && state.currentHP > stats.hp) state.currentHP = stats.hp;
     updateHpDisplay();
   }
