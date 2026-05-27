@@ -1,4 +1,10 @@
 // Pokemon Champions Damage Calculator Engine
+import {
+  PUNCH_MOVES, BITE_MOVES, SLICE_MOVES, PULSE_MOVES, BULLET_MOVES, SOUND_MOVES,
+  SKIN_ABILITIES, RESIST_BERRY, TYPE_BOOST_ITEM,
+  applyBoost,
+} from './poke-data.js';
+
 export const DMG = (() => {
   let typeChart = {};
   let moveDB = {};
@@ -75,28 +81,9 @@ export const DMG = (() => {
     return eff;
   }
 
-  function applyBoost(stat, boost) {
-    if (boost >= 0) return Math.floor(stat * (2 + boost) / 2);
-    return Math.floor(stat * 2 / (2 - boost));
-  }
+  // applyBoost imported from poke-data.js
 
-  // ===== CONSTANTS =====
-
-  const RESIST_BERRY = {
-    'Occa Berry':'Fire','Passho Berry':'Water','Wacan Berry':'Electric',
-    'Rindo Berry':'Grass','Yache Berry':'Ice','Chople Berry':'Fighting',
-    'Kebia Berry':'Poison','Shuca Berry':'Ground','Coba Berry':'Flying',
-    'Payapa Berry':'Psychic','Tanga Berry':'Bug','Charti Berry':'Rock',
-    'Kasib Berry':'Ghost','Haban Berry':'Dragon','Colbur Berry':'Dark',
-    'Babiri Berry':'Steel','Roseli Berry':'Fairy','Chilan Berry':'Normal'
-  };
-
-  const PUNCH_MOVES = new Set(['Bullet Punch','Drain Punch','Dynamic Punch','Fire Punch','Focus Punch','Ice Punch','Mach Punch','Mega Punch','Meteor Mash','Power-Up Punch','Shadow Punch','Sky Uppercut','Thunder Punch','Jet Punch']);
-  const BITE_MOVES = new Set(['Bite','Crunch','Fire Fang','Fishious Rend','Hyper Fang','Ice Fang','Jaw Lock','Poison Fang','Psychic Fangs','Thunder Fang']);
-  const SLICE_MOVES = new Set(['Aerial Ace','Air Cutter','Air Slash','Aqua Cutter','Behemoth Blade','Bitter Blade','Ceaseless Edge','Cross Poison','Cut','Fury Cutter','Kowtow Cleave','Leaf Blade','Night Slash','Psycho Cut','Razor Leaf','Razor Shell','Sacred Sword','Secret Sword','Slash','Solar Blade','Stone Axe','X-Scissor']);
-  const PULSE_MOVES = new Set(['Aura Sphere','Dark Pulse','Dragon Pulse','Heal Pulse','Origin Pulse','Terrain Pulse','Water Pulse']);
-  const BULLET_MOVES = new Set(['Acid Spray','Aura Sphere','Barrage','Bullet Seed','Egg Bomb','Electro Ball','Energy Ball','Focus Blast','Gyro Ball','Ice Ball','Mist Ball','Mud Bomb','Octazooka','Pollen Puff','Pyro Ball','Rock Blast','Rock Wrecker','Searing Shot','Seed Bomb','Shadow Ball','Sludge Bomb','Weather Ball','Zap Cannon']);
-  const SOUND_MOVES = new Set(['Alluring Voice','Boomburst','Bug Buzz','Chatter','Clanging Scales','Clangorous Soulblaze','Disarming Voice','Echoed Voice','Eerie Spell','Grass Whistle','Growl','Heal Bell','Howl','Hyper Voice','Metal Sound','Noble Roar','Overdrive','Perish Song','Relic Song','Roar','Round','Screech','Sing','Snarl','Snore','Sparkling Aria','Supersonic','Torch Song','Uproar']);
+  // Game constants imported from poke-data.js
 
   // ===== ABILITY IMMUNITY RESULT =====
 
@@ -201,15 +188,7 @@ export const DMG = (() => {
   // ===== PHASE 4: Resolve type, STAB, type effectiveness =====
 
   function resolveType(moveName, move, aAbil, atkTypes, defTypes) {
-    // -ate abilities
-    let ateType = '';
-    if (move.type === 'Normal') {
-      if (aAbil === 'Pixilate') ateType = 'Fairy';
-      else if (aAbil === 'Aerilate') ateType = 'Flying';
-      else if (aAbil === 'Refrigerate') ateType = 'Ice';
-      else if (aAbil === 'Galvanize') ateType = 'Electric';
-      else if (aAbil === 'Dragonize') ateType = 'Dragon';
-    }
+    const ateType = (move.type === 'Normal' && SKIN_ABILITIES[aAbil]) ? SKIN_ABILITIES[aAbil] : '';
 
     const effectiveMoveType = ateType || move.type;
     const isSTAB = atkTypes.includes(effectiveMoveType);
@@ -307,16 +286,6 @@ export const DMG = (() => {
   function resolveItemMods(attacker, defender, effectiveMoveType, typeEff) {
     const item = attacker.item || '';
     const dItem = defender.item || '';
-
-    // Type-boosting items (1.2x)
-    const TYPE_BOOST_ITEM = {
-      'Black Belt': 'Fighting', 'Black Glasses': 'Dark', 'Charcoal': 'Fire',
-      'Dragon Fang': 'Dragon', 'Fairy Feather': 'Fairy', 'Hard Stone': 'Rock',
-      'Magnet': 'Electric', 'Metal Coat': 'Steel', 'Miracle Seed': 'Grass',
-      'Mystic Water': 'Water', 'Never-Melt Ice': 'Ice', 'Poison Barb': 'Poison',
-      'Sharp Beak': 'Flying', 'Silk Scarf': 'Normal', 'Silver Powder': 'Bug',
-      'Soft Sand': 'Ground', 'Spell Tag': 'Ghost', 'Twisted Spoon': 'Psychic',
-    };
 
     let itemMod = 1;
     if (item === 'Life Orb') itemMod = 1.3;
