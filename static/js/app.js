@@ -85,10 +85,14 @@ export function teamToShowdownText(team) {
 
 // ===== DATA LOADING =====
 export async function loadData() {
-  const keys = ['data_pokemon','data_moves','data_types','data_natures','data_items',
+  const keys = ['data_pokemon','data_learnsets','data_moves','data_types','data_natures','data_items',
                 'names_pokemon_ja','names_moves_ja','names_natures_ja','names_items_ja','names_abilities_ja'];
   const fetches = keys.map(k => fetch(`data/${k}.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})));
-  const [pokemon, moves, types, natures, items, jaPoke, jaMoves, jaNatures, jaItems, jaAbilities] = await Promise.all(fetches);
+  const [pokemon, learnsets, moves, types, natures, items, jaPoke, jaMoves, jaNatures, jaItems, jaAbilities] = await Promise.all(fetches);
+  // Merge learnsets into pokemon data
+  for (const [name, ls] of Object.entries(learnsets)) {
+    if (pokemon[name]) pokemon[name].learnset = ls;
+  }
   DATA = { pokemon, moves, types, natures, items };
   JA.pokemon = jaPoke; JA.moves = jaMoves; JA.natures = jaNatures; JA.items = jaItems; JA.abilities = jaAbilities;
   pokemonNames = Object.keys(pokemon).sort();

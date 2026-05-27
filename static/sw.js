@@ -18,6 +18,7 @@ const PRECACHE = [
   './js/sim-setup.js',
   './manifest.json',
   './data/data_pokemon.json',
+  './data/data_learnsets.json',
   './data/data_moves.json',
   './data/data_types.json',
   './data/data_natures.json',
