@@ -23,6 +23,64 @@ const DRAIN_MOVES = {
 function getRecoilFrac(m) { return DATA.moves[m]?.recoil || RECOIL_MOVES[m] || 0; }
 function getDrainFrac(m) { return DATA.moves[m]?.drain || DRAIN_MOVES[m] || 0; }
 
+// -ate skin abilities: resolve effective move type for display
+const SKIN_ABILITIES = { 'Pixilate':'Fairy','Aerilate':'Flying','Refrigerate':'Ice','Galvanize':'Electric','Dragonize':'Dragon' };
+function getEffectiveMoveType(moveName, ability) {
+  const move = DATA.moves[moveName];
+  if (!move) return '';
+  if (move.type === 'Normal' && SKIN_ABILITIES[ability]) return SKIN_ABILITIES[ability];
+  return move.type;
+}
+
+// Two-turn moves
+const TWO_TURN_MOVES = new Set(['Phantom Force','Shadow Force','Fly','Dig','Dive','Bounce','Sky Attack','Solar Beam','Solar Blade','Meteor Beam','Geomancy','Skull Bash']);
+
+// Mega evolution helpers
+function getMegaFormes(poke) {
+  const data = DATA.pokemon[poke.name];
+  if (!data?.formes) return [];
+  return data.formes.filter(f => (f.startsWith('Mega ') || f.includes('-Mega')) && f !== poke.name);
+}
+function getMegaForme(poke) {
+  const megas = getMegaFormes(poke);
+  return megas.length === 1 ? megas[0] : null; // single mega only; multi uses buttons
+}
+function isMega(name) { return name.startsWith('Mega ') || name.includes('-Mega'); }
+function getPreMegaName(name) {
+  // "Mega Gardevoir" → "Gardevoir", "Mega Charizard X" → "Charizard"
+  if (name.startsWith('Mega ')) {
+    const base = name.replace(/^Mega /, '').replace(/ [XY]$/, '');
+    return base;
+  }
+  return null;
+}
+
+// Aegislash forme helpers
+function isAegislash(name) { return name === 'Aegislash' || name === 'Aegislash-Shield' || name === 'Aegislash-Blade'; }
+function getAegislashAlternateForme(name) {
+  if (name === 'Aegislash' || name === 'Aegislash-Shield') return 'Aegislash-Blade';
+  return 'Aegislash-Shield';
+}
+
+// Generic forme change: keep HP ratio, update stats
+function applyFormeChange(side, selIdx, newName) {
+  const oldPoke = parties[side][selection[side][selIdx]];
+  const rt = battle.rt[side][selIdx];
+  const oldMax = rt.maxHp;
+  // Change species
+  oldPoke.name = newName;
+  // Update ability to new forme's first ability
+  const newData = DATA.pokemon[newName];
+  if (newData?.abilities?.length > 0) oldPoke.ability = newData.abilities[0];
+  // Recalculate stats
+  const newStats = DMG.getStats(oldPoke);
+  if (newStats) {
+    // HP stays same for mega (same HP base), but recalc for safety
+    rt.maxHp = newStats.hp;
+    rt.hp = Math.min(rt.hp, rt.maxHp); // cap if new max is lower
+  }
+}
+
 // ===== STATE =====
 let phase = 'setup'; // 'setup' | 'select' | 'battle'
 const parties = { a: [], b: [] }; // arrays of makePokemonState(), up to 6
@@ -468,6 +526,7 @@ function startBattle() {
     log: [],
     turnNum: 0,
     actions: { a: null, b: null }, // {type:'move',move:''} or {type:'switch',to:idx}
+    megaUsed: { a: false, b: false }, // 1回限り
   };
   for (const s of ['a','b']) {
     battle.rt[s] = selection[s].map(pi => makeBattleRuntime(parties[s][pi]));
@@ -570,6 +629,34 @@ function renderBattle() {
     });
   }
 
+  // Mega evolution buttons
+  document.querySelectorAll('.sim-mega-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = btn.dataset.side;
+      const targetForme = btn.dataset.forme;
+      if (!targetForme || battle.megaUsed[s]) return;
+      const poke = getActive(s);
+      applyFormeChange(s, battle.active[s], targetForme);
+      battle.megaUsed[s] = true;
+      const newAbil = ja('abilities', getActive(s).ability) || getActive(s).ability;
+      addLog(`${s === 'a' ? '自分' : '相手'}の${ja('pokemon', poke.name)}がメガシンカ！ → ${ja('pokemon', targetForme)} (${newAbil})`);
+      renderBattle();
+    });
+  });
+
+  // Aegislash forme change buttons
+  document.querySelectorAll('.sim-aegis-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = btn.dataset.side;
+      const poke = getActive(s);
+      const altForme = getAegislashAlternateForme(poke.name);
+      applyFormeChange(s, battle.active[s], altForme);
+      const formeLabel = altForme.includes('Blade') ? 'ブレードフォルム' : 'シールドフォルム';
+      addLog(`${s === 'a' ? '自分' : '相手'}のギルガルド → ${formeLabel}！`);
+      renderBattle();
+    });
+  });
+
   document.getElementById('sim-exec').addEventListener('click', executeTurn);
   document.getElementById('sim-eot').addEventListener('click', executeEndOfTurn);
   document.getElementById('sim-end').addEventListener('click', () => { phase = 'setup'; renderSetup(); });
@@ -588,6 +675,12 @@ function renderBattleSide(side) {
   const stats = DMG.getStats(poke);
   const moves = poke.moves.filter(m => m && DATA.moves[m]);
 
+  // Mega evolution / Aegislash buttons
+  const megaForme = getMegaForme(poke);
+  const canMega = megaForme && !isMega(poke.name) && !battle.megaUsed[side];
+  const isAegi = isAegislash(poke.name);
+  const abilityJa = poke.ability ? (ja('abilities', poke.ability) || poke.ability) : '';
+
   return `
     <div class="sim-side">
       <div class="sim-poke-header">
@@ -595,8 +688,12 @@ function renderBattleSide(side) {
         <div>
           <div style="font-weight:700;font-size:.85rem">${esc(ja('pokemon', poke.name))}</div>
           <div>${DATA.pokemon[poke.name]?.types.map(t => typeBadge(t)).join(' ') || ''}</div>
+          <div style="font-size:.6rem;color:var(--fg2)">${esc(abilityJa)}</div>
         </div>
       </div>
+      ${canMega ? `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(megaForme)}" style="width:100%;margin:3px 0;background:linear-gradient(135deg,var(--accent),var(--accent2));font-size:.75rem">メガシンカ → ${esc(ja('pokemon', megaForme))}</button>` : ''}
+      ${!canMega && !isMega(poke.name) && !battle.megaUsed[side] && getMegaFormes(poke).length > 1 ? getMegaFormes(poke).map(mf => `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(mf)}" style="width:100%;margin:2px 0;background:linear-gradient(135deg,var(--accent),var(--accent2));font-size:.7rem">メガシンカ → ${esc(ja('pokemon', mf))}</button>`).join('') : ''}
+      ${isAegi ? `<button class="btn btn-sm sim-aegis-btn" data-side="${side}" style="width:100%;margin:3px 0;background:var(--accent2);font-size:.75rem">${poke.name.includes('Blade') ? 'シールドフォルムへ' : 'ブレードフォルムへ'}</button>` : ''}
       <div class="sim-hp-bar"><div class="sim-hp-fill ${hpClass}" style="width:${pct}%"></div></div>
       <div class="sim-hp-text">${rt.hp} / ${rt.maxHp}</div>
       ${stats ? `<div style="font-size:.65rem;color:var(--fg2);text-align:center">S:${stats.sp} ${poke.item ? '@ ' + esc(ja('items', poke.item)) : ''}</div>` : ''}
@@ -618,8 +715,13 @@ function renderBattleSide(side) {
         ${moves.map(m => {
           const move = DATA.moves[m];
           const sel = battle.actions[side]?.type === 'move' && battle.actions[side]?.move === m;
+          const effType = getEffectiveMoveType(m, poke.ability);
+          const skinChanged = effType !== move.type;
+          const twoTurn = TWO_TURN_MOVES.has(m);
           return `<button class="sim-act-btn sim-move-btn${sel ? ' selected' : ''}" data-side="${side}" data-type="move" data-move="${esc(m)}">
-            ${typeBadge(move.type)} ${esc(ja('moves', m))} <span style="color:var(--fg2);font-size:.65rem">威力${move.bp || '-'}</span>
+            ${skinChanged ? typeBadge(effType) : typeBadge(move.type)} ${esc(ja('moves', m))} <span style="color:var(--fg2);font-size:.65rem">威力${move.bp || '-'}</span>
+            ${skinChanged ? `<span style="font-size:.55rem;color:var(--accent2)">スキン</span>` : ''}
+            ${twoTurn ? `<span style="font-size:.55rem;color:var(--fg2)">2T</span>` : ''}
             ${getRecoilFrac(m) ? '<span style="color:var(--danger);font-size:.6rem">反動</span>' : ''}
             ${getDrainFrac(m) ? '<span style="color:var(--ok);font-size:.6rem">吸収</span>' : ''}
           </button>`;
@@ -757,6 +859,18 @@ function executeAttack(atkSide, defSide, moveName) {
   const defLabel = defSide === 'a' ? '自分' : '相手';
   const move = DATA.moves[moveName];
   if (!move) return;
+
+  // Aegislash auto forme change
+  const atkPokePre = getActive(atkSide);
+  if (isAegislash(atkPokePre.name)) {
+    if (move.bp && move.bp > 0 && !atkPokePre.name.includes('Blade')) {
+      applyFormeChange(atkSide, battle.active[atkSide], 'Aegislash-Blade');
+      addLog(`  ${atkLabel}のギルガルド → ブレードフォルム！`);
+    } else if ((!move.bp || move.bp === 0) && !atkPokePre.name.includes('Shield') && atkPokePre.name !== 'Aegislash') {
+      applyFormeChange(atkSide, battle.active[atkSide], 'Aegislash-Shield');
+      addLog(`  ${atkLabel}のギルガルド → シールドフォルム！`);
+    }
+  }
 
   if (!move.bp || move.bp === 0) {
     addLog(`${atkLabel}の${ja('moves', moveName)}！`);
