@@ -473,8 +473,10 @@ function executeTurn() {
   }
 
   // Clear actions
+  const switched = actA?.type === 'switch' || actB?.type === 'switch';
   battle.actions = { a: null, b: null };
-  updateBattleLight();
+  if (switched) renderBattle();
+  else updateBattleLight();
 }
 
 function getEffectiveSpeed(side) {
