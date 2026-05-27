@@ -109,7 +109,10 @@ export function switchPage(page) {
 
 // ===== AUTOCOMPLETE SEARCH =====
 export function setupSearch(inputEl, listEl, entries, onSelect) {
+  let _searchTimer = null;
   inputEl.addEventListener('input', () => {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => {
     const q = inputEl.value.toLowerCase();
     if (q.length < 1) { listEl.classList.remove('open'); return; }
     const matches = entries.filter(e => {
@@ -127,6 +130,7 @@ export function setupSearch(inputEl, listEl, entries, onSelect) {
       return `<div class="item" data-name="${name}">${p ? spriteImg(name, 28) : ''}<span>${display}</span>${types}${moveInfo}</div>`;
     }).join('');
     listEl.classList.add('open');
+    }, 120);
   });
   // pointerdown で blur を抑止: tap中に input が blur → setTimeout(150ms) で list が閉じ、
   // 後続 click が item に届かない競合を防ぐ
@@ -155,7 +159,10 @@ export function setupSearch(inputEl, listEl, entries, onSelect) {
 
 // ===== ITEM SEARCH =====
 export function setupItemSearch(inputEl, listEl, entries, onSelect) {
+  let _t = null;
   inputEl.addEventListener('input', () => {
+    clearTimeout(_t);
+    _t = setTimeout(() => {
     const q = inputEl.value.toLowerCase();
     if (q.length < 1) { listEl.classList.remove('open'); return; }
     const matches = entries.filter(e =>
@@ -169,6 +176,7 @@ export function setupItemSearch(inputEl, listEl, entries, onSelect) {
       listEl.innerHTML = '<div class="item" style="color:var(--fg2)">該当なし</div>';
     }
     listEl.classList.add('open');
+    }, 120);
   });
   // Clear item on empty input
   inputEl.addEventListener('change', () => {
