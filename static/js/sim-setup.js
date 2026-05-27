@@ -1,13 +1,13 @@
 // Pokemon Champions - Sim Setup/Editor/Selection phases
 import {
-  DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT,
+  DATA, ja, esc, spriteImg, STAT_SHORT,
   pokemonNames, buildNatureUI, initNatureUI,
   setupSearch, setupItemSearch, showToast, makePokemonState, generateUid,
 } from './app.js';
-import { DMG } from './damage.js';
 import { DB } from './db.js';
 import { currentTeam } from './team.js';
 import { parties, selection, field, startBattle } from './sim.js';
+import { renderPokemonInfo, updateStatDisplay, getFilteredMoves, setupAbilitySelect } from './ui.js';
 
 // ============================================================
 // PHASE 1: SETUP
@@ -83,10 +83,7 @@ function openEditor(side, idx) {
   const page = document.getElementById('page-sim');
   const isNew = idx < 0;
   const state = isNew ? makePokemonState() : JSON.parse(JSON.stringify(parties[side][idx]));
-  const learnset = (!isNew && state.name && DATA.pokemon[state.name]?.learnset) ? new Set(DATA.pokemon[state.name].learnset) : null;
-  state._moveEntries = learnset
-    ? Object.keys(DATA.moves).filter(m => learnset.has(m)).sort()
-    : [...Object.keys(DATA.moves).sort()];
+  state._moveEntries = getFilteredMoves(state.name);
 
   let modal = document.getElementById('sim-editor-modal');
   if (!modal) { modal = document.createElement('div'); modal.id = 'sim-editor-modal'; page.appendChild(modal); }
@@ -142,13 +139,10 @@ function openEditor(side, idx) {
     state.name = n;
     const data = DATA.pokemon[n];
     if (!data) return;
-    renderEdInfo(state);
-    if (data.learnset) {
-      const ls = new Set(data.learnset);
-      state._moveEntries.length = 0;
-      for (const m of Object.keys(DATA.moves).sort()) { if (ls.has(m)) state._moveEntries.push(m); }
-    }
-    updateEdAbility(state, data);
+    showEdInfo(state);
+    state._moveEntries.length = 0;
+    getFilteredMoves(n).forEach(m => state._moveEntries.push(m));
+    setupAbilitySelect(document.getElementById('ed-ability'), document.getElementById('ed-ability-wrap'), state, data);
     edUpdateStats(state);
   });
 
@@ -192,7 +186,7 @@ function openEditor(side, idx) {
     edUpdateStats(state);
   });
 
-  if (state.name) renderEdInfo(state);
+  if (state.name) showEdInfo(state);
   edUpdateStats(state);
 
   // Save / Cancel
@@ -220,40 +214,11 @@ function openEditor(side, idx) {
   document.getElementById('ed-cancel').addEventListener('click', () => modal.remove());
 }
 
-function renderEdInfo(state) {
-  const data = DATA.pokemon[state.name];
-  if (!data) return;
-  document.getElementById('ed-info').innerHTML = `<div style="display:flex;align-items:center;gap:6px;margin:4px 0">${spriteImg(state.name, 40)}<div><div style="font-weight:700">${esc(ja('pokemon', state.name))}</div><div>${data.types.map(t => typeBadge(t)).join(' ')}</div></div></div>`;
+function showEdInfo(state) {
+  if (state.name) document.getElementById('ed-info').innerHTML = renderPokemonInfo(state.name, 40);
 }
 
-function updateEdAbility(state, data) {
-  const abilWrap = document.getElementById('ed-ability-wrap');
-  const abilSel = document.getElementById('ed-ability');
-  if (!data?.abilities?.length) return;
-  abilWrap.classList.remove('hidden');
-  abilSel.innerHTML = data.abilities.map(a => `<option value="${a}">${ja('abilities', a) || a}</option>`).join('');
-  if (!data.abilities.includes(state.ability)) state.ability = data.abilities[0];
-  abilSel.value = state.ability;
-  abilSel.onchange = e => { state.ability = e.target.value; };
-}
-
-function edUpdateStats(state) {
-  if (!state.name) return;
-  const stats = DMG.getStats(state);
-  if (!stats) return;
-  let total = 0;
-  for (const stat of ['hp','at','df','sa','sd','sp']) {
-    const el = document.getElementById(`ed-val-${stat}`);
-    if (el) {
-      el.textContent = stats[stat];
-      if (state.natureMods?.plus === stat) el.style.color = '#e74c3c';
-      else if (state.natureMods?.minus === stat) el.style.color = '#3498db';
-      else el.style.color = '';
-    }
-    total += (state.sp[stat] || 0);
-  }
-  const te = document.getElementById('ed-sp-total');
-  if (te) { te.textContent = `${total}/66`; te.classList.toggle('over', total > 66); }
+function edUpdateStats(state) { return updateStatDisplay('ed', state);
 }
 
 // ===== LOAD PARTY =====
