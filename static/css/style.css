@@ -10,7 +10,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--fg);min-h
 
 /* ===== NAV ===== */
 nav{display:flex;background:var(--bg2);border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100}
-nav button{flex:1;padding:10px 4px;background:none;border:none;color:var(--fg2);font-size:.9rem;font-weight:700;cursor:pointer;transition:.2s}
+nav button{flex:1;padding:10px 2px;background:none;border:none;color:var(--fg2);font-size:.8rem;font-weight:700;cursor:pointer;transition:.2s}
 nav button.active{color:var(--accent);border-bottom:3px solid var(--accent)}
 nav button:active{background:rgba(233,69,96,.15)}
 
@@ -190,6 +190,12 @@ hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
 .sim-poke-header img{width:40px;height:40px}
 .sim-custom-hp{display:flex;gap:4px;align-items:center;margin:2px 0}
 .sim-custom-hp input{width:50px;text-align:center;padding:2px 4px;font-size:.8rem}
+.sim-party-slot{transition:.15s}
+.sim-party-slot:active{transform:scale(.97)}
+.sim-turn-log{max-height:40vh;overflow-y:auto}
+.sel-slot{transition:.15s}
+.sel-slot:active{transform:scale(.95)}
+.sim-act-btn.selected{border-color:var(--accent) !important;background:rgba(233,69,96,.15) !important}
 
 @media(min-width:600px){
   .page{max-width:600px;margin:0 auto}
