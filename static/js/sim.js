@@ -90,6 +90,8 @@ function snapshotBattle() {
       actions: { a: battle.actions.a ? { ...battle.actions.a } : null,
                  b: battle.actions.b ? { ...battle.actions.b } : null },
       megaUsed: { ...battle.megaUsed },
+      rollMode: { ...battle.rollMode },
+      crit: { ...battle.crit },
     },
     parties: {
       a: parties.a.map(p => JSON.parse(JSON.stringify(p))),
@@ -108,6 +110,8 @@ function undoBattle() {
   battle.turnNum = snap.battle.turnNum;
   battle.actions = snap.battle.actions;
   battle.megaUsed = snap.battle.megaUsed;
+  battle.rollMode = snap.battle.rollMode;
+  battle.crit = snap.battle.crit;
   // Restore parties (forme changes are written directly to parties)
   for (const s of ['a','b']) {
     parties[s].length = 0;
@@ -142,6 +146,8 @@ export function startBattle() {
     turnNum: 0,
     actions: { a: null, b: null }, // {type:'move',move:''} or {type:'switch',to:idx}
     megaUsed: { a: false, b: false }, // 1回限り
+    rollMode: { a: 'avg', b: 'avg' }, // 'avg' | 'min' | 'max'
+    crit: { a: false, b: false },
   };
   for (const s of ['a','b']) {
     battle.rt[s] = selection[s].map(pi => makeBattleRuntime(parties[s][pi]));
@@ -246,6 +252,14 @@ function renderBattle() {
     });
   }
 
+  // Crit / roll mode
+  document.querySelectorAll('.sim-crit').forEach(el => {
+    el.addEventListener('change', () => { battle.crit[el.dataset.side] = el.checked; });
+  });
+  document.querySelectorAll('.sim-roll').forEach(el => {
+    el.addEventListener('change', () => { battle.rollMode[el.dataset.side] = el.value; });
+  });
+
   // Mega evolution buttons
   document.querySelectorAll('.sim-mega-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -342,6 +356,14 @@ function renderBattleSide(side) {
             ${getDrainFrac(m) ? '<span style="color:var(--ok);font-size:.6rem">吸収</span>' : ''}
           </button>`;
         }).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.7rem">
+        <label style="display:flex;align-items:center;gap:2px;white-space:nowrap"><input type="checkbox" class="sim-crit" data-side="${side}" ${battle.crit[side] ? 'checked' : ''}> 急所</label>
+        <select class="sim-roll" data-side="${side}" style="font-size:.7rem;padding:1px 2px;flex:1">
+          <option value="avg"${battle.rollMode[side]==='avg' ? ' selected' : ''}>通常(平均)</option>
+          <option value="min"${battle.rollMode[side]==='min' ? ' selected' : ''}>低乱数</option>
+          <option value="max"${battle.rollMode[side]==='max' ? ' selected' : ''}>高乱数</option>
+        </select>
       </div>
     </div>`;
 }
@@ -535,7 +557,10 @@ function executeAttack(atkSide, defSide, moveName) {
   const atkState = { ...atkPoke, boosts: { ...atkRt.boosts }, currentHP: atkRt.hp, status: atkRt.status };
   const defState = { ...defPoke, boosts: { ...defRt.boosts }, currentHP: defRt.hp, status: defRt.status, disguiseIntact: defRt.disguise };
 
-  const result = DMG.calculate(atkState, defState, moveName, field);
+  // Crit: calculate with crit field if toggled
+  const isCrit = battle.crit[atkSide];
+  const calcField = isCrit ? { ...field, crit: true } : field;
+  const result = DMG.calculate(atkState, defState, moveName, calcField);
   if (!result) { addLog(`${atkLabel}の${ja('moves', moveName)}！ (計算不可)`); return; }
 
   if (result.typeEff === 0) { addLog(`${atkLabel}の${ja('moves', moveName)}！ → 効果なし`); return; }
@@ -551,14 +576,18 @@ function executeAttack(atkSide, defSide, moveName) {
     return;
   }
 
-  const avgDmg = Math.round((result.minDmg + result.maxDmg) / 2);
-  const actualDmg = Math.min(avgDmg, defRt.hp);
-  defRt.hp = Math.max(0, defRt.hp - avgDmg);
+  // Roll mode: min / avg / max
+  const rollMode = battle.rollMode[atkSide];
+  const useDmg = rollMode === 'min' ? result.minDmg : rollMode === 'max' ? result.maxDmg : Math.round((result.minDmg + result.maxDmg) / 2);
+  const actualDmg = Math.min(useDmg, defRt.hp);
+  defRt.hp = Math.max(0, defRt.hp - useDmg);
 
   let effText = '';
   if (result.typeEff > 1) effText = ' (効果ばつぐん)';
   else if (result.typeEff < 1) effText = ' (いまひとつ)';
-  addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}に${avgDmg}ダメージ (${result.minDmg}〜${result.maxDmg}, ${result.minPct}%〜${result.maxPct}%)${effText}`, false, 'dmg-line');
+  const rollLabel = isCrit ? ' 急所!' : '';
+  const rollNote = rollMode === 'min' ? ' [低乱数]' : rollMode === 'max' ? ' [高乱数]' : '';
+  addLog(`${atkLabel}の${ja('moves', moveName)}！${rollLabel} → ${defLabel}に${useDmg}ダメージ (${result.minDmg}〜${result.maxDmg}, ${result.minPct}%〜${result.maxPct}%)${effText}${rollNote}`, false, 'dmg-line');
 
   // Recoil
   const recoilFrac = getRecoilFrac(moveName);
