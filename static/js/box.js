@@ -2,11 +2,10 @@
 import {
   DATA, ja, esc, spriteImg, typeBadge,
   atkState, showdownHTML, switchPage, showToast,
-  restoreStateToUI,
+  restoreStateToUI, currentTeam,
 } from './app.js';
 import { DB } from './db.js';
 import { selectPokemon, initCalcPage } from './calc.js';
-import { currentTeam } from './team.js';
 
 export async function renderBoxPage() {
   const boxAll = await DB.getAll('box');

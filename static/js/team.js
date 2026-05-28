@@ -5,12 +5,11 @@ import {
   restoreStateToUI,
   showToast, switchPage, makePokemonState, generateUid,
   showdownHTML, teamToShowdownText,
+  currentTeam, setCurrentTeam,
 } from './app.js';
 import { DB } from './db.js';
 import { selectPokemon, initCalcPage } from './calc.js';
 import { buildMiniEditor } from './ui.js';
-
-export let currentTeam = { id: null, name: '新チーム', members: [], notes: '' };
 let teamView = 'list';
 
 export function initTeamPage() { renderTeamList(); }
@@ -46,7 +45,7 @@ async function renderTeamList() {
   `;
 
   document.getElementById('tl-new').addEventListener('click', () => {
-    currentTeam = { id: null, name: '新チーム', members: [], notes: '' };
+    setCurrentTeam({ id: null, name: '新チーム', members: [], notes: '' });
     renderTeamDetail();
   });
   document.getElementById('tl-import').addEventListener('click', () => document.getElementById('tl-import-file').click());
@@ -85,7 +84,7 @@ async function renderTeamList() {
     });
     row.addEventListener('click', async () => {
       const team = await DB.get('teams', id);
-      currentTeam = { id: team.id, name: team.name, members: team.members, notes: team.notes || '' };
+      setCurrentTeam({ id: team.id, name: team.name, members: team.members, notes: team.notes || '' });
       renderTeamDetail();
     });
   });
@@ -364,7 +363,7 @@ async function loadTeamList() {
 
   document.getElementById('modal-close').addEventListener('click', () => modal.classList.add('hidden'));
   document.getElementById('modal-new-team').addEventListener('click', () => {
-    currentTeam = { id: null, name: '新チーム', members: [], notes: '' };
+    setCurrentTeam({ id: null, name: '新チーム', members: [], notes: '' });
     modal.classList.add('hidden');
     renderTeamPage();
   });
@@ -377,7 +376,7 @@ async function loadTeamList() {
       if (data.name && data.members) {
         delete data.id;
         const id = await DB.add('teams', data);
-        currentTeam = { id, name: data.name, members: data.members, notes: data.notes || '' };
+        setCurrentTeam({ id, name: data.name, members: data.members, notes: data.notes || '' });
         modal.classList.add('hidden');
         renderTeamPage();
         showToast(`チーム「${data.name}」をインポート`);
@@ -392,7 +391,7 @@ async function loadTeamList() {
     const id = parseInt(btn.dataset.id);
     if (btn.dataset.action === 'load') {
       const team = await DB.get('teams', id);
-      currentTeam = { id: team.id, name: team.name, members: team.members, notes: team.notes || '' };
+      setCurrentTeam({ id: team.id, name: team.name, members: team.members, notes: team.notes || '' });
       modal.classList.add('hidden');
       renderTeamPage();
     } else if (btn.dataset.action === 'export') {

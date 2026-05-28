@@ -5,11 +5,10 @@ import {
   buildNatureUI, initNatureUI, updateNatureDisplay,
   restoreStateToUI, setupSearch, setupItemSearch,
   showToast, switchPage, makePokemonState, generateUid,
-  scheduleSessionSave,
+  scheduleSessionSave, currentTeam,
 } from './app.js';
 import { DMG } from './damage.js';
 import { DB } from './db.js';
-import { currentTeam } from './team.js';
 import { updateStatDisplay as _updateStatDisplay, getFilteredMoves } from './ui.js';
 
 function buildSidePanel(side) {

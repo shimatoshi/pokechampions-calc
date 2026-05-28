@@ -3,9 +3,9 @@ import {
   DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT,
   pokemonNames, buildNatureUI, initNatureUI,
   setupSearch, setupItemSearch, showToast, makePokemonState, generateUid,
+  currentTeam,
 } from './app.js';
 import { DB } from './db.js';
-import { currentTeam } from './team.js';
 import { parties, selection, field, startBattle } from './sim.js';
 import { renderPokemonInfo, updateStatDisplay, getFilteredMoves, setupAbilitySelect } from './ui.js';
 

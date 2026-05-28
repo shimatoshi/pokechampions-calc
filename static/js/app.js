@@ -2,16 +2,19 @@
 import { DB } from './db.js';
 import { DMG } from './damage.js';
 import { initCalcPage, updateStatDisplay } from './calc.js';
-import { initSimPage } from './sim.js';
-import { initTeamPage, renderTeamPage } from './team.js';
-import { renderBoxPage } from './box.js';
-import { initRecordsPage, renderRecordsPage } from './records.js';
 
 export let DATA = { pokemon: {}, moves: {}, types: {}, natures: {}, items: {} };
 export let JA = { pokemon: {}, moves: {}, natures: {}, items: {}, abilities: {} };
 export let pokemonNames = [];
 export const pageDirty = { box: true, team: true, records: true };
 export function markDirty(page) { pageDirty[page] = true; }
+
+// currentTeam: team.js から移動（calc/box/sim-setup が参照するため、起動時モジュールに配置）
+export const currentTeam = { id: null, name: '新チーム', members: [], notes: '' };
+export function setCurrentTeam(obj) {
+  for (const k of Object.keys(currentTeam)) delete currentTeam[k];
+  Object.assign(currentTeam, obj);
+}
 
 // ===== HELPERS =====
 export function ja(type, en) {
@@ -87,18 +90,20 @@ export function teamToShowdownText(team) {
 
 // ===== DATA LOADING =====
 export async function loadData() {
-  const keys = ['data_pokemon','data_learnsets','data_moves','data_types','data_natures','data_items',
+  const keys = ['data_pokemon','data_moves','data_types','data_natures','data_items',
                 'names_pokemon_ja','names_moves_ja','names_natures_ja','names_items_ja','names_abilities_ja'];
   const fetches = keys.map(k => fetch(`data/${k}.json`).then(r => r.ok ? r.json() : {}).catch(() => ({})));
-  const [pokemon, learnsets, moves, types, natures, items, jaPoke, jaMoves, jaNatures, jaItems, jaAbilities] = await Promise.all(fetches);
-  // Merge learnsets into pokemon data
-  for (const [name, ls] of Object.entries(learnsets)) {
-    if (pokemon[name]) pokemon[name].learnset = ls;
-  }
+  const [pokemon, moves, types, natures, items, jaPoke, jaMoves, jaNatures, jaItems, jaAbilities] = await Promise.all(fetches);
   DATA = { pokemon, moves, types, natures, items };
   JA.pokemon = jaPoke; JA.moves = jaMoves; JA.natures = jaNatures; JA.items = jaItems; JA.abilities = jaAbilities;
   pokemonNames = Object.keys(pokemon).sort();
   DMG.init(types, moves, pokemon, natures);
+  // 習得技データはバックグラウンドで取得（起動をブロックしない）
+  fetch('data/data_learnsets.json').then(r => r.json()).then(ls => {
+    for (const [name, moves] of Object.entries(ls)) {
+      if (DATA.pokemon[name]) DATA.pokemon[name].learnset = moves;
+    }
+  }).catch(() => {});
 }
 
 // ===== NAVIGATION =====
@@ -370,22 +375,21 @@ async function init() {
   restoreCalcSession();
   initCalcPage(); // 起動時はダメ計ページだけ初期化
   const initialized = { calc: true, sim: false, team: false, records: false, box: false };
-  // pageDirty is module-level export
   document.querySelectorAll('nav button').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const page = btn.dataset.page;
       switchPage(page);
       if (!initialized[page]) {
-        if (page === 'sim') initSimPage();
-        if (page === 'team') initTeamPage();
-        if (page === 'records') initRecordsPage();
-        if (page === 'box') renderBoxPage();
+        if (page === 'sim')     (await import('./sim.js')).initSimPage();
+        if (page === 'team')    (await import('./team.js')).initTeamPage();
+        if (page === 'records') (await import('./records.js')).initRecordsPage();
+        if (page === 'box')     (await import('./box.js')).renderBoxPage();
         initialized[page] = true;
         pageDirty[page] = false;
       } else if (pageDirty[page]) {
-        if (page === 'box') renderBoxPage();
-        if (page === 'team') renderTeamPage();
-        if (page === 'records') renderRecordsPage();
+        if (page === 'box')     (await import('./box.js')).renderBoxPage();
+        if (page === 'team')    (await import('./team.js')).renderTeamPage();
+        if (page === 'records') (await import('./records.js')).renderRecordsPage();
         pageDirty[page] = false;
       }
     });

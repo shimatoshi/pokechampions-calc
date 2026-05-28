@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポケモンチャンピオンズ 図鑑</title>
+<style>
+:root{--bg:#1a1a2e;--card:#16213e;--text:#e0e0e0;--muted:#8899aa;--accent:#e94560;--bdr:#2a3a5c}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.4;padding-bottom:2rem}
+.hd{background:linear-gradient(135deg,#0f3460,#16213e);padding:1rem;text-align:center;border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100}
+.hd h1{font-size:1.3rem;margin-bottom:.2rem}
+.hd .sub{color:var(--muted);font-size:.78rem}
+.ctrl{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem}
+.ctrl input,.ctrl select{background:var(--bg);border:1px solid var(--bdr);color:var(--text);padding:.3rem .5rem;border-radius:5px;font-size:.78rem}
+.ctrl input{min-width:160px}.ctrl select{min-width:85px}
+.cnt{color:var(--muted);font-size:.72rem;margin-top:.3rem}
+.msw{width:100%;display:flex;justify-content:center;gap:.4rem;margin-top:.4rem}
+.msw input{min-width:200px}
+.msw .hn{color:var(--muted);font-size:.68rem;align-self:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:.5rem;padding:.6rem;max-width:1600px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:9px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.card:hover{border-color:var(--accent)}
+.ct{display:flex;align-items:flex-start;gap:.5rem;padding:.5rem}
+.ci{width:68px;height:68px;object-fit:contain;flex-shrink:0;background:rgba(255,255,255,.03);border-radius:6px}
+.cm{flex:1;min-width:0}
+.dn{color:var(--muted);font-size:.68rem}
+.nr{display:flex;align-items:center;gap:.25rem;flex-wrap:wrap}
+.ne{font-weight:700;font-size:.92rem}
+.nj{color:var(--muted);font-size:.78rem}
+.bd{display:inline-block;font-size:.58rem;padding:.04rem .3rem;border-radius:3px;color:#fff;font-weight:600}
+.bd-f{background:var(--accent)}.bd-m{background:#7038f8}.bd-nm{background:#c040c0}
+.tps{display:flex;gap:.2rem;margin-top:.15rem}
+.tp{padding:.04rem .35rem;border-radius:3px;font-size:.62rem;font-weight:600;color:#fff;text-transform:capitalize}
+.ps{display:grid;grid-template-columns:32px 26px 1fr;gap:1px .25rem;align-items:center;padding:0 .5rem .3rem;font-size:.68rem}
+.pl{color:var(--muted)}.pv{text-align:right;font-weight:600;font-size:.68rem}
+.pb{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.pf{height:100%;border-radius:3px}
+.bst{font-size:.68rem;padding:0 .5rem .25rem;color:var(--muted)}.bst b{color:var(--text)}
+.pa{display:flex;flex-wrap:wrap;gap:.2rem;padding:0 .5rem .4rem}
+.ab{background:rgba(255,255,255,.07);padding:.08rem .35rem;border-radius:3px;font-size:.62rem;text-transform:capitalize}
+.ab.h{border:1px dashed var(--muted)}
+
+/* Move toggle button */
+.mtog{display:flex;align-items:center;justify-content:space-between;padding:.3rem .5rem;border-top:1px solid var(--bdr);font-size:.7rem;color:var(--muted);user-select:none}
+.mtog .arrow{transition:transform .2s;font-size:.6rem}
+.card.open .mtog .arrow{transform:rotate(90deg)}
+
+/* Move list (table-like, hidden by default) */
+.cd{padding:0;display:none;max-height:400px;overflow-y:auto}
+.card.open .cd{display:block}
+
+/* Move sort controls */
+.msort{display:flex;gap:.2rem;padding:.2rem .5rem;flex-wrap:wrap}
+.msort button{background:rgba(255,255,255,.06);border:1px solid var(--bdr);color:var(--muted);padding:.15rem .35rem;border-radius:3px;font-size:.6rem;cursor:pointer}
+.msort button.active{color:var(--text);border-color:var(--accent)}
+
+/* Move row */
+.mr{display:grid;grid-template-columns:auto 1fr 28px 32px 32px;gap:0 .3rem;align-items:center;padding:.2rem .5rem;border-bottom:1px solid rgba(255,255,255,.03);font-size:.65rem}
+.mr:hover{background:rgba(255,255,255,.03)}
+.mr.hl{background:rgba(233,69,96,.15)}
+.mr-tp{padding:.08rem .3rem;border-radius:2px;font-size:.55rem;font-weight:600;color:#fff;text-transform:capitalize;text-align:center;white-space:nowrap;min-width:42px}
+.mr-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mr-cat{text-align:center;font-size:.6rem}
+.mr-pw{text-align:right;font-size:.62rem;color:var(--text)}
+.mr-ac{text-align:right;font-size:.62rem;color:var(--muted)}
+
+.sf-hp{background:#ff5959}.sf-attack{background:#f5ac78}.sf-defense{background:#fae078}
+.sf-special-attack{background:#9db7f5}.sf-special-defense{background:#a7db8d}.sf-speed{background:#fa92b2}
+
+.t-normal{background:#a8a878}.t-fire{background:#f08030}.t-water{background:#6890f0}
+.t-electric{background:#f8d030;color:#333}.t-grass{background:#78c850}.t-ice{background:#98d8d8;color:#333}
+.t-fighting{background:#c03028}.t-poison{background:#a040a0}.t-ground{background:#e0c068;color:#333}
+.t-flying{background:#a890f0}.t-psychic{background:#f85888}.t-bug{background:#a8b820}
+.t-rock{background:#b8a038}.t-ghost{background:#705898}.t-dragon{background:#7038f8}
+.t-dark{background:#705848}.t-steel{background:#b8b8d0;color:#333}.t-fairy{background:#ee99ac}
+
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;justify-content:center;align-items:center;padding:.5rem}
+.ov.active{display:flex}
+.mo{background:var(--card);border:1px solid var(--bdr);border-radius:14px;max-width:500px;width:100%;max-height:92vh;overflow-y:auto;padding:1rem}
+.mo .cl{float:right;background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer}
+.mo .pi{display:block;width:140px;height:140px;object-fit:contain;margin:0 auto .6rem}
+
+/* Modal move table header */
+.mth{display:grid;grid-template-columns:auto 1fr 28px 32px 32px;gap:0 .3rem;padding:.2rem .5rem;font-size:.58rem;color:var(--muted);border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none}
+.mth span:hover{color:var(--text)}
+
+@media(max-width:600px){.grid{grid-template-columns:1fr;padding:.4rem;gap:.4rem}.ci{width:56px;height:56px}.hd h1{font-size:1.1rem}}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <h1>Pokemon Champions Pokedex</h1>
+  <div class="sub">ポケモンチャンピオンズ 内定ポケモン図鑑</div>
+  <div class="ctrl">
+    <input type="text" id="search" placeholder="名前 / Name / No.">
+    <select id="typeFilter"><option value="">全タイプ</option></select>
+    <select id="sortBy">
+      <option value="dex">No. 順</option>
+      <option value="bst-desc">種族値↓</option>
+      <option value="bst-asc">種族値↑</option>
+      <option value="hp-desc">HP↓</option>
+      <option value="attack-desc">攻撃↓</option>
+      <option value="defense-desc">防御↓</option>
+      <option value="special-attack-desc">特攻↓</option>
+      <option value="special-defense-desc">特防↓</option>
+      <option value="speed-desc">素早さ↓</option>
+      <option value="hp-asc">HP↑</option>
+      <option value="attack-asc">攻撃↑</option>
+      <option value="defense-asc">防御↑</option>
+      <option value="special-attack-asc">特攻↑</option>
+      <option value="special-defense-asc">特防↑</option>
+      <option value="speed-asc">素早さ↑</option>
+      <option value="name">名前順</option>
+    </select>
+  </div>
+  <div class="msw">
+    <input type="text" id="moveSearch" placeholder="技検索 (日本語/英語, カンマでAND)">
+    <span class="hn">例: じしん, flare</span>
+  </div>
+  <div class="cnt" id="count"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="ov" id="overlay">
+  <div class="mo" id="modal"></div>
+</div>
+
+<script src="data/pokemon.js"></script>
+<script src="data/moves.js"></script>
+<script>
+const SL={hp:'HP',attack:'Atk',defense:'Def','special-attack':'SpA','special-defense':'SpD',speed:'Spe'};
+const SO=['hp','attack','defense','special-attack','special-defense','speed'];
+const TS=['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+const TI={};TS.forEach((t,i)=>TI[t]=i); // type index for sorting
+const CI={physical:0,special:1,status:2};
+const CL={physical:'⚔',special:'✦',status:'◈'};
+
+const moveIdx={};
+DATA.pokemon.forEach(p=>{
+  (p.moves||[]).forEach(m=>{
+    if(!moveIdx[m])moveIdx[m]=new Set();
+    moveIdx[m].add(p.id);
+  });
+});
+
+function sortMoves(moves,sortKey){
+  const arr=moves.map(mn=>{
+    const m=MOVES[mn]||{name:mn,name_ja:mn,type:'normal',category:'status',power:null,accuracy:null};
+    return {key:mn,...m};
+  });
+  switch(sortKey){
+    case 'type':
+      arr.sort((a,b)=>(TI[a.type]||0)-(TI[b.type]||0)||(CI[a.category]||0)-(CI[b.category]||0)||(b.power||0)-(a.power||0));
+      break;
+    case 'power':
+      arr.sort((a,b)=>(b.power||0)-(a.power||0));
+      break;
+    case 'cat':
+      arr.sort((a,b)=>(CI[a.category]||0)-(CI[b.category]||0)||(b.power||0)-(a.power||0));
+      break;
+    case 'name':
+      arr.sort((a,b)=>a.name_ja.localeCompare(b.name_ja,'ja'));
+      break;
+    default: // type default
+      arr.sort((a,b)=>(TI[a.type]||0)-(TI[b.type]||0)||(CI[a.category]||0)-(CI[b.category]||0)||(b.power||0)-(a.power||0));
+  }
+  return arr;
+}
+
+function moveRow(m,highlight){
+  const hl=highlight?' hl':'';
+  const pw=m.power!=null?m.power:'—';
+  const ac=m.accuracy!=null?m.accuracy:'—';
+  return '<div class="mr'+hl+'">'
+    +'<span class="mr-tp t-'+m.type+'">'+m.type+'</span>'
+    +'<span class="mr-nm">'+m.name_ja+'</span>'
+    +'<span class="mr-cat">'+CL[m.category]+'</span>'
+    +'<span class="mr-pw">'+pw+'</span>'
+    +'<span class="mr-ac">'+ac+'</span>'
+    +'</div>';
+}
+
+function resolveMoveTerm(term){
+  const matches=new Set();
+  Object.entries(MOVES).forEach(([k,v])=>{
+    if(k.includes(term)||v.name_ja.includes(term))matches.add(k);
+  });
+  return matches;
+}
+
+function init(){
+  const sel=document.getElementById('typeFilter');
+  TS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t[0].toUpperCase()+t.slice(1);sel.appendChild(o);});
+  render();
+  ['search','moveSearch'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+  ['typeFilter','sortBy'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+  document.getElementById('overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+}
+
+function render(){
+  const q=document.getElementById('search').value.toLowerCase().trim();
+  const typeF=document.getElementById('typeFilter').value;
+  const sortF=document.getElementById('sortBy').value;
+  const moveQ=document.getElementById('moveSearch').value.trim();
+  const moveTerms=moveQ?moveQ.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean):[];
+
+  let moveMatchIds=null;
+  let matchedMoves=new Set();
+  if(moveTerms.length>0){
+    const sets=moveTerms.map(term=>{
+      const mnames=resolveMoveTerm(term);
+      mnames.forEach(n=>matchedMoves.add(n));
+      const pids=new Set();
+      mnames.forEach(mn=>{if(moveIdx[mn])moveIdx[mn].forEach(id=>pids.add(id));});
+      return pids;
+    });
+    moveMatchIds=sets.reduce((a,s)=>new Set([...a].filter(x=>s.has(x))));
+  }
+
+  let list=DATA.pokemon.filter(p=>{
+    if(q&&!p.name_en.toLowerCase().includes(q)&&!p.name_ja.includes(q)&&!String(p.dex_id).includes(q))return false;
+    if(typeF&&!p.types.includes(typeF))return false;
+    if(moveMatchIds&&!moveMatchIds.has(p.id))return false;
+    return true;
+  });
+
+  if(sortF==='name')list.sort((a,b)=>a.name_en.localeCompare(b.name_en));
+  else if(sortF!=='dex'){
+    const parts=sortF.split('-');const dir=parts.pop();const key=parts.join('-');
+    const mul=dir==='asc'?1:-1;
+    if(key==='bst')list.sort((a,b)=>mul*(a.bst-b.bst));
+    else list.sort((a,b)=>mul*((a.stats[key]||0)-(b.stats[key]||0)));
+  }
+
+  document.getElementById('grid').innerHTML='';
+  document.getElementById('count').textContent=list.length+' / '+DATA.total;
+
+  const frag=document.createDocumentFragment();
+  list.forEach(p=>{
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=buildCard(p,matchedMoves);
+    // Toggle on header click
+    card.querySelector('.ct').addEventListener('click',()=>card.classList.toggle('open'));
+    // Toggle on move bar click
+    card.querySelector('.mtog').addEventListener('click',e=>{e.stopPropagation();card.classList.toggle('open');});
+    // Image -> modal
+    const img=card.querySelector('.ci');
+    if(img&&img.tagName==='IMG')img.addEventListener('click',e=>{e.stopPropagation();openModal(p,matchedMoves);});
+    // Move sort buttons
+    card.querySelectorAll('.msort button').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        const sk=btn.dataset.sort;
+        const ml=card.querySelector('.mrows');
+        const sorted=sortMoves(p.moves||[],sk);
+        ml.innerHTML=sorted.map(m=>moveRow(m,matchedMoves.has(m.key))).join('');
+        card.querySelectorAll('.msort button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+    frag.appendChild(card);
+  });
+  document.getElementById('grid').appendChild(frag);
+}
+
+function sbar(k,v){
+  const p=Math.min(v/200*100,100);
+  return '<span class="pl">'+SL[k]+'</span><span class="pv">'+v+'</span><div class="pb"><div class="pf sf-'+k+'" style="width:'+p+'%"></div></div>';
+}
+
+function buildCard(p,hlMoves){
+  const img=p.image?'<img class="ci" src="images/'+p.image+'" alt="'+p.name_en+'" loading="lazy">':'<div class="ci"></div>';
+  let bd='';
+  if(p.is_new_mega)bd=' <span class="bd bd-nm">NEW MEGA</span>';
+  else if(p.is_existing_mega)bd=' <span class="bd bd-m">MEGA</span>';
+  else if(p.form)bd=' <span class="bd bd-f">'+p.form+'</span>';
+
+  const tps=p.types.map(t=>'<span class="tp t-'+t+'">'+t+'</span>').join('');
+  const sts=SO.map(s=>sbar(s,p.stats[s]||0)).join('');
+  const abs=p.abilities.map(a=>'<span class="ab'+(a.hidden?' h':'')+'">'+a.name.replace(/-/g,' ')+(a.hidden?' (H)':'')+'</span>').join('');
+
+  const moves=p.moves||[];
+  const sorted=sortMoves(moves,'type');
+  const rowsHtml=sorted.map(m=>moveRow(m,hlMoves.has(m.key))).join('');
+
+  return '<div class="ct">'+img+'<div class="cm"><div class="dn">#'+String(p.dex_id).padStart(4,'0')+'</div><div class="nr"><span class="ne">'+p.name_en+'</span>'+bd+'</div><div class="nj">'+p.name_ja+'</div><div class="tps">'+tps+'</div></div></div>'
+    +'<div class="ps">'+sts+'</div><div class="bst">BST <b>'+p.bst+'</b></div>'
+    +'<div class="pa">'+abs+'</div>'
+    +'<div class="mtog"><span>覚える技 ('+moves.length+')</span><span class="arrow">▶</span></div>'
+    +'<div class="cd">'
+    +'<div class="msort"><button data-sort="type" class="active">タイプ順</button><button data-sort="power">威力順</button><button data-sort="cat">分類順</button><button data-sort="name">名前順</button></div>'
+    +'<div class="mth"><span>タイプ</span><span>技名</span><span>分</span><span>威力</span><span>命中</span></div>'
+    +'<div class="mrows">'+rowsHtml+'</div>'
+    +'</div>';
+}
+
+function openModal(p,hlMoves){
+  const m=document.getElementById('modal');
+  const img=p.image?'<img class="pi" src="images/'+p.image+'" alt="'+p.name_en+'">':'';
+  const tps=p.types.map(t=>'<span class="tp t-'+t+'">'+t+'</span>').join('');
+  const sts=SO.map(s=>sbar(s,p.stats[s]||0)).join('');
+  const abs=p.abilities.map(a=>'<span class="ab'+(a.hidden?' h':'')+'">'+a.name.replace(/-/g,' ')+(a.hidden?' (H)':'')+'</span>').join('');
+  const hl=hlMoves||new Set();
+
+  let bd='';
+  if(p.is_new_mega)bd='<span class="bd bd-nm">NEW MEGA</span>';
+  else if(p.is_existing_mega)bd='<span class="bd bd-m">MEGA</span>';
+  else if(p.form)bd='<span class="bd bd-f">'+p.form+'</span>';
+
+  const moves=p.moves||[];
+  let curSort='type';
+  const sorted=sortMoves(moves,curSort);
+  const rowsHtml=sorted.map(mv=>moveRow(mv,hl.has(mv.key))).join('');
+
+  m.innerHTML='<button class="cl" onclick="closeModal()">&times;</button>'+img
+    +'<div style="text-align:center;margin-bottom:.6rem"><div style="color:var(--muted);font-size:.72rem">#'+String(p.dex_id).padStart(4,'0')+'</div>'
+    +'<div style="font-size:1.15rem;font-weight:700">'+p.name_en+' '+bd+'</div>'
+    +'<div style="color:var(--muted)">'+p.name_ja+'</div>'
+    +'<div class="tps" style="justify-content:center;margin-top:.3rem">'+tps+'</div></div>'
+    +'<div class="ps">'+sts+'</div><div class="bst">BST <b>'+p.bst+'</b></div>'
+    +'<div style="font-size:.68rem;color:var(--muted);padding:.3rem 0 .15rem">特性</div>'
+    +'<div class="pa" style="padding-left:0">'+abs+'</div>'
+    +'<div style="font-size:.68rem;color:var(--muted);padding:.4rem 0 .15rem">覚える技 ('+moves.length+')</div>'
+    +'<div class="msort" id="modalSort"><button data-sort="type" class="active">タイプ順</button><button data-sort="power">威力順</button><button data-sort="cat">分類順</button><button data-sort="name">名前順</button></div>'
+    +'<div class="mth"><span>タイプ</span><span>技名</span><span>分</span><span>威力</span><span>命中</span></div>'
+    +'<div class="mrows" id="modalRows">'+rowsHtml+'</div>';
+
+  // Modal sort buttons
+  m.querySelectorAll('#modalSort button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const sk=btn.dataset.sort;
+      const s2=sortMoves(moves,sk);
+      document.getElementById('modalRows').innerHTML=s2.map(mv=>moveRow(mv,hl.has(mv.key))).join('');
+      m.querySelectorAll('#modalSort button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  document.getElementById('overlay').classList.add('active');
+}
+function closeModal(){document.getElementById('overlay').classList.remove('active');}
+init();
+</script>
+</body>
+</html>
