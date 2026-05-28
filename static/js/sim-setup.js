@@ -1,6 +1,6 @@
 // Pokemon Champions - Sim Setup/Editor/Selection phases
 import {
-  DATA, ja, esc, spriteImg, STAT_SHORT,
+  DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT,
   pokemonNames, buildNatureUI, initNatureUI,
   setupSearch, setupItemSearch, showToast, makePokemonState, generateUid,
 } from './app.js';
