@@ -494,9 +494,10 @@ function executeTurn() {
     }
   }
 
-  // Clear actions
+  // Keep move actions for next turn, clear switch actions
+  battle.actions.a = actA?.type === 'move' ? actA : null;
+  battle.actions.b = actB?.type === 'move' ? actB : null;
   const switched = actA?.type === 'switch' || actB?.type === 'switch';
-  battle.actions = { a: null, b: null };
   if (switched) renderBattle();
   else updateBattleLight();
 }
