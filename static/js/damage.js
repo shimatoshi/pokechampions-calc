@@ -413,13 +413,15 @@ export const DMG = (() => {
     let { atk, def, isPhysical } = resolveAtkDef(moveName, move, attacker, defender, atkStats, defStats, aAbil, dAbil);
 
     // Phase 2: BP modifiers
-    let bp = resolveBP(moveName, move, move.bp, aAbil, attacker, defender, field);
+    let bp = field?.bpOverride != null ? field.bpOverride : resolveBP(moveName, move, move.bp, aAbil, attacker, defender, field);
 
     // Phase 3: Atk ability modifiers
     atk = resolveAtkAbilMods(atk, aAbil, attacker, isPhysical, field);
 
     // Phase 4: Type, STAB, effectiveness
-    const { effectiveMoveType, isSTAB, stabMod, typeEff } = resolveType(moveName, move, aAbil, atkTypes, defTypes);
+    const moveForType = field?.moveTypeOverride ? { ...move, type: field.moveTypeOverride } : move;
+    let { effectiveMoveType, isSTAB, stabMod, typeEff } = resolveType(moveName, moveForType, aAbil, atkTypes, defTypes);
+    if (field?.stab2x && isSTAB) stabMod = 2;
 
     // Phase 5: Defender immunity check
     const immune = checkImmunity(dAbil, moveName, effectiveMoveType, isPhysical, bp, atkStats, defStats, hasHazards);
@@ -448,7 +450,8 @@ export const DMG = (() => {
     const baseDmg = Math.floor(Math.floor((Math.floor(2 * 50 / 5 + 2) * bp * atk) / def) / 50 + 2);
 
     // Multi-hit
-    const { hits, hitsLabel } = resolveHits(move);
+    let { hits, hitsLabel } = resolveHits(move);
+    if (field?.hitsOverride != null) { hits = field.hitsOverride; hitsLabel = `${hits}回ヒット`; }
 
     // 16 damage rolls (85%~100%)
     const results = [];

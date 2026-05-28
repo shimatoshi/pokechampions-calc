@@ -96,6 +96,7 @@ function snapshotBattle() {
       megaUsed: { ...battle.megaUsed },
       rollMode: { ...battle.rollMode },
       crit: { ...battle.crit },
+      mod: { a: { ...battle.mod.a }, b: { ...battle.mod.b } },
     },
     parties: {
       a: parties.a.map(p => JSON.parse(JSON.stringify(p))),
@@ -116,6 +117,7 @@ function undoBattle() {
   battle.megaUsed = snap.battle.megaUsed;
   battle.rollMode = snap.battle.rollMode;
   battle.crit = snap.battle.crit;
+  battle.mod = snap.battle.mod;
   // Restore parties (forme changes are written directly to parties)
   for (const s of ['a','b']) {
     parties[s].length = 0;
@@ -152,6 +154,8 @@ export function startBattle() {
     megaUsed: { a: false, b: false }, // 1回限り
     rollMode: { a: 'avg', b: 'avg' }, // 'avg' | 'min' | 'max'
     crit: { a: false, b: false },
+    mod: { a: { bp: null, moveType: null, stab2x: false, hits: null },
+           b: { bp: null, moveType: null, stab2x: false, hits: null } },
   };
   for (const s of ['a','b']) {
     battle.rt[s] = selection[s].map(pi => makeBattleRuntime(parties[s][pi]));
@@ -247,6 +251,12 @@ function renderBattle() {
         btn.classList.add('selected');
         if (btn.dataset.type === 'move') {
           battle.actions[s] = { type: 'move', move: btn.dataset.move };
+          // Update BP field to selected move's base BP (reset override)
+          const md = DATA.moves[btn.dataset.move];
+          battle.mod[s].bp = null;
+          battle.mod[s].hits = null;
+          const bpEl = document.querySelector(`.sim-mod-bp[data-side="${s}"]`);
+          if (bpEl) bpEl.value = md?.bp || 0;
         } else if (btn.dataset.type === 'switch') {
           battle.actions[s] = { type: 'switch', to: parseInt(btn.dataset.to) };
         } else {
@@ -262,6 +272,40 @@ function renderBattle() {
   });
   document.querySelectorAll('.sim-roll').forEach(el => {
     el.addEventListener('change', () => { battle.rollMode[el.dataset.side] = el.value; });
+  });
+
+  // Modifier panel
+  document.querySelectorAll('.sim-mod-bp').forEach(el => {
+    el.addEventListener('input', () => {
+      const v = parseInt(el.value);
+      battle.mod[el.dataset.side].bp = isNaN(v) ? null : v;
+    });
+  });
+  document.querySelectorAll('.sim-mod-mul').forEach(el => {
+    el.addEventListener('click', () => {
+      const s = el.dataset.side;
+      const bpEl = document.querySelector(`.sim-mod-bp[data-side="${s}"]`);
+      const cur = parseInt(bpEl.value) || 0;
+      const newBP = Math.floor(cur * parseFloat(el.dataset.mul));
+      bpEl.value = newBP;
+      battle.mod[s].bp = newBP;
+    });
+  });
+  document.querySelectorAll('.sim-mod-reset').forEach(el => {
+    el.addEventListener('click', () => {
+      const s = el.dataset.side;
+      battle.mod[s] = { bp: null, moveType: null, stab2x: false, hits: null };
+      renderBattle();
+    });
+  });
+  document.querySelectorAll('.sim-mod-stab2x').forEach(el => {
+    el.addEventListener('change', () => { battle.mod[el.dataset.side].stab2x = el.checked; });
+  });
+  document.querySelectorAll('.sim-mod-type').forEach(el => {
+    el.addEventListener('change', () => { battle.mod[el.dataset.side].moveType = el.value || null; });
+  });
+  document.querySelectorAll('.sim-mod-hits').forEach(el => {
+    el.addEventListener('change', () => { battle.mod[el.dataset.side].hits = parseInt(el.value); });
   });
 
   // Mega evolution buttons
@@ -369,7 +413,46 @@ function renderBattleSide(side) {
           <option value="max"${battle.rollMode[side]==='max' ? ' selected' : ''}>高乱数</option>
         </select>
       </div>
+      ${renderModPanel(side, poke)}
     </div>`;
+}
+
+const ALL_TYPES = ['Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'];
+const TYPE_JA = {Normal:'ノーマル',Fire:'ほのお',Water:'みず',Grass:'くさ',Electric:'でんき',Ice:'こおり',Fighting:'かくとう',Poison:'どく',Ground:'じめん',Flying:'ひこう',Psychic:'エスパー',Bug:'むし',Rock:'いわ',Ghost:'ゴースト',Dragon:'ドラゴン',Dark:'あく',Steel:'はがね',Fairy:'フェアリー'};
+
+function renderModPanel(side, poke) {
+  const mod = battle.mod[side];
+  const selMove = battle.actions[side]?.type === 'move' ? battle.actions[side].move : null;
+  const moveData = selMove ? DATA.moves[selMove] : null;
+  const baseBP = moveData?.bp || 0;
+  const curBP = mod.bp != null ? mod.bp : baseBP;
+  const isMultiHit = moveData?.hits && (Array.isArray(moveData.hits) || moveData.hits > 1);
+  const maxHits = moveData?.hits ? (Array.isArray(moveData.hits) ? moveData.hits[1] : moveData.hits) : 1;
+  const minHits = moveData?.hits ? (Array.isArray(moveData.hits) ? moveData.hits[0] : moveData.hits) : 1;
+
+  return `<div style="margin-top:4px;padding:4px;background:var(--bg);border:1px solid var(--bg3);border-radius:4px;font-size:.65rem">
+    <div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap">
+      <span style="color:var(--fg2)">威力</span>
+      <input type="number" class="sim-mod-bp" data-side="${side}" value="${curBP}" min="0" max="999" style="width:45px;font-size:.7rem;padding:1px 3px">
+      <button class="sim-mod-mul btn btn-sm btn-outline" data-side="${side}" data-mul="1.3" style="padding:1px 4px;font-size:.6rem">×1.3</button>
+      <button class="sim-mod-mul btn btn-sm btn-outline" data-side="${side}" data-mul="1.5" style="padding:1px 4px;font-size:.6rem">×1.5</button>
+      <button class="sim-mod-mul btn btn-sm btn-outline" data-side="${side}" data-mul="2" style="padding:1px 4px;font-size:.6rem">×2</button>
+      <button class="sim-mod-reset btn btn-sm btn-outline" data-side="${side}" style="padding:1px 4px;font-size:.6rem;color:var(--fg2)">↺</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:3px;margin-top:3px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:2px;white-space:nowrap"><input type="checkbox" class="sim-mod-stab2x" data-side="${side}" ${mod.stab2x ? 'checked' : ''}> 一致2倍</label>
+      <span style="color:var(--fg2)">タイプ</span>
+      <select class="sim-mod-type" data-side="${side}" style="font-size:.65rem;padding:0 2px">
+        <option value="">自動</option>
+        ${ALL_TYPES.map(t => `<option value="${t}"${mod.moveType===t?' selected':''}>${TYPE_JA[t]}</option>`).join('')}
+      </select>
+      ${isMultiHit ? `<span style="color:var(--fg2)">連続</span>
+      <select class="sim-mod-hits" data-side="${side}" style="font-size:.65rem;padding:0 2px;width:40px">
+        ${Array.from({length: maxHits - minHits + 1}, (_, i) => minHits + i).map(h =>
+          `<option value="${h}"${mod.hits===h?' selected':''}>${h}発</option>`).join('')}
+      </select>` : ''}
+    </div>
+  </div>`;
 }
 
 function renderBench(side) {
@@ -589,10 +672,19 @@ function executeAttack(atkSide, defSide, moveName) {
   const atkState = { ...atkPoke, boosts: { ...atkRt.boosts }, currentHP: atkRt.hp, status: atkRt.status, _types: atkTypes };
   const defState = { ...defPoke, boosts: { ...defRt.boosts }, currentHP: defRt.hp, status: defRt.status, disguiseIntact: defRt.disguise, _types: defTypes };
 
-  // Crit + fainted count + charge
+  // Crit + fainted count + charge + manual modifiers
   const isCrit = battle.crit[atkSide];
+  const mod = battle.mod[atkSide];
   const faintedCount = battle.rt[atkSide].filter(r => r.hp <= 0).length;
-  const calcField = { ...field, ...(isCrit && { crit: true }), ...(faintedCount > 0 && { faintedCount }), ...(atkRt.charged && { charged: true }) };
+  const calcField = { ...field,
+    ...(isCrit && { crit: true }),
+    ...(faintedCount > 0 && { faintedCount }),
+    ...(atkRt.charged && { charged: true }),
+    ...(mod.bp != null && { bpOverride: mod.bp }),
+    ...(mod.moveType && { moveTypeOverride: mod.moveType }),
+    ...(mod.stab2x && { stab2x: true }),
+    ...(mod.hits != null && { hitsOverride: mod.hits }),
+  };
   const result = DMG.calculate(atkState, defState, moveName, calcField);
   if (!result) { addLog(`${atkLabel}の${ja('moves', moveName)}！ (計算不可)`); return; }
 
