@@ -51,12 +51,55 @@ export const DB = (() => {
       ]);
       return { box, teams, threats, records, version: 1, exportedAt: Date.now() };
     },
-    // Import from JSON
+    // Import from JSON (additive merge — never overwrites existing data)
     async importAll(data) {
-      if (data.box) { for (const item of data.box) await this.put('box', item); }
-      if (data.teams) { for (const item of data.teams) await this.put('teams', item); }
-      if (data.threats) { for (const item of data.threats) await this.put('threats', item); }
-      if (data.records) { for (const item of data.records) await this.put('records', item); }
+      const stats = { added: 0, skipped: 0 };
+      // BOX: skip duplicates by uid
+      if (data.box) {
+        const existing = await this.getAll('box');
+        const uidSet = new Set(existing.map(e => e.uid).filter(Boolean));
+        for (const item of data.box) {
+          if (item.uid && uidSet.has(item.uid)) { stats.skipped++; continue; }
+          const entry = { ...item }; delete entry.id;
+          await this.add('box', entry);
+          if (entry.uid) uidSet.add(entry.uid);
+          stats.added++;
+        }
+      }
+      // Teams: skip duplicates by name + member names
+      if (data.teams) {
+        const existing = await this.getAll('teams');
+        const teamKeys = new Set(existing.map(t => t.name + '|' + (t.members||[]).map(m => m.name).join(',')));
+        for (const item of data.teams) {
+          const key = item.name + '|' + (item.members||[]).map(m => m.name).join(',');
+          if (teamKeys.has(key)) { stats.skipped++; continue; }
+          const entry = { ...item }; delete entry.id;
+          await this.add('teams', entry);
+          teamKeys.add(key);
+          stats.added++;
+        }
+      }
+      // Threats: skip duplicates by name
+      if (data.threats) {
+        const existing = await this.getAll('threats');
+        const nameSet = new Set(existing.map(t => t.name));
+        for (const item of data.threats) {
+          if (nameSet.has(item.name)) { stats.skipped++; continue; }
+          const entry = { ...item }; delete entry.id;
+          await this.add('threats', entry);
+          nameSet.add(item.name);
+          stats.added++;
+        }
+      }
+      // Records: always add (no natural dedup key)
+      if (data.records) {
+        for (const item of data.records) {
+          const entry = { ...item }; delete entry.id;
+          await this.add('records', entry);
+          stats.added++;
+        }
+      }
+      return stats;
     }
   };
 })();

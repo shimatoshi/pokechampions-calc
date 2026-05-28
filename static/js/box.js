@@ -148,8 +148,8 @@ async function importData(e) {
   try {
     const text = await file.text();
     const data = JSON.parse(text);
-    await DB.importAll(data);
-    showToast(`インポート完了 (BOX:${data.box?.length||0}, チーム:${data.teams?.length||0})`);
+    const stats = await DB.importAll(data);
+    showToast(`インポート完了: ${stats.added}件追加${stats.skipped ? `, ${stats.skipped}件スキップ(重複)` : ''}`);
     renderBoxPage();
   } catch (err) {
     showToast('インポート失敗: ' + err.message);
