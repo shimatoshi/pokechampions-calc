@@ -148,6 +148,8 @@ export const DMG = (() => {
       const cnt = field?.faintedCount || 0;
       if (cnt > 0) bp += 50 * cnt;
     }
+    // じゅうでん: Electric move 2x
+    if (field?.charged && move.type === 'Electric') bp *= 2;
     if (moveName === 'Knock Off' && defender.item) bp = Math.floor(bp * 1.5);
     if (moveName === 'Hex' && defender.status) bp *= 2;
 
@@ -202,6 +204,15 @@ export const DMG = (() => {
 
     // Type effectiveness
     let typeEff = getTypeEff(effectiveMoveType, defTypes);
+    // きもったま / Scrappy: Normal/Fighting hits Ghost
+    if ((aAbil === 'Scrappy') && (effectiveMoveType === 'Normal' || effectiveMoveType === 'Fighting') && defTypes.includes('Ghost') && typeEff === 0) {
+      typeEff = 1;
+      for (const dt of defTypes) {
+        if (dt === 'Ghost') continue;
+        const chart = typeChart[effectiveMoveType];
+        if (chart && chart[dt] !== undefined) typeEff *= chart[dt];
+      }
+    }
     if (moveName === 'Freeze-Dry' && defTypes.includes('Water')) {
       typeEff *= 4; // Water resists Ice (0.5x) → SE (2x), net ×4
     }
@@ -393,8 +404,9 @@ export const DMG = (() => {
     const defStats = getStats(defender);
     const aAbil = attacker.ability || '';
     const dAbil = defender.ability || '';
-    const atkTypes = atkData.types;
-    const defTypes = defData.types;
+    // Type overrides from battle runtime (Soak, Forest's Curse, Burn Up, etc.)
+    let atkTypes = attacker._types || atkData.types;
+    let defTypes = defender._types || defData.types;
     const hasHazards = field?.stealthRock || (field?.spikes && !defTypes.includes('Flying'));
 
     // Phase 1: Atk/Def stats (move-specific overrides + Unaware)

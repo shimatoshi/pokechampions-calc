@@ -74,6 +74,10 @@ function makeBattleRuntime(poke) {
     boosts: { at:0, df:0, sa:0, sd:0, sp:0 },
     disguise: (poke.ability === 'Disguise' || poke.ability === 'Ice Face'),
     status: '',
+    typeOverride: null,  // みずびたし等によるタイプ変更 (array or null)
+    addedType: null,     // もりののろい/トリックオアトリートで追加されたタイプ
+    charged: false,      // じゅうでん状態
+    burnedUp: false,     // もえつきるでほのおタイプ消滅
   };
 }
 
@@ -517,10 +521,14 @@ function doSwitch(side, toIdx) {
   const label = side === 'a' ? '自分' : '相手';
   const oldPoke = getActive(side);
   const oldRt = getActiveRt(side);
-  // Reset leech seed and boosts on switch out
+  // Reset volatile status on switch out
   oldRt.leechSeed = false;
   oldRt.boosts = { at:0, df:0, sa:0, sd:0, sp:0 };
   oldRt.toxicCount = 0;
+  oldRt.typeOverride = null;
+  oldRt.addedType = null;
+  oldRt.charged = false;
+  oldRt.burnedUp = false;
 
   battle.active[side] = toIdx;
   const newPoke = getActive(side);
@@ -546,7 +554,27 @@ function executeAttack(atkSide, defSide, moveName) {
   }
 
   if (!move.bp || move.bp === 0) {
-    addLog(`${atkLabel}の${ja('moves', moveName)}！`);
+    const defRt0 = getActiveRt(defSide);
+    const atkRt0 = getActiveRt(atkSide);
+    // みずびたし: 相手のタイプをみずに変更
+    if (moveName === 'Soak') {
+      defRt0.typeOverride = ['Water'];
+      addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}はみずタイプになった！`);
+    // もりののろい: 相手にくさタイプを追加
+    } else if (moveName === "Forest's Curse") {
+      defRt0.addedType = 'Grass';
+      addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}にくさタイプが追加された！`);
+    // トリックオアトリート: 相手にゴーストタイプを追加
+    } else if (moveName === 'Trick-or-Treat') {
+      defRt0.addedType = 'Ghost';
+      addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}にゴーストタイプが追加された！`);
+    // じゅうでん: 次の電気技の威力2倍
+    } else if (moveName === 'Charge') {
+      atkRt0.charged = true;
+      addLog(`${atkLabel}の${ja('moves', moveName)}！ → じゅうでん状態になった！`);
+    } else {
+      addLog(`${atkLabel}の${ja('moves', moveName)}！`);
+    }
     return;
   }
 
@@ -555,13 +583,16 @@ function executeAttack(atkSide, defSide, moveName) {
   const atkRt = getActiveRt(atkSide);
   const defRt = getActiveRt(defSide);
 
-  const atkState = { ...atkPoke, boosts: { ...atkRt.boosts }, currentHP: atkRt.hp, status: atkRt.status };
-  const defState = { ...defPoke, boosts: { ...defRt.boosts }, currentHP: defRt.hp, status: defRt.status, disguiseIntact: defRt.disguise };
+  // Build effective types from runtime overrides
+  const atkTypes = getEffectiveTypes(atkSide, battle.active[atkSide]);
+  const defTypes = getEffectiveTypes(defSide, battle.active[defSide]);
+  const atkState = { ...atkPoke, boosts: { ...atkRt.boosts }, currentHP: atkRt.hp, status: atkRt.status, _types: atkTypes };
+  const defState = { ...defPoke, boosts: { ...defRt.boosts }, currentHP: defRt.hp, status: defRt.status, disguiseIntact: defRt.disguise, _types: defTypes };
 
-  // Crit + fainted count for Last Respects / Rage Fist
+  // Crit + fainted count + charge
   const isCrit = battle.crit[atkSide];
   const faintedCount = battle.rt[atkSide].filter(r => r.hp <= 0).length;
-  const calcField = { ...field, ...(isCrit && { crit: true }), ...(faintedCount > 0 && { faintedCount }) };
+  const calcField = { ...field, ...(isCrit && { crit: true }), ...(faintedCount > 0 && { faintedCount }), ...(atkRt.charged && { charged: true }) };
   const result = DMG.calculate(atkState, defState, moveName, calcField);
   if (!result) { addLog(`${atkLabel}の${ja('moves', moveName)}！ (計算不可)`); return; }
 
@@ -623,6 +654,32 @@ function executeAttack(atkSide, defSide, moveName) {
     }
   }
   addLog(`  ${defLabel}: HP ${defRt.hp}/${defRt.maxHp}`);
+
+  // Post-attack effects
+  // もえつきる: Fire type removed after use
+  if (moveName === 'Burn Up') {
+    atkRt.burnedUp = true;
+    addLog(`  ${atkLabel}: ほのおタイプが消滅した！`);
+  }
+  // じゅうでん消費
+  if (atkRt.charged && move.type === 'Electric') {
+    atkRt.charged = false;
+    addLog(`  ${atkLabel}: じゅうでんが消費された`);
+  }
+}
+
+// Get effective types considering runtime overrides
+function getEffectiveTypes(side, selIdx) {
+  const poke = parties[side][selection[side][selIdx]];
+  const rt = battle.rt[side][selIdx];
+  const baseTypes = DATA.pokemon[poke.name]?.types || [];
+  // みずびたし等: complete override
+  let types = rt.typeOverride ? [...rt.typeOverride] : [...baseTypes];
+  // もえつきる: remove Fire
+  if (rt.burnedUp) types = types.filter(t => t !== 'Fire');
+  // もりののろい / トリックオアトリート: add type
+  if (rt.addedType && !types.includes(rt.addedType)) types.push(rt.addedType);
+  return types;
 }
 
 // ===== END OF TURN =====
