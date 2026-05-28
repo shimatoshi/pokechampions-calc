@@ -1,5 +1,5 @@
-// v22: install耐性向上 + GETのみキャッシュ
-const CACHE = 'pokechamp-v22';
+// v23: stale-while-revalidate (キャッシュ優先、バックグラウンド更新)
+const CACHE = 'pokechamp-v23';
 
 const PRECACHE = [
   './',
@@ -33,7 +33,6 @@ const PRECACHE = [
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    // 個別にキャッシュ: 1ファイル失敗しても他は保存される
     await Promise.all(PRECACHE.map(url =>
       cache.add(url).catch(() => console.warn('SW precache skip:', url))
     ));
@@ -46,25 +45,27 @@ self.addEventListener('activate', e => {
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k.startsWith('pokechamp-') && k !== CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
-    const cs = await self.clients.matchAll({ type: 'window' });
-    cs.forEach(c => { try { c.navigate(c.url); } catch {} });
   })());
 });
 
-// ネットワーク優先、失敗時キャッシュフォールバック。GETのみキャッシュ更新。
+// キャッシュ優先 + バックグラウンド更新 (stale-while-revalidate)
+// キャッシュがあれば即返し、裏でネットワークから取得してキャッシュを更新。
+// 次回アクセス時に最新版が使われる。
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith((async () => {
-    try {
-      const res = await fetch(e.request);
-      if (res.ok) {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-      }
+    const cached = await caches.match(e.request);
+    // バックグラウンドでキャッシュ更新（レスポンスは待たない）
+    const fetchAndUpdate = fetch(e.request).then(res => {
+      if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
       return res;
-    } catch {
-      const c = await caches.match(e.request);
-      return c || new Response('', { status: 503 });
+    }).catch(() => null);
+    // キャッシュがあれば即返す、なければネットワーク待ち
+    if (cached) {
+      fetchAndUpdate; // fire-and-forget
+      return cached;
     }
+    const fresh = await fetchAndUpdate;
+    return fresh || new Response('', { status: 503 });
   })());
 });
