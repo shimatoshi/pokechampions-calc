@@ -66,6 +66,7 @@ export const field = { weather: '', terrain: '' };
 // Battle state
 let battle = null; // initialized on battle start
 let _undoStack = []; // snapshots for undo
+let _preBattleParties = null; // parties snapshot before battle (for restoring on end)
 function makeBattleRuntime(poke) {
   const stats = DMG.getStats(poke);
   return {
@@ -162,6 +163,8 @@ export function startBattle() {
   }
   battle.log.push({ text: 'バトル開始！', isHeader: true });
   _undoStack = [];
+  _preBattleParties = { a: parties.a.map(p => JSON.parse(JSON.stringify(p))),
+                         b: parties.b.map(p => JSON.parse(JSON.stringify(p))) };
   renderBattle();
 }
 
@@ -341,7 +344,17 @@ function renderBattle() {
   document.getElementById('sim-exec').addEventListener('click', executeTurn);
   document.getElementById('sim-eot').addEventListener('click', executeEndOfTurn);
   document.getElementById('sim-undo').addEventListener('click', undoBattle);
-  document.getElementById('sim-end').addEventListener('click', () => import('./sim-setup.js').then(m => m.renderSetup()));
+  document.getElementById('sim-end').addEventListener('click', () => {
+    // Restore parties to pre-battle state (undo mega evolutions etc.)
+    if (_preBattleParties) {
+      for (const s of ['a','b']) {
+        parties[s].length = 0;
+        _preBattleParties[s].forEach(p => parties[s].push(p));
+      }
+      _preBattleParties = null;
+    }
+    import('./sim-setup.js').then(m => m.renderSetup());
+  });
 }
 
 function renderBattleSide(side) {
