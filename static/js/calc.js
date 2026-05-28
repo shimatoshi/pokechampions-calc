@@ -121,6 +121,13 @@ export function initCalcPage() {
       </div>
       <div class="col2 mt">
         <label><input type="checkbox" id="field-pinch"> HP1/3以下</label>
+        <div style="display:flex;align-items:center;gap:3px">
+          <label style="white-space:nowrap">倒れた味方</label>
+          <select id="field-fainted" style="width:50px">
+            <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+            <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+          </select>
+        </div>
         <label><input type="checkbox" id="field-sr"> ステルスロック</label>
         <div>
           <label>まきびし</label>
@@ -273,6 +280,7 @@ export function initCalcPage() {
   document.getElementById('field-pinch').addEventListener('change', e => { fieldState.pinch = e.target.checked; scheduleSessionSave(); });
   document.getElementById('field-sr').addEventListener('change', e => { fieldState.stealthRock = e.target.checked; scheduleSessionSave(); });
   document.getElementById('field-spikes').addEventListener('change', e => { fieldState.spikes = parseInt(e.target.value); scheduleSessionSave(); });
+  document.getElementById('field-fainted').addEventListener('change', e => { fieldState.faintedCount = parseInt(e.target.value); scheduleSessionSave(); });
 
   // Restore field UI from state
   document.getElementById('field-weather').value = fieldState.weather;
@@ -282,6 +290,7 @@ export function initCalcPage() {
   document.getElementById('field-pinch').checked = fieldState.pinch;
   document.getElementById('field-sr').checked = fieldState.stealthRock;
   document.getElementById('field-spikes').value = fieldState.spikes;
+  document.getElementById('field-fainted').value = fieldState.faintedCount || 0;
 
   // Restore atk/def UI from persisted session
   for (const side of ['atk', 'def']) {

@@ -144,6 +144,10 @@ export const DMG = (() => {
 
   function resolveBP(moveName, move, bp, aAbil, attacker, defender, field) {
     // Move-specific
+    if (moveName === 'Last Respects' || moveName === 'Rage Fist') {
+      const cnt = field?.faintedCount || 0;
+      if (cnt > 0) bp += 50 * cnt;
+    }
     if (moveName === 'Knock Off' && defender.item) bp = Math.floor(bp * 1.5);
     if (moveName === 'Hex' && defender.status) bp *= 2;
 

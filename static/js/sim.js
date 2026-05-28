@@ -557,9 +557,10 @@ function executeAttack(atkSide, defSide, moveName) {
   const atkState = { ...atkPoke, boosts: { ...atkRt.boosts }, currentHP: atkRt.hp, status: atkRt.status };
   const defState = { ...defPoke, boosts: { ...defRt.boosts }, currentHP: defRt.hp, status: defRt.status, disguiseIntact: defRt.disguise };
 
-  // Crit: calculate with crit field if toggled
+  // Crit + fainted count for Last Respects / Rage Fist
   const isCrit = battle.crit[atkSide];
-  const calcField = isCrit ? { ...field, crit: true } : field;
+  const faintedCount = battle.rt[atkSide].filter(r => r.hp <= 0).length;
+  const calcField = { ...field, ...(isCrit && { crit: true }), ...(faintedCount > 0 && { faintedCount }) };
   const result = DMG.calculate(atkState, defState, moveName, calcField);
   if (!result) { addLog(`${atkLabel}の${ja('moves', moveName)}！ (計算不可)`); return; }
 
