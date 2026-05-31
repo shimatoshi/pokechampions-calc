@@ -263,16 +263,33 @@ async function openAddFromBox() {
   if (boxAll.length === 0) { showToast('BOXが空です'); return; }
   const modal = document.getElementById('team-load-modal');
   modal.classList.remove('hidden');
+
+  const renderSlot = b => `
+    <div class="team-slot box-pick" data-id="${b.id}" data-name="${esc(b.name)}" data-ja="${esc(ja('pokemon', b.name))}">
+      ${spriteImg(b.name, 28)}
+      <div class="name">${esc(ja('pokemon', b.name))}</div>
+      ${DATA.pokemon[b.name]?.types.map(t => typeBadge(t)).join('')||''}
+    </div>`;
+
   modal.innerHTML = `<div class="card" style="max-height:70vh;overflow-y:auto">
     <h3>BOXから追加</h3>
-    ${boxAll.map(b => `
-      <div class="team-slot box-pick" data-id="${b.id}">
-        ${spriteImg(b.name, 28)}
-        <div class="name">${esc(ja('pokemon', b.name))}</div>
-        ${DATA.pokemon[b.name]?.types.map(t => typeBadge(t)).join('')||''}
-      </div>`).join('')}
+    <input type="text" id="box-pick-search" placeholder="ポケモン名で検索..." autocomplete="off" style="margin-bottom:6px">
+    <div id="box-pick-list">
+      ${boxAll.map(b => renderSlot(b)).join('')}
+    </div>
     <button class="btn btn-outline mt" id="box-pick-close">閉じる</button>
   </div>`;
+
+  // Search filter
+  modal.querySelector('#box-pick-search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    modal.querySelectorAll('.box-pick').forEach(slot => {
+      const en = (slot.dataset.name || '').toLowerCase();
+      const jp = (slot.dataset.ja || '').toLowerCase();
+      slot.style.display = (!q || en.includes(q) || jp.includes(q)) ? '' : 'none';
+    });
+  });
+
   modal.querySelector('#box-pick-close').addEventListener('click', () => modal.classList.add('hidden'));
   modal.querySelectorAll('.box-pick').forEach(slot => {
     slot.addEventListener('click', () => {

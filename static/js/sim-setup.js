@@ -249,20 +249,31 @@ async function openPartyLoadPicker(side) {
         </div>`).join('')}
       <hr>
       <div style="font-size:.75rem;color:var(--fg2);margin:4px 0">個体追加</div>
+      <input type="text" id="sim-pick-search" placeholder="ポケモン名で検索..." autocomplete="off" style="margin-bottom:6px">
+      <div id="sim-pick-individuals">
       ${threats.map(t => `
-        <div class="team-slot pick-one" data-src="threat" data-id="${t.id}">
+        <div class="team-slot pick-one" data-src="threat" data-id="${t.id}" data-name="${esc(t.name)}" data-ja="${esc(ja('pokemon', t.name))}">
           ${spriteImg(t.name, 28)}<div class="name">${esc(ja('pokemon', t.name))}</div>
           ${DATA.pokemon[t.name]?.types.map(tp => typeBadge(tp)).join('')||''}
         </div>`).join('')}
       ${boxAll.map(b => `
-        <div class="team-slot pick-one" data-src="box" data-id="${b.id}">
+        <div class="team-slot pick-one" data-src="box" data-id="${b.id}" data-name="${esc(b.name)}" data-ja="${esc(ja('pokemon', b.name))}">
           ${spriteImg(b.name, 28)}<div class="name">${esc(ja('pokemon', b.name))}</div>
           ${DATA.pokemon[b.name]?.types.map(tp => typeBadge(tp)).join('')||''}
         </div>`).join('')}
+      </div>
       <button class="btn btn-outline mt" id="sim-pick-close">閉じる</button>
     </div>`;
 
   picker.querySelector('#sim-pick-close').addEventListener('click', () => picker.remove());
+  picker.querySelector('#sim-pick-search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    picker.querySelectorAll('.pick-one').forEach(slot => {
+      const en = (slot.dataset.name || '').toLowerCase();
+      const jp = (slot.dataset.ja || '').toLowerCase();
+      slot.style.display = (!q || en.includes(q) || jp.includes(q)) ? '' : 'none';
+    });
+  });
   picker.querySelectorAll('.pick-team').forEach(el => {
     el.addEventListener('click', async () => {
       let teamMembers;
