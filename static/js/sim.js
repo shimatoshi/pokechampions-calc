@@ -270,6 +270,14 @@ function renderBattle() {
   for (const s of ['a','b']) {
     document.querySelectorAll(`.sim-act-btn[data-side="${s}"]`).forEach(btn => {
       btn.addEventListener('click', () => {
+        // 選択済みの技を再タップ → 行動なしに戻す（トグル）
+        const cur = battle.actions[s];
+        if (btn.dataset.type === 'move' && cur?.type === 'move' && cur.move === btn.dataset.move) {
+          battle.actions[s] = { type: 'skip' };
+          document.querySelectorAll(`.sim-act-btn[data-side="${s}"]`).forEach(b => b.classList.remove('selected'));
+          document.querySelector(`.sim-act-btn[data-side="${s}"][data-type="skip"]`)?.classList.add('selected');
+          return;
+        }
         document.querySelectorAll(`.sim-act-btn[data-side="${s}"]`).forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         if (btn.dataset.type === 'move') {
