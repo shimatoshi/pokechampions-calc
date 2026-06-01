@@ -1,2 +1,4 @@
 .vercel
 champions_sample_teams.json
+.article_cache/
+__pycache__/
