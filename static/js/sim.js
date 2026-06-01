@@ -153,7 +153,7 @@ export function startBattle() {
     turnNum: 0,
     actions: { a: null, b: null }, // {type:'move',move:''} or {type:'switch',to:idx}
     megaUsed: { a: false, b: false }, // 1回限り
-    rollMode: { a: 'avg', b: 'avg' }, // 'avg' | 'min' | 'max'
+    rollMode: { a: 'random', b: 'random' }, // 'random' | 'min' | 'max' | 'avg'
     crit: { a: false, b: false },
     mod: { a: { bp: null, moveType: null, stab2x: false, hits: null },
            b: { bp: null, moveType: null, stab2x: false, hits: null } },
@@ -448,9 +448,10 @@ function renderBattleSide(side) {
       <div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.7rem">
         <label style="display:flex;align-items:center;gap:2px;white-space:nowrap"><input type="checkbox" class="sim-crit" data-side="${side}" ${battle.crit[side] ? 'checked' : ''}> 急所</label>
         <select class="sim-roll" data-side="${side}" style="font-size:.7rem;padding:1px 2px;flex:1">
-          <option value="avg"${battle.rollMode[side]==='avg' ? ' selected' : ''}>通常(平均)</option>
-          <option value="min"${battle.rollMode[side]==='min' ? ' selected' : ''}>低乱数</option>
-          <option value="max"${battle.rollMode[side]==='max' ? ' selected' : ''}>高乱数</option>
+          <option value="random"${battle.rollMode[side]==='random' ? ' selected' : ''}>抽選(ランダム)</option>
+          <option value="min"${battle.rollMode[side]==='min' ? ' selected' : ''}>最低乱数</option>
+          <option value="max"${battle.rollMode[side]==='max' ? ' selected' : ''}>最高乱数</option>
+          <option value="avg"${battle.rollMode[side]==='avg' ? ' selected' : ''}>平均</option>
         </select>
       </div>
       ${renderModPanel(side, poke)}
@@ -771,7 +772,12 @@ function executeAttack(atkSide, defSide, moveName) {
 
   // Roll mode: min / avg / max
   const rollMode = battle.rollMode[atkSide];
-  const useDmg = rollMode === 'min' ? result.minDmg : rollMode === 'max' ? result.maxDmg : Math.round((result.minDmg + result.maxDmg) / 2);
+  const rolls = result.damages || [result.minDmg, result.maxDmg];
+  let useDmg, rollNote;
+  if (rollMode === 'min') { useDmg = result.minDmg; rollNote = ' [最低乱数]'; }
+  else if (rollMode === 'max') { useDmg = result.maxDmg; rollNote = ' [最高乱数]'; }
+  else if (rollMode === 'avg') { useDmg = Math.round(rolls.reduce((a, b) => a + b, 0) / rolls.length); rollNote = ' [平均]'; }
+  else { const idx = Math.floor(Math.random() * rolls.length); useDmg = rolls[idx]; rollNote = ` [抽選 ${85 + idx}%]`; }
   const actualDmg = Math.min(useDmg, defRt.hp);
   defRt.hp = Math.max(0, defRt.hp - useDmg);
 
@@ -779,7 +785,6 @@ function executeAttack(atkSide, defSide, moveName) {
   if (result.typeEff > 1) effText = ' (効果ばつぐん)';
   else if (result.typeEff < 1) effText = ' (いまひとつ)';
   const rollLabel = isCrit ? ' 急所!' : '';
-  const rollNote = rollMode === 'min' ? ' [低乱数]' : rollMode === 'max' ? ' [高乱数]' : '';
   addLog(`${atkLabel}の${ja('moves', moveName)}！${rollLabel} → ${defLabel}に${useDmg}ダメージ (${result.minDmg}〜${result.maxDmg}, ${result.minPct}%〜${result.maxPct}%)${effText}${rollNote}`, false, 'dmg-line');
 
   // Recoil
