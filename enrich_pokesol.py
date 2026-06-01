@@ -64,10 +64,16 @@ def extract_sets(doc):
     sets = []
     for c in re.findall(r'<div ([^>]*data-type="pokemon-card"[^>]*)>', body):
         at = dict(re.findall(r'(data-[a-z-]+)="([^"]*)"', c))
+        # 持ち物なし等で一部属性が欠ける個体があるため、必須はpokemon-idのみ。
+        # 他は欠損を許容(なし=0/空)してカードを落とさない。
+        if "data-pokemon-id" not in at:
+            continue
         try:
-            nid = int(at["data-nature-id"]); iid = int(at["data-item-id"])
-            abids = json.loads(at["data-ability-ids"]); mids = json.loads(at["data-move-ids"])
-            evs = json.loads(H.unescape(at["data-evs"]))
+            nid = int(at.get("data-nature-id") or 0)
+            iid = int(at.get("data-item-id") or 0)
+            abids = json.loads(at.get("data-ability-ids") or "[]")
+            mids = json.loads(at.get("data-move-ids") or "[]")
+            evs = json.loads(H.unescape(at.get("data-evs") or "{}"))
         except Exception:
             continue
         plus, minus = nat_pm(N.get(nid, {}))
