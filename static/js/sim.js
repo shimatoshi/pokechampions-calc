@@ -71,7 +71,7 @@ function makeBattleRuntime(poke) {
   const stats = DMG.getStats(poke);
   return {
     hp: stats?.hp || 1, maxHp: stats?.hp || 1,
-    toxicCount: 0, leechSeed: false,
+    toxicCount: 0, leechSeed: false, cursed: false,
     boosts: { at:0, df:0, sa:0, sd:0, sp:0 },
     disguise: (poke.ability === 'Disguise' || poke.ability === 'Ice Face'),
     status: '',
@@ -198,6 +198,18 @@ function renderBattle() {
         <label><input type="checkbox" id="sim-ls-b"> 相手にやどりぎ</label>
       </div>
       <div class="col2" style="margin-top:4px">
+        <label><input type="checkbox" id="sim-cs-a"> 自分にのろい</label>
+        <label><input type="checkbox" id="sim-cs-b"> 相手にのろい</label>
+      </div>
+      <div class="col2" style="margin-top:4px">
+        <div><label style="font-size:.7rem">天候</label><select id="sim-weather-b" style="font-size:.75rem">
+          <option value="">なし</option><option value="Sun">はれ</option><option value="Rain">あめ</option><option value="Sand">すなあらし</option><option value="Snow">ゆき</option>
+        </select></div>
+        <div><label style="font-size:.7rem">フィールド</label><select id="sim-terrain-b" style="font-size:.75rem">
+          <option value="">なし</option><option value="Electric">エレキ</option><option value="Grassy">グラス</option><option value="Psychic">サイコ</option><option value="Misty">ミスト</option>
+        </select></div>
+      </div>
+      <div class="col2" style="margin-top:4px">
         ${renderBoostUI('a')}
         ${renderBoostUI('b')}
       </div>
@@ -222,11 +234,19 @@ function renderBattle() {
     document.getElementById(`sim-st-${s}`).addEventListener('change', e => { rt.status = e.target.value; if (e.target.value === 'tox') rt.toxicCount = 0; });
     document.getElementById(`sim-ls-${s}`).checked = rt.leechSeed;
     document.getElementById(`sim-ls-${s}`).addEventListener('change', e => { rt.leechSeed = e.target.checked; });
+    document.getElementById(`sim-cs-${s}`).checked = rt.cursed;
+    document.getElementById(`sim-cs-${s}`).addEventListener('change', e => { rt.cursed = e.target.checked; });
     for (const stat of ['at','df','sa','sd','sp']) {
       const el = document.getElementById(`sim-bst-${s}-${stat}`);
       if (el) { el.value = rt.boosts[stat]; el.addEventListener('change', e => { rt.boosts[stat] = parseInt(e.target.value); }); }
     }
   }
+
+  // In-battle weather / terrain
+  const wEl = document.getElementById('sim-weather-b');
+  const tEl = document.getElementById('sim-terrain-b');
+  if (wEl) { wEl.value = field.weather; wEl.addEventListener('change', e => { field.weather = e.target.value; addLog(`天候: ${e.target.options[e.target.selectedIndex].text}`); }); }
+  if (tEl) { tEl.value = field.terrain; tEl.addEventListener('change', e => { field.terrain = e.target.value; addLog(`フィールド: ${e.target.options[e.target.selectedIndex].text}`); }); }
 
   // HP adjust
   for (const s of ['a','b']) {
@@ -262,6 +282,8 @@ function renderBattle() {
           if (bpEl) bpEl.value = md?.bp || 0;
         } else if (btn.dataset.type === 'switch') {
           battle.actions[s] = { type: 'switch', to: parseInt(btn.dataset.to) };
+        } else if (btn.dataset.type === 'skip') {
+          battle.actions[s] = { type: 'skip' };
         } else {
           battle.actions[s] = null;
         }
@@ -393,9 +415,11 @@ function renderBattleSide(side) {
         <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/16}">+1/16</button>
         <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/8}">+1/8</button>
         <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/4}">+1/4</button>
+        <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/2}">+1/2</button>
         <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/16}">-1/16</button>
         <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/8}">-1/8</button>
         <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/4}">-1/4</button>
+        <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/2}">-1/2</button>
       </div>
       <div class="sim-custom-hp">
         <input type="number" id="sim-hp-input-${side}" placeholder="HP" min="0" max="${rt.maxHp}">
@@ -417,6 +441,9 @@ function renderBattleSide(side) {
             ${getDrainFrac(m) ? '<span style="color:var(--ok);font-size:.6rem">吸収</span>' : ''}
           </button>`;
         }).join('')}
+        <button class="sim-act-btn sim-move-btn${battle.actions[side]?.type === 'skip' ? ' selected' : ''}" data-side="${side}" data-type="skip" style="color:var(--fg2)">
+          — 行動なし <span style="font-size:.6rem">(怯み/外し/行動不能)</span>
+        </button>
       </div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.7rem">
         <label style="display:flex;align-items:center;gap:2px;white-space:nowrap"><input type="checkbox" class="sim-crit" data-side="${side}" ${battle.crit[side] ? 'checked' : ''}> 急所</label>
@@ -561,6 +588,12 @@ function executeTurn() {
     if (act?.type === 'switch') doSwitch(s, act.to);
   }
 
+  // Skip (flinch / miss / unable to move)
+  for (const s of ['a','b']) {
+    const act = s === 'a' ? actA : actB;
+    if (act?.type === 'skip') addLog(`${s === 'a' ? '自分' : '相手'}は行動しなかった`);
+  }
+
   // Then attacks by speed
   const attackers = [];
   if (actA?.type === 'move' && actA.move) attackers.push({ side: 'a', move: actA.move });
@@ -619,6 +652,7 @@ function doSwitch(side, toIdx) {
   const oldRt = getActiveRt(side);
   // Reset volatile status on switch out
   oldRt.leechSeed = false;
+  oldRt.cursed = false;
   oldRt.boosts = { at:0, df:0, sa:0, sd:0, sp:0 };
   oldRt.toxicCount = 0;
   oldRt.typeOverride = null;
@@ -668,6 +702,27 @@ function executeAttack(atkSide, defSide, moveName) {
     } else if (moveName === 'Charge') {
       atkRt0.charged = true;
       addLog(`${atkLabel}の${ja('moves', moveName)}！ → じゅうでん状態になった！`);
+    // いたみわけ: 双方のHPを合計して半分ずつに
+    } else if (moveName === 'Pain Split') {
+      const total = atkRt0.hp + defRt0.hp;
+      const shared = Math.floor(total / 2);
+      atkRt0.hp = Math.min(atkRt0.maxHp, shared);
+      defRt0.hp = Math.min(defRt0.maxHp, shared);
+      addLog(`${atkLabel}の${ja('moves', moveName)}！ → 両者のHPを分け合った`);
+      addLog(`  ${atkLabel}: HP ${atkRt0.hp}/${atkRt0.maxHp} / ${defLabel}: HP ${defRt0.hp}/${defRt0.maxHp}`);
+    // のろい: ゴーストタイプはHP半分を払い相手をのろい状態に
+    } else if (moveName === 'Curse') {
+      const atkTypes = getEffectiveTypes(atkSide, battle.active[atkSide]);
+      if (atkTypes.includes('Ghost')) {
+        const cost = Math.floor(atkRt0.maxHp / 2);
+        atkRt0.hp = Math.max(0, atkRt0.hp - cost);
+        defRt0.cursed = true;
+        addLog(`${atkLabel}の${ja('moves', moveName)}！ → HP-${cost} で${defLabel}をのろった！`, false, 'dmg-line');
+        addLog(`  ${atkLabel}: HP ${atkRt0.hp}/${atkRt0.maxHp}`);
+        document.getElementById(`sim-cs-${defSide}`) && (document.getElementById(`sim-cs-${defSide}`).checked = true);
+      } else {
+        addLog(`${atkLabel}の${ja('moves', moveName)}！ → こうげき・ぼうぎょアップ、すばやさダウン (ランクは手動設定)`);
+      }
     } else {
       addLog(`${atkLabel}の${ja('moves', moveName)}！`);
     }
@@ -832,6 +887,11 @@ function executeEndOfTurn() {
       const heal = Math.min(d, oppRt.maxHp - oppRt.hp); oppRt.hp += heal;
       addLog(`${label}: やどりぎ -${d} → HP ${rt.hp}/${rt.maxHp}`, false, 'dmg-line');
       if (heal > 0) addLog(`${opp === 'a' ? '自分' : '相手'}: やどりぎ回復 +${heal} → HP ${oppRt.hp}/${oppRt.maxHp}`, false, 'heal-line');
+    }
+    // Curse (のろい): 1/4 max HP per turn
+    if (rt.cursed) {
+      const d = Math.floor(rt.maxHp / 4); rt.hp = Math.max(0, rt.hp - d);
+      addLog(`${label}: のろい -${d} → HP ${rt.hp}/${rt.maxHp}`, false, 'dmg-line');
     }
     // Sitrus Berry
     if (poke.item === 'Sitrus Berry' && rt.hp > 0 && rt.hp <= rt.maxHp / 2) {
