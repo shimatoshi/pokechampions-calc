@@ -156,7 +156,9 @@ function openEditor(side, idx) {
   initNatureUI('ed', state);
 
   // Ability (pre-existing)
-  if (state.name && DATA.pokemon[state.name]) updateEdAbility(state, DATA.pokemon[state.name]);
+  if (state.name && DATA.pokemon[state.name]) {
+    setupAbilitySelect(document.getElementById('ed-ability'), document.getElementById('ed-ability-wrap'), state, DATA.pokemon[state.name]);
+  }
 
   // Moves
   for (let i = 0; i < 4; i++) {
