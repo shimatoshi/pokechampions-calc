@@ -318,7 +318,7 @@ function goToSelect() {
   renderSelect();
 }
 
-function renderSelect() {
+export function renderSelect() {
   const page = document.getElementById('page-sim');
   page.innerHTML = `
     <div class="card">

@@ -219,6 +219,7 @@ function renderBattle() {
       <button class="btn btn-sm" id="sim-exec" style="background:var(--accent);flex:2">ターン実行</button>
       <button class="btn btn-sm btn-outline" id="sim-eot">EOT処理</button>
       <button class="btn btn-sm btn-outline" id="sim-undo" ${_undoStack.length === 0 ? 'disabled' : ''} style="color:var(--accent2);border-color:var(--accent2)">↩ 戻す</button>
+      <button class="btn btn-sm btn-outline" id="sim-reselect">選出に戻る</button>
       <button class="btn btn-sm btn-danger" id="sim-end">終了</button>
     </div>
     <div class="sim-turn-log" id="sim-log">
@@ -382,17 +383,24 @@ function renderBattle() {
   document.getElementById('sim-exec').addEventListener('click', executeTurn);
   document.getElementById('sim-eot').addEventListener('click', executeEndOfTurn);
   document.getElementById('sim-undo').addEventListener('click', undoBattle);
+  document.getElementById('sim-reselect').addEventListener('click', () => {
+    restorePreBattleParties();
+    import('./sim-setup.js').then(m => m.renderSelect());
+  });
   document.getElementById('sim-end').addEventListener('click', () => {
-    // Restore parties to pre-battle state (undo mega evolutions etc.)
-    if (_preBattleParties) {
-      for (const s of ['a','b']) {
-        parties[s].length = 0;
-        _preBattleParties[s].forEach(p => parties[s].push(p));
-      }
-      _preBattleParties = null;
-    }
+    restorePreBattleParties();
     import('./sim-setup.js').then(m => m.renderSetup());
   });
+}
+
+// Restore parties to pre-battle state (undo mega evolutions etc.)
+function restorePreBattleParties() {
+  if (!_preBattleParties) return;
+  for (const s of ['a','b']) {
+    parties[s].length = 0;
+    _preBattleParties[s].forEach(p => parties[s].push(p));
+  }
+  _preBattleParties = null;
 }
 
 function renderBattleSide(side) {
