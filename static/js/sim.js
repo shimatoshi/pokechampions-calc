@@ -236,11 +236,19 @@ function renderBattle() {
     document.getElementById(`sim-ls-${s}`).addEventListener('change', e => { rt.leechSeed = e.target.checked; });
     document.getElementById(`sim-cs-${s}`).checked = rt.cursed;
     document.getElementById(`sim-cs-${s}`).addEventListener('change', e => { rt.cursed = e.target.checked; });
-    for (const stat of ['at','df','sa','sd','sp']) {
-      const el = document.getElementById(`sim-bst-${s}-${stat}`);
-      if (el) { el.value = rt.boosts[stat]; el.addEventListener('change', e => { rt.boosts[stat] = parseInt(e.target.value); }); }
-    }
   }
+
+  // Boost +/- buttons
+  document.querySelectorAll('.sim-bst-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = btn.dataset.side, stat = btn.dataset.stat;
+      const rt = getActiveRt(s);
+      rt.boosts[stat] = Math.max(-6, Math.min(6, (rt.boosts[stat] || 0) + parseInt(btn.dataset.dir)));
+      const v = rt.boosts[stat];
+      const span = document.getElementById(`sim-bst-${s}-${stat}`);
+      if (span) { span.textContent = `${v > 0 ? '+' : ''}${v}`; span.style.color = v > 0 ? 'var(--ok)' : v < 0 ? 'var(--danger)' : ''; }
+    });
+  });
 
   // In-battle weather / terrain
   const wEl = document.getElementById('sim-weather-b');
@@ -568,15 +576,19 @@ function renderBoostUI(side) {
   const label = side === 'a' ? '自分' : '相手';
   return `<div>
     <label style="font-size:.65rem">${label}ランク</label>
-    <div style="display:flex;gap:2px;flex-wrap:wrap">
-      ${['at','df','sa','sd','sp'].map(stat => `
-        <div style="display:flex;align-items:center;gap:1px">
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      ${['at','df','sa','sd','sp'].map(stat => {
+        const v = rt.boosts[stat] || 0;
+        const col = v > 0 ? 'var(--ok)' : v < 0 ? 'var(--danger)' : '';
+        return `<div style="display:flex;flex-direction:column;align-items:center">
           <span style="font-size:.55rem;color:var(--fg2)">${STAT_SHORT[stat]}</span>
-          <select id="sim-bst-${side}-${stat}" style="width:40px;font-size:.65rem;padding:0">
-            ${[-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6].map(v => `<option value="${v}"${v===(rt.boosts[stat]||0)?' selected':''}>${v>=0?'+':''}${v}</option>`).join('')}
-          </select>
-        </div>
-      `).join('')}
+          <div style="display:flex;align-items:center;gap:1px">
+            <button class="sim-bst-btn" data-side="${side}" data-stat="${stat}" data-dir="-1" style="width:18px;height:18px;padding:0;font-size:.8rem;line-height:1">−</button>
+            <span class="sim-bst-val" id="sim-bst-${side}-${stat}" style="min-width:20px;text-align:center;font-size:.65rem;font-weight:700;color:${col}">${v>0?'+':''}${v}</span>
+            <button class="sim-bst-btn" data-side="${side}" data-stat="${stat}" data-dir="1" style="width:18px;height:18px;padding:0;font-size:.8rem;line-height:1">＋</button>
+          </div>
+        </div>`;
+      }).join('')}
     </div>
   </div>`;
 }
