@@ -103,7 +103,7 @@ export const DMG = (() => {
 
   // ===== PHASE 1: Resolve attacker/defender stats for this move =====
 
-  function resolveAtkDef(moveName, move, attacker, defender, atkStats, defStats, aAbil, dAbil) {
+  function resolveAtkDef(moveName, move, attacker, defender, atkStats, defStats, aAbil, dAbil, crit) {
     const isPhysical = move.cat === 'Physical';
     let atk, def, atkBoost, defBoost;
 
@@ -127,6 +127,12 @@ export const DMG = (() => {
       atkBoost = isPhysical ? (attacker.boosts?.at || 0) : (attacker.boosts?.sa || 0);
       def = isPhysical ? defStats.df : defStats.sd;
       defBoost = isPhysical ? (defender.boosts?.df || 0) : (defender.boosts?.sd || 0);
+    }
+
+    // Critical hit: ignore attacker's offensive drops and defender's defensive boosts
+    if (crit) {
+      atkBoost = Math.max(0, atkBoost);
+      defBoost = Math.min(0, defBoost);
     }
 
     // Unaware
@@ -410,7 +416,7 @@ export const DMG = (() => {
     const hasHazards = field?.stealthRock || (field?.spikes && !defTypes.includes('Flying'));
 
     // Phase 1: Atk/Def stats (move-specific overrides + Unaware)
-    let { atk, def, isPhysical } = resolveAtkDef(moveName, move, attacker, defender, atkStats, defStats, aAbil, dAbil);
+    let { atk, def, isPhysical } = resolveAtkDef(moveName, move, attacker, defender, atkStats, defStats, aAbil, dAbil, field?.crit);
 
     // Phase 2: BP modifiers
     let bp = field?.bpOverride != null ? field.bpOverride : resolveBP(moveName, move, move.bp, aAbil, attacker, defender, field);

@@ -1,5 +1,5 @@
-// v23: stale-while-revalidate (キャッシュ優先、バックグラウンド更新)
-const CACHE = 'pokechamp-v23';
+// v24: 急所が能力ランク補正を貫通するよう修正 (damage.js)
+const CACHE = 'pokechamp-v24';
 
 const PRECACHE = [
   './',
