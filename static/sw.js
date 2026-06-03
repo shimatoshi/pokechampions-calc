@@ -1,5 +1,5 @@
-// v24: 急所が能力ランク補正を貫通するよう修正 (damage.js)
-const CACHE = 'pokechamp-v24';
+// v25: 対戦シミュ拡張(命中/急所/強制交代/天候・場/設置技/個体詳細)+編成一覧の新規順表示
+const CACHE = 'pokechamp-v25';
 
 const PRECACHE = [
   './',
