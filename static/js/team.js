@@ -30,7 +30,7 @@ async function renderTeamList() {
     </div>
     <div id="team-rows">
       ${teams.length === 0 ? '<div class="card"><p style="text-align:center;color:var(--fg2)">チームがありません</p></div>' : ''}
-      ${teams.map(t => renderTeamRow(t)).join('')}
+      ${[...teams].reverse().map(t => renderTeamRow(t)).join('')}
     </div>
     <div class="card mt">
       <h3>対策表（仮想敵）</h3>
@@ -361,7 +361,7 @@ async function loadTeamList() {
   modal.innerHTML = `<div class="card" style="max-height:70vh;overflow-y:auto">
     <h3>チーム一覧</h3>
     ${teams.length === 0 ? '<p style="color:var(--fg2)">保存されたチームはありません</p>' : ''}
-    ${teams.map(t => `
+    ${[...teams].reverse().map(t => `
       <div class="team-slot" data-id="${t.id}">
         <div class="name" style="flex:1">${esc(t.name)} (${t.members.length}匹)</div>
         <button class="btn btn-sm" data-action="load" data-id="${t.id}">読込</button>
