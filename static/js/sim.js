@@ -4,8 +4,10 @@ import {
   showToast,
 } from './app.js';
 import { DMG } from './damage.js';
+import { showPokemonDetailModal } from './ui.js';
 import {
   TWO_TURN_MOVES, SKIN_ABILITIES, applyBoost,
+  FORCE_SWITCH_MOVES, WEATHER_ROCK, TERRAIN_EXTENDER, getMoveAccuracy,
   getRecoilFrac as _getRecoilFrac, getDrainFrac as _getDrainFrac,
   getEffectiveMoveType as _getEffectiveMoveType,
 } from './poke-data.js';
@@ -63,6 +65,26 @@ export const parties = { a: [], b: [] };
 export const selection = { a: [], b: [] };
 export const field = { weather: '', terrain: '' };
 
+// 天候/フィールド/特殊フィールドのターン管理（バトル中のみ有効）
+// 各カウンタ = 残りターン数（0で解除）。発動ターン自体も1消費する。
+export const fieldTurns = {
+  weather: 0, terrain: 0, trickRoom: 0, gravity: 0,
+  tailwind: { a: 0, b: 0 },
+};
+// 設置技（hazards[side] = side が交代で着地したとき発動するもの）
+export const hazards = {
+  a: { sr: false, spikes: 0, tspikes: 0 },
+  b: { sr: false, spikes: 0, tspikes: 0 },
+};
+function resetFieldTurns() {
+  fieldTurns.weather = 0; fieldTurns.terrain = 0;
+  fieldTurns.trickRoom = 0; fieldTurns.gravity = 0;
+  fieldTurns.tailwind.a = 0; fieldTurns.tailwind.b = 0;
+}
+function resetHazards() {
+  for (const s of ['a','b']) { hazards[s].sr = false; hazards[s].spikes = 0; hazards[s].tspikes = 0; }
+}
+
 // Battle state
 let battle = null; // initialized on battle start
 let _undoStack = []; // snapshots for undo
@@ -99,6 +121,9 @@ function snapshotBattle() {
       crit: { ...battle.crit },
       mod: { a: { ...battle.mod.a }, b: { ...battle.mod.b } },
     },
+    field: { weather: field.weather, terrain: field.terrain },
+    fieldTurns: { weather: fieldTurns.weather, terrain: fieldTurns.terrain, trickRoom: fieldTurns.trickRoom, gravity: fieldTurns.gravity, tailwind: { ...fieldTurns.tailwind } },
+    hazards: { a: { ...hazards.a }, b: { ...hazards.b } },
     parties: {
       a: parties.a.map(p => JSON.parse(JSON.stringify(p))),
       b: parties.b.map(p => JSON.parse(JSON.stringify(p))),
@@ -119,6 +144,10 @@ function undoBattle() {
   battle.rollMode = snap.battle.rollMode;
   battle.crit = snap.battle.crit;
   battle.mod = snap.battle.mod;
+  // Restore field / fieldTurns / hazards
+  if (snap.field) { field.weather = snap.field.weather; field.terrain = snap.field.terrain; }
+  if (snap.fieldTurns) { Object.assign(fieldTurns, { weather: snap.fieldTurns.weather, terrain: snap.fieldTurns.terrain, trickRoom: snap.fieldTurns.trickRoom, gravity: snap.fieldTurns.gravity }); fieldTurns.tailwind.a = snap.fieldTurns.tailwind.a; fieldTurns.tailwind.b = snap.fieldTurns.tailwind.b; }
+  if (snap.hazards) { hazards.a = { ...snap.hazards.a }; hazards.b = { ...snap.hazards.b }; }
   // Restore parties (forme changes are written directly to parties)
   for (const s of ['a','b']) {
     parties[s].length = 0;
@@ -161,6 +190,12 @@ export function startBattle() {
   for (const s of ['a','b']) {
     battle.rt[s] = selection[s].map(pi => makeBattleRuntime(parties[s][pi]));
   }
+  resetHazards();
+  // 天候/フィールドが設定済みなら開始時から5ターン計測（延長アイテムは交代/着地で再評価しないので簡易に5固定）
+  fieldTurns.weather = field.weather ? 5 : 0;
+  fieldTurns.terrain = field.terrain ? 5 : 0;
+  fieldTurns.trickRoom = 0; fieldTurns.gravity = 0;
+  fieldTurns.tailwind.a = 0; fieldTurns.tailwind.b = 0;
   battle.log.push({ text: 'バトル開始！', isHeader: true });
   _undoStack = [];
   _preBattleParties = { a: parties.a.map(p => JSON.parse(JSON.stringify(p))),
@@ -201,14 +236,8 @@ function renderBattle() {
         <label><input type="checkbox" id="sim-cs-a"> 自分にのろい</label>
         <label><input type="checkbox" id="sim-cs-b"> 相手にのろい</label>
       </div>
-      <div class="col2" style="margin-top:4px">
-        <div><label style="font-size:.7rem">天候</label><select id="sim-weather-b" style="font-size:.75rem">
-          <option value="">なし</option><option value="Sun">はれ</option><option value="Rain">あめ</option><option value="Sand">すなあらし</option><option value="Snow">ゆき</option>
-        </select></div>
-        <div><label style="font-size:.7rem">フィールド</label><select id="sim-terrain-b" style="font-size:.75rem">
-          <option value="">なし</option><option value="Electric">エレキ</option><option value="Grassy">グラス</option><option value="Psychic">サイコ</option><option value="Misty">ミスト</option>
-        </select></div>
-      </div>
+      ${renderFieldPanel()}
+      ${renderHazardPanel()}
       <div class="col2" style="margin-top:4px">
         ${renderBoostUI('a')}
         ${renderBoostUI('b')}
@@ -251,11 +280,9 @@ function renderBattle() {
     });
   });
 
-  // In-battle weather / terrain
-  const wEl = document.getElementById('sim-weather-b');
-  const tEl = document.getElementById('sim-terrain-b');
-  if (wEl) { wEl.value = field.weather; wEl.addEventListener('change', e => { field.weather = e.target.value; addLog(`天候: ${e.target.options[e.target.selectedIndex].text}`); }); }
-  if (tEl) { tEl.value = field.terrain; tEl.addEventListener('change', e => { field.terrain = e.target.value; addLog(`フィールド: ${e.target.options[e.target.selectedIndex].text}`); }); }
+  // In-battle field effects (weather / terrain / trick room / gravity / tailwind)
+  wireFieldPanel();
+  wireHazardPanel();
 
   // HP adjust
   for (const s of ['a','b']) {
@@ -390,6 +417,15 @@ function renderBattle() {
   document.getElementById('sim-end').addEventListener('click', () => {
     restorePreBattleParties();
     import('./sim-setup.js').then(m => m.renderSetup());
+  });
+  // パーティ概観: タップで個体詳細（選出済みなら現在HP/ランクも表示）
+  document.querySelectorAll('.sim-ov-poke').forEach(box => {
+    box.addEventListener('click', () => {
+      const side = box.dataset.side, pi = parseInt(box.dataset.pi);
+      const selIdx = selection[side].indexOf(pi);
+      const rt = selIdx >= 0 ? battle.rt[side][selIdx] : null;
+      showPokemonDetailModal(parties[side][pi], rt);
+    });
   });
 }
 
@@ -561,7 +597,7 @@ function renderPartyOverview() {
             const hpText = rt ? `${rt.hp}/${rt.maxHp}` : '';
             const pct = rt && rt.maxHp > 0 ? (rt.hp / rt.maxHp * 100) : 100;
             const hpColor = pct > 50 ? 'var(--ok)' : pct > 25 ? 'var(--warn)' : 'var(--danger)';
-            return `<div style="text-align:center;padding:3px 4px;border-radius:4px;min-width:48px;
+            return `<div class="sim-ov-poke" data-side="${side}" data-pi="${i}" style="text-align:center;padding:3px 4px;border-radius:4px;min-width:48px;cursor:pointer;
               border:2px solid ${isActive ? 'var(--accent)' : inSel ? 'var(--accent2)' : 'var(--bg3)'};
               background:${isActive ? 'rgba(233,69,96,.1)' : 'var(--bg)'};
               ${!alive ? 'opacity:.4' : ''}">
@@ -601,12 +637,115 @@ function renderBoostUI(side) {
   </div>`;
 }
 
+// ===== FIELD / HAZARD PANELS =====
+let autoAccuracy = true;   // 命中判定を行う
+let autoCritRate = false;  // 抽選に急所率(1/24)を含める
+let _forcedSwitch = false; // このターンに強制交代が発生したか
+
+function weatherRockTurns(kind) {
+  for (const s of ['a','b']) {
+    const poke = getActive(s);
+    if (kind === 'weather' && field.weather && poke.item === WEATHER_ROCK[field.weather]) return 8;
+    if (kind === 'terrain' && poke.item === TERRAIN_EXTENDER) return 8;
+  }
+  return 5;
+}
+
+function renderFieldPanel() {
+  const wT = fieldTurns.weather, tT = fieldTurns.terrain;
+  const tag = n => n > 0 ? ` <span style="color:var(--accent2)">残り${n}T</span>` : '';
+  return `<div style="margin-top:6px;padding:6px;background:var(--bg);border:1px solid var(--bg3);border-radius:4px">
+    <div style="font-size:.7rem;font-weight:700;margin-bottom:4px">フィールド効果（発動で5T計測 / 対応アイテムで8T、発動ターンも消費）</div>
+    <div class="col2">
+      <div><label style="font-size:.65rem">天候${tag(wT)}</label><select id="sim-weather-b" style="font-size:.75rem">
+        <option value="">なし</option><option value="Sun">はれ</option><option value="Rain">あめ</option><option value="Sand">すなあらし</option><option value="Snow">ゆき</option>
+      </select></div>
+      <div><label style="font-size:.65rem">フィールド${tag(tT)}</label><select id="sim-terrain-b" style="font-size:.75rem">
+        <option value="">なし</option><option value="Electric">エレキ</option><option value="Grassy">グラス</option><option value="Psychic">サイコ</option><option value="Misty">ミスト</option>
+      </select></div>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
+      <button class="btn btn-sm sim-field-toggle ${fieldTurns.trickRoom>0?'':'btn-outline'}" data-fx="trickRoom">トリックルーム${fieldTurns.trickRoom>0?` ${fieldTurns.trickRoom}T`:''}</button>
+      <button class="btn btn-sm sim-field-toggle ${fieldTurns.gravity>0?'':'btn-outline'}" data-fx="gravity">じゅうりょく${fieldTurns.gravity>0?` ${fieldTurns.gravity}T`:''}</button>
+      <button class="btn btn-sm sim-field-toggle ${fieldTurns.tailwind.a>0?'':'btn-outline'}" data-fx="tailwind-a">おいかぜ自${fieldTurns.tailwind.a>0?` ${fieldTurns.tailwind.a}T`:''}</button>
+      <button class="btn btn-sm sim-field-toggle ${fieldTurns.tailwind.b>0?'':'btn-outline'}" data-fx="tailwind-b">おいかぜ相${fieldTurns.tailwind.b>0?` ${fieldTurns.tailwind.b}T`:''}</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px;font-size:.7rem">
+      <label><input type="checkbox" id="sim-opt-acc" ${autoAccuracy?'checked':''}> 命中判定</label>
+      <label><input type="checkbox" id="sim-opt-critrate" ${autoCritRate?'checked':''}> 急所率(1/24)を抽選に含める</label>
+    </div>
+  </div>`;
+}
+
+function wireFieldPanel() {
+  const wEl = document.getElementById('sim-weather-b');
+  const tEl = document.getElementById('sim-terrain-b');
+  if (wEl) { wEl.value = field.weather; wEl.addEventListener('change', e => {
+    field.weather = e.target.value;
+    fieldTurns.weather = field.weather ? weatherRockTurns('weather') : 0;
+    addLog(`天候: ${e.target.options[e.target.selectedIndex].text}${fieldTurns.weather?` (${fieldTurns.weather}T)`:''}`);
+    renderBattle();
+  }); }
+  if (tEl) { tEl.value = field.terrain; tEl.addEventListener('change', e => {
+    field.terrain = e.target.value;
+    fieldTurns.terrain = field.terrain ? weatherRockTurns('terrain') : 0;
+    addLog(`フィールド: ${e.target.options[e.target.selectedIndex].text}${fieldTurns.terrain?` (${fieldTurns.terrain}T)`:''}`);
+    renderBattle();
+  }); }
+  document.querySelectorAll('.sim-field-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fx = btn.dataset.fx;
+      const on = (cur) => cur > 0 ? 0 : 5;
+      if (fx === 'trickRoom') { fieldTurns.trickRoom = on(fieldTurns.trickRoom); addLog(`トリックルーム ${fieldTurns.trickRoom>0?'発動 (5T)':'解除'}`); }
+      else if (fx === 'gravity') { fieldTurns.gravity = on(fieldTurns.gravity); addLog(`じゅうりょく ${fieldTurns.gravity>0?'発動 (5T)':'解除'}`); }
+      else if (fx === 'tailwind-a') { fieldTurns.tailwind.a = on(fieldTurns.tailwind.a); addLog(`おいかぜ(自分) ${fieldTurns.tailwind.a>0?'発動 (5T)':'解除'}`); }
+      else if (fx === 'tailwind-b') { fieldTurns.tailwind.b = on(fieldTurns.tailwind.b); addLog(`おいかぜ(相手) ${fieldTurns.tailwind.b>0?'発動 (5T)':'解除'}`); }
+      renderBattle();
+    });
+  });
+  document.getElementById('sim-opt-acc')?.addEventListener('change', e => { autoAccuracy = e.target.checked; });
+  document.getElementById('sim-opt-critrate')?.addEventListener('change', e => { autoCritRate = e.target.checked; });
+}
+
+function renderHazardPanel() {
+  const row = (side) => {
+    const h = hazards[side];
+    const label = side === 'a' ? '自分側' : '相手側';
+    return `<div>
+      <div style="font-size:.65rem;font-weight:700">${label}（${label}の交代着地で発動）</div>
+      <label style="font-size:.7rem;display:block"><input type="checkbox" class="sim-hz" data-side="${side}" data-kind="sr" ${h.sr?'checked':''}> ステルスロック</label>
+      <label style="font-size:.7rem;display:flex;align-items:center;gap:3px">まきびし
+        <select class="sim-hz-num" data-side="${side}" data-kind="spikes" style="font-size:.7rem">
+          ${[0,1,2,3].map(n=>`<option value="${n}"${h.spikes===n?' selected':''}>${n}</option>`).join('')}
+        </select></label>
+      <label style="font-size:.7rem;display:flex;align-items:center;gap:3px">どくびし
+        <select class="sim-hz-num" data-side="${side}" data-kind="tspikes" style="font-size:.7rem">
+          ${[0,1,2].map(n=>`<option value="${n}"${h.tspikes===n?' selected':''}>${n}</option>`).join('')}
+        </select></label>
+    </div>`;
+  };
+  return `<div style="margin-top:6px;padding:6px;background:var(--bg);border:1px solid var(--bg3);border-radius:4px">
+    <div style="font-size:.7rem;font-weight:700;margin-bottom:4px">設置技（交代着地時に自動ダメージ計算）</div>
+    <div class="col2">${row('a')}${row('b')}</div>
+  </div>`;
+}
+
+function wireHazardPanel() {
+  document.querySelectorAll('.sim-hz').forEach(el => el.addEventListener('change', () => {
+    hazards[el.dataset.side][el.dataset.kind] = el.checked;
+  }));
+  document.querySelectorAll('.sim-hz-num').forEach(el => el.addEventListener('change', () => {
+    hazards[el.dataset.side][el.dataset.kind] = parseInt(el.value);
+  }));
+}
+
 // ===== TURN EXECUTION =====
 function executeTurn() {
   const actA = battle.actions.a;
   const actB = battle.actions.b;
   if (!actA && !actB) { showToast('行動を選択してください'); return; }
   snapshotBattle();
+  _forcedSwitch = false;
 
   battle.turnNum++;
   addLog(`--- ターン ${battle.turnNum} ---`, true);
@@ -637,7 +776,10 @@ function executeTurn() {
     } else {
       const spdA = getEffectiveSpeed('a');
       const spdB = getEffectiveSpeed('b');
-      if (spdB > spdA) attackers.reverse();
+      const tr = fieldTurns.trickRoom > 0;
+      // 通常は速い方が先攻。トリックルーム中は遅い方が先攻。
+      if (!tr && spdB > spdA) attackers.reverse();
+      else if (tr && spdB < spdA) attackers.reverse();
     }
   }
 
@@ -660,7 +802,7 @@ function executeTurn() {
   battle.actions.a = actA?.type === 'move' ? actA : null;
   battle.actions.b = actB?.type === 'move' ? actB : null;
   const switched = actA?.type === 'switch' || actB?.type === 'switch';
-  if (switched) renderBattle();
+  if (switched || _forcedSwitch) renderBattle();
   else updateBattleLight();
 }
 
@@ -671,6 +813,8 @@ function getEffectiveSpeed(side) {
   let spd = stats?.sp || 0;
   spd = applyBoost(spd, rt.boosts.sp);
   if (rt.status === 'par') spd = Math.floor(spd / 2);
+  if (poke.item === 'Choice Scarf') spd = Math.floor(spd * 1.5);
+  if (fieldTurns.tailwind[side] > 0) spd *= 2;
   return spd;
 }
 
@@ -692,6 +836,42 @@ function doSwitch(side, toIdx) {
   battle.active[side] = toIdx;
   const newPoke = getActive(side);
   addLog(`${label}: ${ja('pokemon', oldPoke.name)} → ${ja('pokemon', newPoke.name)} に交代！`);
+  applyHazardsOnSwitch(side);
+}
+
+// 交代着地時の設置技ダメージ／状態異常を適用
+function applyHazardsOnSwitch(side) {
+  const rt = getActiveRt(side);
+  if (rt.hp <= 0) return;
+  const poke = getActive(side);
+  const label = side === 'a' ? '自分' : '相手';
+  if (poke.item === 'Heavy-Duty Boots') return; // あつぞこブーツで全無効
+  const h = hazards[side];
+  const types = getEffectiveTypes(side, battle.active[side]);
+  const grounded = !types.includes('Flying') && poke.ability !== 'Levitate' && poke.item !== 'Air Balloon';
+
+  // ステルスロック（接地問わず、いわ相性）
+  if (h.sr) {
+    const eff = DMG.getTypeEff('Rock', types);
+    const d = Math.floor(rt.maxHp * eff / 8);
+    if (d > 0) { rt.hp = Math.max(0, rt.hp - d); addLog(`  ${label}: ステルスロック -${d} → HP ${rt.hp}/${rt.maxHp}`, false, 'dmg-line'); }
+  }
+  // まきびし（接地のみ）
+  if (h.spikes > 0 && grounded && rt.hp > 0) {
+    const layers = Math.min(3, h.spikes);
+    const d = layers === 1 ? Math.floor(rt.maxHp / 8) : layers === 2 ? Math.floor(rt.maxHp / 6) : Math.floor(rt.maxHp / 4);
+    rt.hp = Math.max(0, rt.hp - d); addLog(`  ${label}: まきびし -${d} → HP ${rt.hp}/${rt.maxHp}`, false, 'dmg-line');
+  }
+  // どくびし（接地のみ。どくタイプは吸収して除去、はがね/既に状態異常は無効）
+  if (h.tspikes > 0 && grounded && rt.hp > 0) {
+    if (types.includes('Poison')) {
+      h.tspikes = 0; addLog(`  ${label}: どくびしを吸収して除去した`);
+    } else if (!types.includes('Steel') && poke.ability !== 'Immunity' && !rt.status) {
+      if (h.tspikes >= 2) { rt.status = 'tox'; rt.toxicCount = 0; addLog(`  ${label}: どくびしでもうどく状態になった`, false, 'dmg-line'); }
+      else { rt.status = 'psn'; addLog(`  ${label}: どくびしでどく状態になった`, false, 'dmg-line'); }
+    }
+  }
+  if (rt.hp <= 0) addLog(`${label}の${ja('pokemon', poke.name)}はたおれた！`, false, 'ko-line');
 }
 
 function executeAttack(atkSide, defSide, moveName) {
@@ -699,6 +879,27 @@ function executeAttack(atkSide, defSide, moveName) {
   const defLabel = defSide === 'a' ? '自分' : '相手';
   const move = DATA.moves[moveName];
   if (!move) return;
+
+  // 命中判定
+  if (autoAccuracy) {
+    let acc = getMoveAccuracy(moveName, move);
+    if (acc > 0 && acc < 100) {
+      const shown = acc;
+      if (fieldTurns.gravity > 0) acc = Math.floor(acc * 5 / 3);
+      if (Math.random() * 100 >= acc) {
+        addLog(`${atkLabel}の${ja('moves', moveName)}！ → 外した (命中${shown}%${fieldTurns.gravity>0?'/じゅうりょく補正':''})`);
+        return;
+      }
+    }
+  }
+
+  // 強制交代技（Roar/Whirlwind/Dragon Tail/Circle Throw）
+  // ※ダメージを伴うもの(Dragon Tail等)はダメージ処理後に交代させるため、ここではbp0のもののみ
+  if (FORCE_SWITCH_MOVES.has(moveName) && (!move.bp || move.bp === 0)) {
+    addLog(`${atkLabel}の${ja('moves', moveName)}！`);
+    forceSwitch(defSide);
+    return;
+  }
 
   // Aegislash auto forme change
   const atkPokePre = getActive(atkSide);
@@ -769,8 +970,9 @@ function executeAttack(atkSide, defSide, moveName) {
   const atkState = { ...atkPoke, boosts: { ...atkRt.boosts }, currentHP: atkRt.hp, status: atkRt.status, _types: atkTypes };
   const defState = { ...defPoke, boosts: { ...defRt.boosts }, currentHP: defRt.hp, status: defRt.status, disguiseIntact: defRt.disguise, _types: defTypes };
 
-  // Crit + fainted count + charge + manual modifiers
-  const isCrit = battle.crit[atkSide];
+  // Crit: 手動チェック、または急所率(1/24)抽選（ランダム時のみ）
+  let isCrit = battle.crit[atkSide];
+  if (!isCrit && autoCritRate && battle.rollMode[atkSide] === 'random' && Math.random() < 1/24) isCrit = true;
   const mod = battle.mod[atkSide];
   const faintedCount = battle.rt[atkSide].filter(r => r.hp <= 0).length;
   const calcField = { ...field,
@@ -806,6 +1008,13 @@ function executeAttack(atkSide, defSide, moveName) {
   else if (rollMode === 'max') { useDmg = result.maxDmg; rollNote = ' [最高乱数]'; }
   else if (rollMode === 'avg') { useDmg = Math.round(rolls.reduce((a, b) => a + b, 0) / rolls.length); rollNote = ' [平均]'; }
   else { const idx = Math.floor(Math.random() * rolls.length); useDmg = rolls[idx]; rollNote = ` [抽選 ${85 + idx}%]`; }
+
+  // きあいのタスキ / がんじょう: 満タンから瀕死になる一撃を1で耐える
+  let survivor = '';
+  if (defRt.hp === defRt.maxHp && useDmg >= defRt.hp) {
+    if (defPoke.item === 'Focus Sash') { useDmg = defRt.hp - 1; defPoke.item = ''; survivor = 'きあいのタスキ'; }
+    else if (defPoke.ability === 'Sturdy') { useDmg = defRt.hp - 1; survivor = 'がんじょう'; }
+  }
   const actualDmg = Math.min(useDmg, defRt.hp);
   defRt.hp = Math.max(0, defRt.hp - useDmg);
 
@@ -814,6 +1023,7 @@ function executeAttack(atkSide, defSide, moveName) {
   else if (result.typeEff < 1) effText = ' (いまひとつ)';
   const rollLabel = isCrit ? ' 急所!' : '';
   addLog(`${atkLabel}の${ja('moves', moveName)}！${rollLabel} → ${defLabel}に${useDmg}ダメージ (${result.minDmg}〜${result.maxDmg}, ${result.minPct}%〜${result.maxPct}%)${effText}${rollNote}`, false, 'dmg-line');
+  if (survivor) addLog(`  ${defLabel}: ${survivor}で耐えた！ (HP1)`, false, 'heal-line');
 
   // Recoil
   const recoilFrac = getRecoilFrac(moveName);
@@ -859,6 +1069,23 @@ function executeAttack(atkSide, defSide, moveName) {
     atkRt.charged = false;
     addLog(`  ${atkLabel}: じゅうでんが消費された`);
   }
+
+  // 強制交代技（ダメージ後、相手が生存していれば控えへ）
+  if (FORCE_SWITCH_MOVES.has(moveName) && defRt.hp > 0) forceSwitch(defSide);
+}
+
+// 強制交代: 控えの生存個体からランダムに繰り出す
+function forceSwitch(side) {
+  const aliveBench = selection[side]
+    .map((pi, i) => ({ i, rt: battle.rt[side][i] }))
+    .filter(x => x.i !== battle.active[side] && x.rt.hp > 0);
+  const label = side === 'a' ? '自分' : '相手';
+  if (aliveBench.length === 0) { addLog(`  ${label}: 交代できる控えがいない`); return; }
+  const pick = aliveBench[Math.floor(Math.random() * aliveBench.length)];
+  addLog(`  ${label}: 強制的に交代させられた！`);
+  doSwitch(side, pick.i);
+  battle.actions[side] = null;
+  _forcedSwitch = true;
 }
 
 // Get effective types considering runtime overrides

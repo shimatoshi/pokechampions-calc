@@ -7,7 +7,7 @@ import {
 } from './app.js';
 import { DB } from './db.js';
 import { parties, selection, field, startBattle } from './sim.js';
-import { renderPokemonInfo, updateStatDisplay, getFilteredMoves, setupAbilitySelect } from './ui.js';
+import { renderPokemonInfo, updateStatDisplay, getFilteredMoves, setupAbilitySelect, showPokemonDetailModal } from './ui.js';
 
 // ============================================================
 // PHASE 1: SETUP
@@ -344,6 +344,12 @@ export function renderSelect() {
         renderSelect();
       });
     });
+    document.querySelectorAll(`.sel-info[data-side="${side}"]`).forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        showPokemonDetailModal(parties[side][parseInt(btn.dataset.idx)]);
+      });
+    });
   }
 }
 
@@ -356,7 +362,9 @@ function renderSelectSide(side) {
         ${parties[side].map((p, i) => {
           const sel = selection[side].includes(i);
           const order = sel ? selection[side].indexOf(i) + 1 : '';
-          return `<div class="sel-slot${sel ? ' sel-active' : ''}" data-side="${side}" data-idx="${i}">
+          return `<div class="sel-slot${sel ? ' sel-active' : ''}" data-side="${side}" data-idx="${i}" style="position:relative">
+              <button class="sel-info" data-side="${side}" data-idx="${i}" title="詳細"
+                style="position:absolute;top:1px;right:1px;width:18px;height:18px;padding:0;border-radius:50%;border:none;background:var(--bg3);color:var(--fg);font-size:.7rem;font-weight:700;line-height:1;cursor:pointer">i</button>
               ${spriteImg(p.name, 44)}
               <div style="font-size:.7rem;font-weight:700">${esc(ja('pokemon', p.name))}</div>
               ${sel ? `<div style="font-size:.65rem;color:var(--accent)">${order === 1 ? '先発' : order + '番手'}</div>` : ''}

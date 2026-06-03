@@ -50,6 +50,46 @@ export const DRAIN_MOVES = {
   'Oblivion Wing':3/4,'Draining Kiss':3/4,
 };
 
+// ===== ACCURACY (moves with accuracy < 100; default 100, 0 = never-miss) =====
+export const MOVE_ACCURACY = {
+  // 一撃必殺は別枠だが代表値
+  'Fissure':30,'Guillotine':30,'Horn Drill':30,'Sheer Cold':30,
+  // 低命中・高威力
+  'Focus Blast':70,'Hydro Pump':80,'Blizzard':70,'Thunder':70,'Fire Blast':85,
+  'Dynamic Punch':50,'Inferno':50,'Zap Cannon':50,'Will-O-Wisp':85,
+  'Stone Edge':80,'Rock Slide':90,'Megahorn':85,'Cross Chop':80,'Play Rough':90,
+  'Iron Tail':75,'Power Whip':85,'Wood Hammer':100,'Gunk Shot':80,'Poison Jab':100,
+  'Bounce':85,'Sky Attack':90,'Jump Kick':95,'High Jump Kick':90,'Drill Run':95,
+  'Sing':55,'Grass Whistle':55,'Supersonic':55,'Hypnosis':60,'Sleep Powder':75,
+  'Stun Spore':75,'Poison Powder':75,'Sweet Kiss':75,'Lovely Kiss':75,
+  'Mud Bomb':85,'Mega Drain':100,'Muddy Water':85,'Razor Wind':100,
+  'Sand Tomb':85,'Fire Spin':85,'Whirlpool':85,'Magma Storm':75,'Bind':85,'Wrap':90,
+  'Aeroblast':95,'Sacred Fire':95,'Crabhammer':90,'Bone Rush':90,'Pin Missile':95,
+  'Leaf Tornado':90,'Mirror Shot':85,'Night Daze':95,'Searing Shot':100,
+  'Diamond Storm':95,'Origin Pulse':85,'Precipice Blades':85,'Hurricane':70,
+  'Thousand Arrows':100,'Overheat':90,'Leaf Storm':90,'Draco Meteor':90,
+  'Psychic Fangs':100,'Bonemerang':90,'Rock Blast':90,'Icicle Crash':90,
+  'Bone Club':85,'Egg Bomb':75,'Octazooka':85,'Dragon Rush':75,'Zen Headbutt':90,
+  'Meteor Mash':90,'Sky Uppercut':90,'Slam':75,'DoubleSlap':85,'Double Slap':85,
+  'Take Down':85,'Thrash':100,'Petal Dance':100,'Outrage':100,'Smog':70,
+  'Air Cutter':95,'Razor Leaf':95,'Mud Shot':95,'Snore':100,'Aurora Beam':100,
+  'Charge Beam':90,'Signal Beam':100,'Metal Claw':95,'Crush Claw':95,
+  'Dragon Tail':90,'Circle Throw':90,'Whirlwind':100,'Roar':100,
+};
+
+// ===== FORCE-SWITCH MOVES (相手を強制交代) =====
+export const FORCE_SWITCH_MOVES = new Set(['Roar','Whirlwind','Dragon Tail','Circle Throw']);
+
+// ===== WEATHER / TERRAIN 延長アイテム (5→8ターン) =====
+export const WEATHER_ROCK = { 'Sun':'Heat Rock','Rain':'Damp Rock','Sand':'Smooth Rock','Snow':'Icy Rock' };
+export const TERRAIN_EXTENDER = 'Terrain Extender';
+
+export function getMoveAccuracy(moveName, moveData) {
+  if (moveData?.acc != null) return moveData.acc;
+  if (moveName in MOVE_ACCURACY) return MOVE_ACCURACY[moveName];
+  return 100;
+}
+
 // ===== HELPERS =====
 export function applyBoost(stat, boost) {
   if (boost >= 0) return Math.floor(stat * (2 + boost) / 2);
