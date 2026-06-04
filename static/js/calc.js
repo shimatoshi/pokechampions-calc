@@ -694,55 +694,42 @@ async function saveCalcToBox() {
   const activeMoves = atkState.moves.filter(m => m && DATA.moves[m]);
   if (activeMoves.length === 0) { showToast('わざを選択してください'); return; }
 
+  // 1周の計算で攻め視点/受け視点の両エントリを作る
   const atkCalcs = [];
-  for (const moveName of activeMoves) {
-    const r = DMG.calculate(atkState, defState, moveName, fieldState);
-    if (!r) continue;
-    atkCalcs.push({ dir: 'atk', vs: defState.name, move: moveName, range: `${r.minPct}%~${r.maxPct}%`, ko: r.koText, detail: r.koDetail || '' });
-  }
-
   const defCalcs = [];
   for (const moveName of activeMoves) {
     const r = DMG.calculate(atkState, defState, moveName, fieldState);
     if (!r) continue;
-    defCalcs.push({ dir: 'def', vs: atkState.name, move: moveName, range: `${r.minPct}%~${r.maxPct}%`, ko: r.koText, detail: r.koDetail || '' });
+    const range = `${r.minPct}%~${r.maxPct}%`;
+    atkCalcs.push({ dir: 'atk', vs: defState.name, move: moveName, range, ko: r.koText, detail: r.koDetail || '' });
+    defCalcs.push({ dir: 'def', vs: atkState.name, move: moveName, range, ko: r.koText, detail: r.koDetail || '' });
   }
 
   const boxAll = await DB.getAll('box');
   let saved = 0;
 
-  if (atkCalcs.length > 0) {
-    let atkBox = findBoxMatch(boxAll, atkState);
-    if (!atkBox) {
-      atkBox = JSON.parse(JSON.stringify(atkState));
-      delete atkBox.id;
-      if (!atkBox.uid) atkBox.uid = generateUid();
-      atkState.uid = atkBox.uid;
-      atkBox.savedCalcs = []; atkBox.notes = '';
+  const upsertCalcs = async (state, calcs) => {
+    if (calcs.length === 0) return;
+    let box = findBoxMatch(boxAll, state);
+    if (!box) {
+      box = JSON.parse(JSON.stringify(state));
+      delete box.id;
+      if (!box.uid) box.uid = generateUid();
+      state.uid = box.uid;
+      box.savedCalcs = []; box.notes = '';
     }
-    if (!atkBox.savedCalcs) atkBox.savedCalcs = [];
-    for (const cr of atkCalcs) {
-      if (!atkBox.savedCalcs.some(s => s.dir === cr.dir && s.vs === cr.vs && s.move === cr.move && s.range === cr.range)) { atkBox.savedCalcs.push(cr); saved++; }
+    if (!box.savedCalcs) box.savedCalcs = [];
+    for (const cr of calcs) {
+      if (!box.savedCalcs.some(s => s.dir === cr.dir && s.vs === cr.vs && s.move === cr.move && s.range === cr.range)) { box.savedCalcs.push(cr); saved++; }
     }
-    await DB.put('box', atkBox);
-    if (!atkBox.id) boxAll.push(atkBox);
-  }
+    // put戻り値のidを反映: 同一個体が攻守両方のとき、2回目のputが
+    // 重複行をaddしてしまうのを防ぐ(id付きputは更新になる)
+    const id = await DB.put('box', box);
+    if (!box.id) { box.id = id; boxAll.push(box); }
+  };
 
-  if (defCalcs.length > 0) {
-    let defBox = findBoxMatch(boxAll, defState);
-    if (!defBox) {
-      defBox = JSON.parse(JSON.stringify(defState));
-      delete defBox.id;
-      if (!defBox.uid) defBox.uid = generateUid();
-      defState.uid = defBox.uid;
-      defBox.savedCalcs = []; defBox.notes = '';
-    }
-    if (!defBox.savedCalcs) defBox.savedCalcs = [];
-    for (const cr of defCalcs) {
-      if (!defBox.savedCalcs.some(s => s.dir === cr.dir && s.vs === cr.vs && s.move === cr.move && s.range === cr.range)) { defBox.savedCalcs.push(cr); saved++; }
-    }
-    await DB.put('box', defBox);
-  }
+  await upsertCalcs(atkState, atkCalcs);
+  await upsertCalcs(defState, defCalcs);
 
   showToast(`ダメ計結果をBOXに保存 (${saved}件)`);
 }

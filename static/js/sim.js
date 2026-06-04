@@ -769,10 +769,13 @@ function executeTurn() {
 
   if (attackers.length === 2) {
     // Sort by priority then speed
-    const prioA = DATA.moves[attackers[0].move]?.priority ? 1 : 0;
-    const prioB = DATA.moves[attackers[1].move]?.priority ? 1 : 0;
+    // データのpriorityはboolean(先制技のみtrue)。強制交代技は実機では-6priorityで
+    // 最後に行動するため、-1tierとして扱う
+    const prioOf = (m) => DATA.moves[m]?.priority ? 1 : FORCE_SWITCH_MOVES.has(m) ? -1 : 0;
+    const prioA = prioOf(attackers[0].move);
+    const prioB = prioOf(attackers[1].move);
     if (prioA !== prioB) {
-      attackers.sort((a, b) => (DATA.moves[b.move]?.priority ? 1 : 0) - (DATA.moves[a.move]?.priority ? 1 : 0));
+      attackers.sort((a, b) => prioOf(b.move) - prioOf(a.move));
     } else {
       const spdA = getEffectiveSpeed('a');
       const spdB = getEffectiveSpeed('b');
@@ -788,6 +791,9 @@ function executeTurn() {
     const opp = side === 'a' ? 'b' : 'a';
     if (getActiveRt(side).hp <= 0) continue;
     if (getActiveRt(opp).hp <= 0) continue;
+    // 強制交代させられた側: 元の個体の行動は失われ、交代先も行動しない
+    // (forceSwitchがactions[side]をnullにするのでそれを検知)
+    if (battle.actions[side] == null) continue;
     executeAttack(side, opp, move);
   }
 
@@ -979,6 +985,8 @@ function executeAttack(atkSide, defSide, moveName) {
     ...(isCrit && { crit: true }),
     ...(faintedCount > 0 && { faintedCount }),
     ...(atkRt.charged && { charged: true }),
+    // ピンチ特性(もうか/げきりゅう等): HP1/3以下で自動発動
+    ...(atkRt.hp * 3 <= atkRt.maxHp && { pinch: true }),
     ...(mod.bp != null && { bpOverride: mod.bp }),
     ...(mod.moveType && { moveTypeOverride: mod.moveType }),
     ...(mod.stab2x && { stab2x: true }),
