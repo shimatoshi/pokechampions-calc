@@ -4,6 +4,7 @@ import {
   SKIN_ABILITIES, RESIST_BERRY, TYPE_BOOST_ITEM,
   applyBoost,
 } from './poke-data.js';
+import { MOVE_EFFECTS } from './move-effects.js';
 
 export const DMG = (() => {
   let typeChart = {};
@@ -105,29 +106,16 @@ export const DMG = (() => {
 
   function resolveAtkDef(moveName, move, attacker, defender, atkStats, defStats, aAbil, dAbil, crit) {
     const isPhysical = move.cat === 'Physical';
-    let atk, def, atkBoost, defBoost;
-
-    if (moveName === 'Body Press') {
-      atk = atkStats.df;
-      atkBoost = attacker.boosts?.df || 0;
-      def = defStats.df;
-      defBoost = defender.boosts?.df || 0;
-    } else if (moveName === 'Foul Play') {
-      atk = defStats.at;
-      atkBoost = defender.boosts?.at || 0;
-      def = defStats.df;
-      defBoost = defender.boosts?.df || 0;
-    } else if (moveName === 'Psyshock' || moveName === 'Psystrike' || moveName === 'Secret Sword') {
-      atk = atkStats.sa;
-      atkBoost = attacker.boosts?.sa || 0;
-      def = defStats.df;
-      defBoost = defender.boosts?.df || 0;
-    } else {
-      atk = isPhysical ? atkStats.at : atkStats.sa;
-      atkBoost = isPhysical ? (attacker.boosts?.at || 0) : (attacker.boosts?.sa || 0);
-      def = isPhysical ? defStats.df : defStats.sd;
-      defBoost = isPhysical ? (defender.boosts?.df || 0) : (defender.boosts?.sd || 0);
-    }
+    // 参照ステータスの差し替え(Body Press/イカサマ/サイコショック系)はレジストリから
+    const st = MOVE_EFFECTS[moveName]?.stats || {};
+    const atkSrc = st.atkSide === 'defender' ? defender : attacker;
+    const atkSrcStats = st.atkSide === 'defender' ? defStats : atkStats;
+    const atkKey = st.atkStat || (isPhysical ? 'at' : 'sa');
+    const defKey = st.defStat || (isPhysical ? 'df' : 'sd');
+    let atk = atkSrcStats[atkKey];
+    let atkBoost = atkSrc.boosts?.[atkKey] || 0;
+    let def = defStats[defKey];
+    let defBoost = defender.boosts?.[defKey] || 0;
 
     // Critical hit: ignore attacker's offensive drops and defender's defensive boosts
     if (crit) {
@@ -149,15 +137,11 @@ export const DMG = (() => {
   // ===== PHASE 2: Resolve BP (move-specific + ability modifiers) =====
 
   function resolveBP(moveName, move, bp, aAbil, attacker, defender, field) {
-    // Move-specific
-    if (moveName === 'Last Respects' || moveName === 'Rage Fist') {
-      const cnt = field?.faintedCount || 0;
-      if (cnt > 0) bp += 50 * cnt;
-    }
+    // Move-specific (レジストリから)
+    const fx = MOVE_EFFECTS[moveName];
+    if (fx?.bp) bp = fx.bp(bp, { attacker, defender, field });
     // じゅうでん: Electric move 2x
     if (field?.charged && move.type === 'Electric') bp *= 2;
-    if (moveName === 'Knock Off' && defender.item) bp = Math.floor(bp * 1.5);
-    if (moveName === 'Hex' && defender.status) bp *= 2;
 
     // Ability BP mods
     if (aAbil === 'Technician' && bp <= 60) bp = Math.floor(bp * 1.5);
@@ -168,10 +152,6 @@ export const DMG = (() => {
     if (aAbil === 'Reckless' && move.recoilHP) bp = Math.floor(bp * 1.2);
     if (aAbil === 'Sheer Force' && move.secondary) bp = Math.floor(bp * 1.3);
     if (aAbil === 'Tough Claws' && move.contact) bp = Math.floor(bp * 1.3);
-
-    // Terrain-boosted moves
-    if (moveName === 'Expanding Force' && field?.terrain === 'Psychic') bp = Math.floor(bp * 1.5);
-    if (moveName === 'Rising Voltage' && field?.terrain === 'Electric') bp *= 2;
 
     // Pinch abilities
     if (field?.pinch) {
@@ -219,9 +199,9 @@ export const DMG = (() => {
         if (chart && chart[dt] !== undefined) typeEff *= chart[dt];
       }
     }
-    if (moveName === 'Freeze-Dry' && defTypes.includes('Water')) {
-      typeEff *= 4; // Water resists Ice (0.5x) → SE (2x), net ×4
-    }
+    // 技固有の相性補正(Freeze-Dry等)はレジストリから
+    const fx = MOVE_EFFECTS[moveName];
+    if (fx?.typeEff) typeEff = fx.typeEff(typeEff, { defTypes });
 
     return { effectiveMoveType, isSTAB, stabMod, typeEff };
   }
@@ -383,15 +363,10 @@ export const DMG = (() => {
   // ===== STAT NOTE =====
 
   function buildStatNote(moveName, defender, dAbil, defTypes, field) {
-    let note = moveName === 'Body Press' ? '防御でダメージ計算'
-      : moveName === 'Foul Play' ? '相手の攻撃でダメージ計算'
-      : (moveName === 'Psyshock' || moveName === 'Psystrike' || moveName === 'Secret Sword') ? '相手の防御にダメージ'
-      : moveName === 'Knock Off' && defender.item ? 'アイテム所持で威力1.5倍'
-      : moveName === 'Freeze-Dry' && defTypes.includes('Water') ? 'みずタイプに抜群'
-      : moveName === 'Hex' && defender.status ? '状態異常で威力2倍'
-      : moveName === 'Expanding Force' && field?.terrain === 'Psychic' ? 'サイコフィールドで威力1.5倍'
-      : moveName === 'Rising Voltage' && field?.terrain === 'Electric' ? 'エレキフィールドで威力2倍'
-      : '';
+    // 技の説明文はレジストリのnoteから(以前はここに同じ条件式が二重に書かれていた)
+    const fx = MOVE_EFFECTS[moveName];
+    let note = '';
+    if (fx?.note) note = typeof fx.note === 'function' ? fx.note({ defender, defTypes, field }) : fx.note;
     if (dAbil === 'Unaware') note += (note ? ' / ' : '') + 'てんねん(ランク無視)';
     return note;
   }
@@ -433,6 +408,24 @@ export const DMG = (() => {
     const immune = checkImmunity(dAbil, moveName, effectiveMoveType, isPhysical, bp, atkStats, defStats, hasHazards);
     if (immune) return immune;
 
+    // 被ダメ依存技(カウンター等): ダメ計では数値が出せない。
+    // シミュ側はresult.counterを見てターン中の被ダメから計算する
+    const fx = MOVE_EFFECTS[moveName];
+    if (fx?.counter) {
+      const maxHp0 = defStats.hp;
+      const curHp0 = defender.currentHP == null ? maxHp0 : Math.max(0, Math.min(maxHp0, defender.currentHP));
+      return {
+        move: moveName, moveType: effectiveMoveType, bp: 0, hits: 1, hitsLabel: '',
+        minDmg: 0, maxDmg: 0, minPct: '-', maxPct: '-', damages: [0], perHitDamages: [0],
+        hp: maxHp0, curHp: curHp0,
+        koText: '被ダメ依存', koClass: 'ko-safe', koDetail: '',
+        typeEff, isSTAB: false, atkStats, defStats, atkRecoil: '',
+        berryActive: false, berryItem: '',
+        statNote: buildStatNote(moveName, defender, dAbil, defTypes, field),
+        counter: fx.counter,
+      };
+    }
+
     // Phase 6: Defender ability/field def modifiers
     const defMods = resolveDefMods(def, dAbil, defender, move, effectiveMoveType, typeEff, isPhysical, defTypes, field, hasHazards);
     def = defMods.def;
@@ -459,7 +452,12 @@ export const DMG = (() => {
     let { hits, hitsLabel } = resolveHits(move);
     if (field?.hitsOverride != null) { hits = field.hitsOverride; hitsLabel = `${hits}回ヒット`; }
 
+    // おやこあい: 1発目100% + 2発目25% (連続技/定数ダメージには乗らない)
+    const parentalBond = aAbil === 'Parental Bond' && hits === 1 && !move.hits && !fx?.fixedDamage;
+
     // 16 damage rolls (85%~100%)
+    // perHit = 1発分の乱数16通り(シミュの1発毎抽選用)、results = 表示用合計(同一乱数×発数)
+    const perHit = [];
     const results = [];
     for (let roll = 85; roll <= 100; roll++) {
       let dmg = baseDmg;
@@ -475,13 +473,25 @@ export const DMG = (() => {
       dmg = Math.floor(dmg * items.itemMod);
       dmg = Math.floor(dmg * defAbilMod);
       dmg = Math.max(dmg, 1);
-      results.push(dmg * hits);
+      perHit.push(dmg);
+      results.push(parentalBond ? dmg + Math.floor(dmg * 0.25) : dmg * hits);
     }
 
     const maxHp = defStats.hp;
     const curHp = defender.currentHP == null
       ? maxHp
       : Math.max(0, Math.min(maxHp, defender.currentHP));
+
+    // 定数ダメージ技 (ちきゅうなげ/がむしゃら等): 通常式の結果を固定値で置換
+    // ※データ上bp:1のため、以前は通常式に流れてデタラメな数値が出ていた
+    let fixed = false;
+    if (fx?.fixedDamage) {
+      const atkCurHP = attacker.currentHP == null ? atkStats.hp : Math.max(0, Math.min(atkStats.hp, attacker.currentHP));
+      const d = typeEff === 0 ? 0 : Math.max(0, fx.fixedDamage({ attacker, defender, atkStats, defStats, atkCurHP, defCurHP: curHp }));
+      perHit.length = 0; results.length = 0;
+      for (let i = 0; i < 16; i++) { perHit.push(d); results.push(d); }
+      fixed = true;
+    }
 
     // Disguise / Ice Face check
     const disguiseHit = defender.disguiseIntact && (
@@ -525,6 +535,9 @@ export const DMG = (() => {
     const minDmg = results[0];
     const maxDmg = results[results.length - 1];
 
+    let statNote = buildStatNote(moveName, defender, dAbil, defTypes, field);
+    if (parentalBond) statNote += (statNote ? ' / ' : '') + 'おやこあい(2発目25%)';
+
     return {
       move: moveName,
       moveType: effectiveMoveType,
@@ -533,6 +546,9 @@ export const DMG = (() => {
       minPct: (minDmg / maxHp * 100).toFixed(1),
       maxPct: (maxDmg / maxHp * 100).toFixed(1),
       damages: results,
+      perHitDamages: perHit,   // 1発分の乱数16通り(シミュの1発毎抽選用)
+      fixed,                   // 定数ダメージ(乱数なし)
+      parentalBond,
       hp: maxHp, curHp,
       koText: koInfo.text, koClass: koInfo.cls,
       koDetail: koInfo.detail,
@@ -540,7 +556,7 @@ export const DMG = (() => {
       atkStats, defStats,
       atkRecoil: items.item === 'Life Orb' ? `(LO反動: ${Math.floor(atkStats.hp / 10)}ダメージ)` : '',
       berryActive: items.berryActive, berryItem: items.berryActive ? items.dItem : '',
-      statNote: buildStatNote(moveName, defender, dAbil, defTypes, field)
+      statNote
     };
   }
 

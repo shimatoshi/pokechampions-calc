@@ -7,6 +7,7 @@ import {
   getRecoilFrac as _getRecoilFrac, getDrainFrac as _getDrainFrac,
   getEffectiveMoveType as _getEffectiveMoveType,
 } from './poke-data.js';
+import { MOVE_EFFECTS } from './move-effects.js';
 
 export function getRecoilFrac(m) { return _getRecoilFrac(m, DATA.moves[m]); }
 export function getDrainFrac(m) { return _getDrainFrac(m, DATA.moves[m]); }
@@ -219,6 +220,8 @@ export function executeTurn() {
   const actB = battle.actions.b;
   snapshotBattle();
   const forcedSides = new Set(); // このターン強制交代が発生した側
+  // ターン中の被ダメージ記録 (カウンター/ミラーコート/メタルバースト用)
+  const turnDmg = { a: { Physical: 0, Special: 0 }, b: { Physical: 0, Special: 0 } };
 
   battle.turnNum++;
   addLog(`--- ターン ${battle.turnNum} ---`, true);
@@ -266,7 +269,7 @@ export function executeTurn() {
     if (getActiveRt(opp).hp <= 0) continue;
     // 強制交代させられた側: 元の個体の行動は失われ、交代先も行動しない
     if (forcedSides.has(side)) continue;
-    executeAttack(side, opp, move, forcedSides);
+    executeAttack(side, opp, move, forcedSides, turnDmg);
   }
 
   // Check KO
@@ -350,7 +353,38 @@ function applyHazardsOnSwitch(side) {
   if (rt.hp <= 0) addLog(`${label}の${ja('pokemon', poke.name)}はたおれた！`, false, 'ko-line');
 }
 
-function executeAttack(atkSide, defSide, moveName, forcedSides) {
+// 連続技の発数を決定。modHits(手動指定)が最優先
+function rollHitCount(move, modHits, rollMode, atkPoke) {
+  if (modHits != null) return modHits;
+  if (!move.hits) return 1;
+  if (typeof move.hits === 'number') return move.hits;
+  const [a, b] = move.hits;
+  if (atkPoke.ability === 'Skill Link') return b; // スキルリンク: 常に最大
+  if (atkPoke.item === 'Loaded Dice') return Math.random() < 0.5 ? b - 1 : b; // いかさまダイス: 上位2つ
+  if (rollMode === 'min') return a;
+  if (rollMode === 'max') return b;
+  if (rollMode === 'avg') return Math.round((a + b) / 2);
+  if (a === 2 && b === 5) {
+    // 本家準拠: 2発35% / 3発35% / 4発15% / 5発15%
+    const r = Math.random();
+    return r < 0.35 ? 2 : r < 0.7 ? 3 : r < 0.85 ? 4 : 5;
+  }
+  return a + Math.floor(Math.random() * (b - a + 1)); // その他は一様
+}
+
+// 連続技の合計ダメージ。randomは1発ごとに個別乱数
+function rollMultiHitDamage(result, count, rollMode) {
+  const per = result.perHitDamages || [result.minDmg];
+  const n = per.length;
+  if (result.fixed || rollMode === 'min') return per[0] * count;
+  if (rollMode === 'max') return per[n - 1] * count;
+  if (rollMode === 'avg') return Math.round(per.reduce((s, d) => s + d, 0) / n * count);
+  let total = 0;
+  for (let i = 0; i < count; i++) total += per[Math.floor(Math.random() * n)];
+  return total;
+}
+
+function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg) {
   const atkLabel = atkSide === 'a' ? '自分' : '相手';
   const defLabel = defSide === 'a' ? '自分' : '相手';
   const move = DATA.moves[moveName];
@@ -390,44 +424,15 @@ function executeAttack(atkSide, defSide, moveName, forcedSides) {
   }
 
   if (!move.bp || move.bp === 0) {
-    const defRt0 = getActiveRt(defSide);
-    const atkRt0 = getActiveRt(atkSide);
-    // みずびたし: 相手のタイプをみずに変更
-    if (moveName === 'Soak') {
-      defRt0.typeOverride = ['Water'];
-      addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}はみずタイプになった！`);
-    // もりののろい: 相手にくさタイプを追加
-    } else if (moveName === "Forest's Curse") {
-      defRt0.addedType = 'Grass';
-      addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}にくさタイプが追加された！`);
-    // トリックオアトリート: 相手にゴーストタイプを追加
-    } else if (moveName === 'Trick-or-Treat') {
-      defRt0.addedType = 'Ghost';
-      addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}にゴーストタイプが追加された！`);
-    // じゅうでん: 次の電気技の威力2倍
-    } else if (moveName === 'Charge') {
-      atkRt0.charged = true;
-      addLog(`${atkLabel}の${ja('moves', moveName)}！ → じゅうでん状態になった！`);
-    // いたみわけ: 双方のHPを合計して半分ずつに
-    } else if (moveName === 'Pain Split') {
-      const total = atkRt0.hp + defRt0.hp;
-      const shared = Math.floor(total / 2);
-      atkRt0.hp = Math.min(atkRt0.maxHp, shared);
-      defRt0.hp = Math.min(defRt0.maxHp, shared);
-      addLog(`${atkLabel}の${ja('moves', moveName)}！ → 両者のHPを分け合った`);
-      addLog(`  ${atkLabel}: HP ${atkRt0.hp}/${atkRt0.maxHp} / ${defLabel}: HP ${defRt0.hp}/${defRt0.maxHp}`);
-    // のろい: ゴーストタイプはHP半分を払い相手をのろい状態に
-    } else if (moveName === 'Curse') {
-      const atkTypes = getEffectiveTypes(atkSide, battle.active[atkSide]);
-      if (atkTypes.includes('Ghost')) {
-        const cost = Math.floor(atkRt0.maxHp / 2);
-        atkRt0.hp = Math.max(0, atkRt0.hp - cost);
-        defRt0.cursed = true;
-        addLog(`${atkLabel}の${ja('moves', moveName)}！ → HP-${cost} で${defLabel}をのろった！`, false, 'dmg-line');
-        addLog(`  ${atkLabel}: HP ${atkRt0.hp}/${atkRt0.maxHp}`);
-      } else {
-        addLog(`${atkLabel}の${ja('moves', moveName)}！ → こうげき・ぼうぎょアップ、すばやさダウン (ランクは手動設定)`);
-      }
+    // 変化技のシミュ内効果はレジストリ(move-effects.js)から
+    const fx = MOVE_EFFECTS[moveName];
+    if (fx?.statusMove) {
+      fx.statusMove({
+        atkRt: getActiveRt(atkSide), defRt: getActiveRt(defSide),
+        atkLabel, defLabel, moveJa: ja('moves', moveName),
+        log: (text, cls) => addLog(text, false, cls || ''),
+        atkTypes: getEffectiveTypes(atkSide, battle.active[atkSide]),
+      });
     } else {
       addLog(`${atkLabel}の${ja('moves', moveName)}！`);
     }
@@ -466,34 +471,76 @@ function executeAttack(atkSide, defSide, moveName, forcedSides) {
 
   if (result.typeEff === 0) { addLog(`${atkLabel}の${ja('moves', moveName)}！ → 効果なし`); return; }
 
-  // Disguise
+  // カウンター/ミラーコート/メタルバースト: ターン中の被ダメから反射
+  if (result.counter) {
+    const taken = result.counter.cat === 'any'
+      ? turnDmg[atkSide].Physical + turnDmg[atkSide].Special
+      : turnDmg[atkSide][result.counter.cat];
+    if (taken <= 0) {
+      addLog(`${atkLabel}の${ja('moves', moveName)}！ → しかし失敗した (このターン被ダメージなし)`);
+      return;
+    }
+    const d = Math.floor(taken * result.counter.mult);
+    defRt.hp = Math.max(0, defRt.hp - d);
+    if (move.cat === 'Physical' || move.cat === 'Special') turnDmg[defSide][move.cat] += Math.min(d, defRt.maxHp);
+    addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}に${d}ダメージ (被ダメ${taken}×${result.counter.mult})`, false, 'dmg-line');
+    addLog(`  ${defLabel}: HP ${defRt.hp}/${defRt.maxHp}`);
+    return;
+  }
+
+  // 連続技: 発数を抽選(2-5発: 35/35/15/15%)、ダメージは1発ごとに個別乱数
+  const hitCount = rollHitCount(move, battle.mod[atkSide].hits, battle.rollMode[atkSide], atkPoke);
+
+  // Disguise (連続技は1発目だけ吸収し、残りは通る)
   if (result.disguiseConsumed) {
     const abilName = defPoke.ability === 'Disguise' ? 'ばけのかわ' : 'こおりのすがた';
     const subDmg = result.minDmg;
     defRt.hp = Math.max(0, defRt.hp - subDmg);
     defRt.disguise = false;
     addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${defLabel}の${abilName}がはがれた！ (${subDmg}ダメージ)`, false, 'dmg-line');
+    if (move.hits && hitCount > 1 && defRt.hp > 0) {
+      const defState2 = { ...defState, currentHP: defRt.hp, disguiseIntact: false };
+      const r2 = DMG.calculate(atkState, defState2, moveName, calcField);
+      if (r2 && !r2.counter && r2.typeEff !== 0) {
+        const rest = rollMultiHitDamage(r2, hitCount - 1, battle.rollMode[atkSide]);
+        defRt.hp = Math.max(0, defRt.hp - rest);
+        if (move.cat === 'Physical' || move.cat === 'Special') turnDmg[defSide][move.cat] += rest;
+        addLog(`  残り${hitCount - 1}発 → ${defLabel}に${rest}ダメージ`, false, 'dmg-line');
+      }
+    }
     addLog(`  ${defLabel}: HP ${defRt.hp}/${defRt.maxHp}`);
     return;
   }
 
   // Roll mode: min / avg / max
   const rollMode = battle.rollMode[atkSide];
-  const rolls = result.damages || [result.minDmg, result.maxDmg];
   let useDmg, rollNote;
-  if (rollMode === 'min') { useDmg = result.minDmg; rollNote = ' [最低乱数]'; }
-  else if (rollMode === 'max') { useDmg = result.maxDmg; rollNote = ' [最高乱数]'; }
-  else if (rollMode === 'avg') { useDmg = Math.round(rolls.reduce((a, b) => a + b, 0) / rolls.length); rollNote = ' [平均]'; }
-  else { const idx = Math.floor(Math.random() * rolls.length); useDmg = rolls[idx]; rollNote = ` [抽選 ${85 + idx}%]`; }
+  if (move.hits) {
+    // 連続技: 1発ごとに個別乱数で合計
+    useDmg = rollMultiHitDamage(result, hitCount, rollMode);
+    rollNote = ` [${hitCount}発]`;
+  } else if (result.fixed) {
+    // 定数ダメージ: 乱数なし
+    useDmg = result.minDmg;
+    rollNote = '';
+  } else {
+    const rolls = result.damages || [result.minDmg, result.maxDmg];
+    if (rollMode === 'min') { useDmg = result.minDmg; rollNote = ' [最低乱数]'; }
+    else if (rollMode === 'max') { useDmg = result.maxDmg; rollNote = ' [最高乱数]'; }
+    else if (rollMode === 'avg') { useDmg = Math.round(rolls.reduce((a, b) => a + b, 0) / rolls.length); rollNote = ' [平均]'; }
+    else { const idx = Math.floor(Math.random() * rolls.length); useDmg = rolls[idx]; rollNote = ` [抽選 ${85 + idx}%]`; }
+  }
 
   // きあいのタスキ / がんじょう: 満タンから瀕死になる一撃を1で耐える
+  // (連続技は2発目以降で落ちるため発動しても無意味 → 1発技のみ判定)
   let survivor = '';
-  if (defRt.hp === defRt.maxHp && useDmg >= defRt.hp) {
+  if (!move.hits && defRt.hp === defRt.maxHp && useDmg >= defRt.hp) {
     if (defPoke.item === 'Focus Sash') { useDmg = defRt.hp - 1; defPoke.item = ''; survivor = 'きあいのタスキ'; }
     else if (defPoke.ability === 'Sturdy') { useDmg = defRt.hp - 1; survivor = 'がんじょう'; }
   }
   const actualDmg = Math.min(useDmg, defRt.hp);
   defRt.hp = Math.max(0, defRt.hp - useDmg);
+  if (move.cat === 'Physical' || move.cat === 'Special') turnDmg[defSide][move.cat] += actualDmg;
 
   let effText = '';
   if (result.typeEff > 1) effText = ' (効果ばつぐん)';
@@ -535,11 +582,15 @@ function executeAttack(atkSide, defSide, moveName, forcedSides) {
   }
   addLog(`  ${defLabel}: HP ${defRt.hp}/${defRt.maxHp}`);
 
-  // Post-attack effects
-  // もえつきる: Fire type removed after use
-  if (moveName === 'Burn Up') {
-    atkRt.burnedUp = true;
-    addLog(`  ${atkLabel}: ほのおタイプが消滅した！`);
+  // Post-attack effects (もえつきる等はレジストリのafterHitから)
+  const fxAfter = MOVE_EFFECTS[moveName];
+  if (fxAfter?.afterHit) {
+    fxAfter.afterHit({ atkRt, defRt, atkLabel, defLabel, log: (text, cls) => addLog(text, false, cls || '') });
+  }
+  // いのちがけ: 命中後に自分は瀕死
+  if (fxAfter?.selfFaintOnHit) {
+    atkRt.hp = 0;
+    addLog(`  ${atkLabel}: 力尽きた！`, false, 'ko-line');
   }
   // じゅうでん消費
   if (atkRt.charged && move.type === 'Electric') {

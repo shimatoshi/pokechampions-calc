@@ -123,5 +123,73 @@ simOptions.autoCritRate = false;
   hazards.b.sr = false;
 }
 
+// ===== 7. 定数ダメージ: ちきゅうなげ=50固定 =====
+{
+  const { DMG } = await import('../static/js/damage.js');
+  const r = DMG.calculate(mon('Garchomp', ['Seismic Toss']), mon('Azumarill', []), 'Seismic Toss', {});
+  assert(r.fixed && r.minDmg === 50 && r.maxDmg === 50, `fixedDamage: ちきゅうなげ50固定 (${r.minDmg}〜${r.maxDmg})`);
+  // いかりのまえば: 残HP半分
+  const r2 = DMG.calculate(mon('Garchomp', []), { ...mon('Azumarill', []), currentHP: 101 }, 'Super Fang', {});
+  assert(r2.fixed && r2.minDmg === 50, `fixedDamage: いかりのまえば=残HP半分 (101→${r2.minDmg})`);
+  // ゴーストには無効(かくとう技)
+  const r3 = DMG.calculate(mon('Garchomp', []), mon('Gengar', []), 'Seismic Toss', {});
+  assert(!r3 || r3.typeEff === 0 || r3.minDmg === 0, 'fixedDamage: タイプ無効は0');
+}
+
+// ===== 8. カウンター: 被物理ダメージの2倍を反射 =====
+{
+  setupBattle([mon('Garchomp', ['Earthquake'])], [mon('Azumarill', ['Counter'])]);
+  engine.battle.rollMode.a = 'min'; engine.battle.rollMode.b = 'min';
+  engine.battle.actions.a = { type: 'move', move: 'Earthquake' };
+  engine.battle.actions.b = { type: 'move', move: 'Counter' };
+  const aBefore = getActiveRt('a').hp, bBefore = getActiveRt('b').hp;
+  executeTurn();
+  const taken = bBefore - getActiveRt('b').hp;
+  const reflected = aBefore - getActiveRt('a').hp;
+  assert(taken > 0 && reflected === Math.floor(taken * 2), `counter: 被ダメ${taken}の2倍=${reflected}を反射`);
+}
+
+// ===== 9. おやこあい: 2発目25%が乗る =====
+{
+  const { DMG } = await import('../static/js/damage.js');
+  const kanga = mon('Mega Kangaskhan', [], { ability: 'Parental Bond' });
+  const r = DMG.calculate(kanga, mon('Azumarill', []), 'Earthquake', {});
+  const single = r.perHitDamages[r.perHitDamages.length - 1];
+  assert(r.parentalBond && r.maxDmg === single + Math.floor(single * 0.25),
+    `parentalBond: ${single}+floor(${single}*0.25)=${r.maxDmg}`);
+  // 連続技には乗らない
+  const r2 = DMG.calculate(kanga, mon('Azumarill', []), 'Icicle Spear', {});
+  assert(!r2.parentalBond, 'parentalBond: 連続技には乗らない');
+}
+
+// ===== 10. 連続技: 最低乱数なら2発、スキルリンクなら5発 =====
+{
+  setupBattle([mon('Garchomp', ['Icicle Spear'])], [mon('Azumarill', ['Earthquake'])]);
+  engine.battle.rollMode.a = 'min';
+  engine.battle.actions.a = { type: 'move', move: 'Icicle Spear' };
+  engine.battle.actions.b = { type: 'skip' };
+  executeTurn();
+  const log2 = engine.battle.log.map(e => e.text).join('\n');
+  assert(log2.includes('[2発]'), `multihit: 最低乱数=2発 (ログ: ${log2.match(/\[\d発\]/)?.[0]})`);
+
+  setupBattle([mon('Garchomp', ['Icicle Spear'], { ability: 'Skill Link' })], [mon('Azumarill', ['Earthquake'])]);
+  engine.battle.rollMode.a = 'random';
+  engine.battle.actions.a = { type: 'move', move: 'Icicle Spear' };
+  engine.battle.actions.b = { type: 'skip' };
+  executeTurn();
+  const log3 = engine.battle.log.map(e => e.text).join('\n');
+  assert(log3.includes('[5発]'), `multihit: スキルリンク=5発 (ログ: ${log3.match(/\[\d発\]/)?.[0]})`);
+}
+
+// ===== 11. レジストリ変化技: みずびたしでタイプ変更 =====
+{
+  setupBattle([mon('Garchomp', ['Soak'])], [mon('Gengar', ['Earthquake'])]);
+  engine.battle.actions.a = { type: 'move', move: 'Soak' };
+  engine.battle.actions.b = { type: 'skip' };
+  executeTurn();
+  const types = engine.getEffectiveTypes('b', engine.battle.active.b);
+  assert(types.length === 1 && types[0] === 'Water', `statusMove: みずびたし→みず単タイプ (${types})`);
+}
+
 console.log(failed ? `\n${failed} test(s) FAILED` : '\nall engine tests passed');
 process.exit(failed ? 1 : 0);
