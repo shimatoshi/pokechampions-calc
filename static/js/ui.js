@@ -61,7 +61,7 @@ export function renderPokemonDetailCard(poke, rt = null) {
     return `<div style="margin:4px 0">
       <div style="display:flex;justify-content:space-between;font-size:.7rem"><span>HP</span><span>${rt.hp}/${rt.maxHp}${rt.status ? ` (${rt.status})` : ''}</span></div>
       <div style="height:5px;background:var(--bg3);border-radius:3px"><div style="width:${pct}%;height:100%;background:${c};border-radius:3px"></div></div>
-    </div>` : '';
+    </div>`;
   })() : '';
 
   return `<div style="background:var(--bg2,var(--bg));border-radius:var(--radius);padding:8px">

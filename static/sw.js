@@ -1,5 +1,5 @@
-// v25: 対戦シミュ拡張(命中/急所/強制交代/天候・場/設置技/個体詳細)+編成一覧の新規順表示
-const CACHE = 'pokechamp-v25';
+// v26: ui.jsの構文エラー(余分な `: ''`)で起動チェーン全体が死んでいたのを修正
+const CACHE = 'pokechamp-v26';
 
 const PRECACHE = [
   './',
