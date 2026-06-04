@@ -278,5 +278,17 @@ simOptions.autoCritRate = false;
   assert(dealt > rNorm.perHitDamages[0] * 2, `multihit-crit: 急所倍率が乗る (${dealt} > ${rNorm.perHitDamages[0] * 2})`);
 }
 
+// ===== 18. マルチスケイル: HP満タン時のみ半減 =====
+{
+  const { DMG } = await import('../static/js/damage.js');
+  const dnite = (hp) => ({ ...mon('Dragonite', [], { ability: 'Multiscale' }), currentHP: hp });
+  const full = DMG.calculate(mon('Garchomp', []), dnite(null), 'Dragon Claw', {});
+  const damaged = DMG.calculate(mon('Garchomp', []), dnite(100), 'Dragon Claw', {});
+  assert(full.maxDmg < damaged.maxDmg, `multiscale: 満タン${full.maxDmg} < 被弾後${damaged.maxDmg}`);
+  // ステロ込みなら満タンでも半減しない(着地チップで崩れる)
+  const sr = DMG.calculate(mon('Garchomp', []), dnite(null), 'Dragon Claw', { stealthRock: true });
+  assert(sr.maxDmg === damaged.maxDmg, `multiscale: ステロ込みは等倍 (${sr.maxDmg}===${damaged.maxDmg})`);
+}
+
 console.log(failed ? `\n${failed} test(s) FAILED` : '\nall engine tests passed');
 process.exit(failed ? 1 : 0);

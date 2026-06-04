@@ -1,8 +1,8 @@
-// v29: 連続技の急所を1発ごとに1/24抽選
+// v30: マルチスケイルがHP満タン以外でも半減していたのを修正
 // 配信戦略: アプリ本体(JS/CSS/HTML)はこのCACHEバージョンのスナップショットからのみ配信し、
 // SW更新時に一括差し替え(+クライアント側でcontrollerchangeリロード)。
 // 個別ファイルが裏でバラバラに更新されて新旧モジュールが混在する事故を根絶する。
-const CACHE = 'pokechamp-v29';
+const CACHE = 'pokechamp-v30';
 
 const PRECACHE = [
   './',

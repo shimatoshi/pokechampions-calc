@@ -226,10 +226,11 @@ export const DMG = (() => {
 
   // ===== PHASE 6: Defender ability/field damage modifiers + def stat adjustments =====
 
-  function resolveDefMods(def, dAbil, defender, move, effectiveMoveType, typeEff, isPhysical, defTypes, field, hasHazards) {
+  function resolveDefMods(def, dAbil, defender, move, effectiveMoveType, typeEff, isPhysical, defTypes, field, hasHazards, defFullHP) {
     let defAbilMod = 1;
 
-    if ((dAbil === 'Multiscale' || dAbil === 'Shadow Shield') && !hasHazards) defAbilMod = 0.5;
+    // マルチスケイル: HP満タン時のみ半減 (設置技の着地チップでも満タンが崩れる)
+    if ((dAbil === 'Multiscale' || dAbil === 'Shadow Shield') && defFullHP && !hasHazards) defAbilMod = 0.5;
     if ((dAbil === 'Solid Rock' || dAbil === 'Filter' || dAbil === 'Prism Armor') && typeEff > 1) defAbilMod = 0.75;
     if (dAbil === 'Thick Fat' && (effectiveMoveType === 'Fire' || effectiveMoveType === 'Ice')) defAbilMod = 0.5;
     if (dAbil === 'Fur Coat' && isPhysical) defAbilMod = 0.5;
@@ -427,7 +428,8 @@ export const DMG = (() => {
     }
 
     // Phase 6: Defender ability/field def modifiers
-    const defMods = resolveDefMods(def, dAbil, defender, move, effectiveMoveType, typeEff, isPhysical, defTypes, field, hasHazards);
+    const defFullHP = defender.currentHP == null || defender.currentHP >= defStats.hp;
+    const defMods = resolveDefMods(def, dAbil, defender, move, effectiveMoveType, typeEff, isPhysical, defTypes, field, hasHazards, defFullHP);
     def = defMods.def;
     const defAbilMod = defMods.defAbilMod;
 
