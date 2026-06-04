@@ -45,10 +45,10 @@ function renderBattle() {
     <div class="card" style="margin-top:6px">
       <div class="col2">
         <div><label>自分 状態異常</label><select id="sim-st-a" style="font-size:.75rem">
-          <option value="">なし</option><option value="brn">やけど</option><option value="psn">どく</option><option value="tox">もうどく</option><option value="par">まひ</option>
+          <option value="">なし</option><option value="brn">やけど</option><option value="psn">どく</option><option value="tox">もうどく</option><option value="par">まひ</option><option value="frz">こおり</option><option value="slp">ねむり</option>
         </select></div>
         <div><label>相手 状態異常</label><select id="sim-st-b" style="font-size:.75rem">
-          <option value="">なし</option><option value="brn">やけど</option><option value="psn">どく</option><option value="tox">もうどく</option><option value="par">まひ</option>
+          <option value="">なし</option><option value="brn">やけど</option><option value="psn">どく</option><option value="tox">もうどく</option><option value="par">まひ</option><option value="frz">こおり</option><option value="slp">ねむり</option>
         </select></div>
       </div>
       <div class="col2" style="margin-top:4px">
@@ -483,6 +483,7 @@ function renderFieldPanel() {
     <div style="display:flex;gap:10px;margin-top:4px;font-size:.7rem">
       <label><input type="checkbox" id="sim-opt-acc" ${simOptions.autoAccuracy?'checked':''}> 命中判定</label>
       <label><input type="checkbox" id="sim-opt-critrate" ${simOptions.autoCritRate?'checked':''}> 急所率(1/24)を抽選に含める</label>
+      <label><input type="checkbox" id="sim-opt-secondary" ${simOptions.autoSecondary?'checked':''}> 追加効果を自動抽選</label>
     </div>
   </div>`;
 }
@@ -515,6 +516,7 @@ function wireFieldPanel() {
   });
   document.getElementById('sim-opt-acc')?.addEventListener('change', e => { simOptions.autoAccuracy = e.target.checked; });
   document.getElementById('sim-opt-critrate')?.addEventListener('change', e => { simOptions.autoCritRate = e.target.checked; });
+  document.getElementById('sim-opt-secondary')?.addEventListener('change', e => { simOptions.autoSecondary = e.target.checked; });
 }
 
 function renderHazardPanel() {
@@ -568,6 +570,17 @@ function updateHpUI(side) {
 
 // 状態異常/やどりぎ/のろいのUIをエンジン状態と同期
 // (のろい技や設置技がrtを書き換えるため)
+function syncBoostUI(side) {
+  const rt = getActiveRt(side);
+  for (const stat of ['at','df','sa','sd','sp']) {
+    const span = document.getElementById(`sim-bst-${side}-${stat}`);
+    if (!span) continue;
+    const v = rt.boosts[stat] || 0;
+    span.textContent = `${v > 0 ? '+' : ''}${v}`;
+    span.style.color = v > 0 ? 'var(--ok)' : v < 0 ? 'var(--danger)' : '';
+  }
+}
+
 function syncStatusInputs(side) {
   const rt = getActiveRt(side);
   const st = document.getElementById(`sim-st-${side}`);
@@ -598,6 +611,8 @@ function updateBattleLight() {
   updateHpUI('b');
   syncStatusInputs('a');
   syncStatusInputs('b');
+  syncBoostUI('a');
+  syncBoostUI('b');
   appendNewLogs();
   const undoBtn = document.getElementById('sim-undo');
   if (undoBtn) undoBtn.disabled = !canUndo();

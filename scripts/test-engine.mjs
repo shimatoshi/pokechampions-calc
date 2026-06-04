@@ -191,5 +191,69 @@ simOptions.autoCritRate = false;
   assert(types.length === 1 && types[0] === 'Water', `statusMove: みずびたし→みず単タイプ (${types})`);
 }
 
+// ===== 12. 追加効果: chance100のランクダウンが自動適用される =====
+{
+  // かみくだく: 20%防御-1 → Math.random固定で必ず発動させる
+  const origRandom = Math.random;
+  Math.random = () => 0; // 抽選必ず成功 / 乱数ロール最低
+  setupBattle([mon('Garchomp', ['Crunch'])], [mon('Azumarill', ['Earthquake'])]);
+  engine.battle.actions.a = { type: 'move', move: 'Crunch' };
+  engine.battle.actions.b = { type: 'skip' };
+  executeTurn();
+  Math.random = origRandom;
+  assert(getActiveRt('b').boosts.df === -1, `secondary: かみくだく→防御-1 (df=${getActiveRt('b').boosts.df})`);
+}
+
+// ===== 13. 追加効果: ひるみで後攻が行動できない =====
+{
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  // Garchomp(S102)が先攻でエアスラ(30%ひるみ)→Azumarill(S50)は行動不能
+  setupBattle([mon('Garchomp', ['Air Slash'])], [mon('Azumarill', ['Earthquake'])]);
+  engine.battle.actions.a = { type: 'move', move: 'Air Slash' };
+  engine.battle.actions.b = { type: 'move', move: 'Earthquake' };
+  const aBefore = getActiveRt('a').hp;
+  executeTurn();
+  Math.random = origRandom;
+  const log = engine.battle.log.map(e => e.text).join('\n');
+  assert(log.includes('ひるんで動けない'), 'secondary: ひるみで後攻スキップ');
+  assert(getActiveRt('a').hp === aBefore, 'secondary: ひるんだ側のダメージが入らない');
+}
+
+// ===== 14. 追加効果: タイプ免疫(ほのおタイプはやけどしない) =====
+{
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  setupBattle([mon('Garchomp', ['Flamethrower'])], [mon('Charizard', ['Earthquake'])]);
+  engine.battle.actions.a = { type: 'move', move: 'Flamethrower' };
+  engine.battle.actions.b = { type: 'skip' };
+  executeTurn();
+  Math.random = origRandom;
+  assert(getActiveRt('b').status === '', `secondary: ほのおタイプはやけど免疫 (status='${getActiveRt('b').status}')`);
+}
+
+// ===== 15. 確定自己効果: インファイトで防御特防-1 =====
+{
+  setupBattle([mon('Garchomp', ['Close Combat'])], [mon('Azumarill', ['Earthquake'])]);
+  engine.battle.rollMode.a = 'min';
+  engine.battle.actions.a = { type: 'move', move: 'Close Combat' };
+  engine.battle.actions.b = { type: 'skip' };
+  executeTurn();
+  const b = getActiveRt('a').boosts;
+  assert(b.df === -1 && b.sd === -1, `selfEffect: インファイト→自分の防御/特防-1 (df=${b.df}, sd=${b.sd})`);
+}
+
+// ===== 16. ちからずく: 追加効果が消失する =====
+{
+  const origRandom = Math.random;
+  Math.random = () => 0;
+  setupBattle([mon('Garchomp', ['Crunch'], { ability: 'Sheer Force' })], [mon('Azumarill', ['Earthquake'])]);
+  engine.battle.actions.a = { type: 'move', move: 'Crunch' };
+  engine.battle.actions.b = { type: 'skip' };
+  executeTurn();
+  Math.random = origRandom;
+  assert((getActiveRt('b').boosts.df || 0) === 0, 'secondary: ちからずくで追加効果消失');
+}
+
 console.log(failed ? `\n${failed} test(s) FAILED` : '\nall engine tests passed');
 process.exit(failed ? 1 : 0);

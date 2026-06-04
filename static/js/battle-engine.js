@@ -1,6 +1,6 @@
 // Pokemon Champions - Battle Engine (DOM非依存の対戦ロジック)
 // sim.js(UI)から呼ばれる。document/windowに触れないことでnodeテスト可能に保つ。
-import { DATA, ja } from './data.js';
+import { DATA, ja, STAT_JA } from './data.js';
 import { DMG } from './damage.js';
 import {
   applyBoost, FORCE_SWITCH_MOVES, WEATHER_ROCK, TERRAIN_EXTENDER, getMoveAccuracy,
@@ -77,6 +77,7 @@ let _preBattleParties = null; // parties snapshot before battle (for restoring o
 export const simOptions = {
   autoAccuracy: true,   // 命中判定を行う
   autoCritRate: false,  // 抽選に急所率(1/24)を含める
+  autoSecondary: true,  // 追加効果(状態異常/ランク/ひるみ)を自動抽選
 };
 
 function makeBattleRuntime(poke) {
@@ -220,6 +221,7 @@ export function executeTurn() {
   const actB = battle.actions.b;
   snapshotBattle();
   const forcedSides = new Set(); // このターン強制交代が発生した側
+  const flinched = new Set();    // このターンひるんだ側 (追加効果)
   // ターン中の被ダメージ記録 (カウンター/ミラーコート/メタルバースト用)
   const turnDmg = { a: { Physical: 0, Special: 0 }, b: { Physical: 0, Special: 0 } };
 
@@ -269,7 +271,12 @@ export function executeTurn() {
     if (getActiveRt(opp).hp <= 0) continue;
     // 強制交代させられた側: 元の個体の行動は失われ、交代先も行動しない
     if (forcedSides.has(side)) continue;
-    executeAttack(side, opp, move, forcedSides, turnDmg);
+    // 先攻の追加効果でひるんだ
+    if (flinched.has(side)) {
+      addLog(`${side === 'a' ? '自分' : '相手'}はひるんで動けない！`);
+      continue;
+    }
+    executeAttack(side, opp, move, forcedSides, turnDmg, flinched);
   }
 
   // Check KO
@@ -384,7 +391,65 @@ function rollMultiHitDamage(result, count, rollMode) {
   return total;
 }
 
-function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg) {
+// ===== 追加効果 (secondary / selfEffect) =====
+const STATUS_JA = { brn: 'やけど', par: 'まひ', psn: 'どく', tox: 'もうどく', frz: 'こおり', slp: 'ねむり' };
+const STATUS_IMMUNE_TYPES = { brn: ['Fire'], par: ['Electric'], psn: ['Poison', 'Steel'], tox: ['Poison', 'Steel'], frz: ['Ice'] };
+
+function applyBoostChanges(rt, boosts, label) {
+  const parts = [];
+  for (const [stat, delta] of Object.entries(boosts)) {
+    const cur = rt.boosts[stat] || 0;
+    const next = Math.max(-6, Math.min(6, cur + delta));
+    if (next === cur) continue;
+    rt.boosts[stat] = next;
+    parts.push(`${STAT_JA[stat] || stat}${delta > 0 ? '+' : ''}${delta}`);
+  }
+  if (parts.length) addLog(`  ${label}: ${parts.join(' ')}`, false, Object.values(boosts).some(v => v > 0) ? 'heal-line' : 'dmg-line');
+}
+
+// 攻撃命中後の追加効果。data_moves.jsonの構造化secondary
+// (scripts/enrich_secondary.pyでShowdownデータから生成)を抽選して適用する。
+function applySecondaries(move, atkSide, defSide, flinched) {
+  const atkPoke = getActive(atkSide), defPoke = getActive(defSide);
+  const atkRt = getActiveRt(atkSide), defRt = getActiveRt(defSide);
+  const atkLabel = atkSide === 'a' ? '自分' : '相手';
+  const defLabel = defSide === 'a' ? '自分' : '相手';
+
+  // 確定自己効果 (インファイトの防御特防-1等)。ちからずくでも消えない
+  if (move.selfEffect?.boosts && atkRt.hp > 0) applyBoostChanges(atkRt, move.selfEffect.boosts, atkLabel);
+
+  if (!simOptions.autoSecondary) return;
+  if (!Array.isArray(move.secondary)) return;         // boolean(構造化不能)は対象外
+  if (atkPoke.ability === 'Sheer Force') return;      // ちからずく: 追加効果消失
+
+  for (const sec of move.secondary) {
+    let chance = sec.chance ?? 100;
+    if (atkPoke.ability === 'Serene Grace') chance *= 2; // てんのめぐみ: 確率2倍
+    if (Math.random() * 100 >= chance) continue;
+
+    // 自分側の効果 (チャージビームの特攻+1等)
+    if (sec.self?.boosts && atkRt.hp > 0) applyBoostChanges(atkRt, sec.self.boosts, atkLabel);
+
+    // 相手側の効果
+    if (defRt.hp <= 0) continue;
+    if (defPoke.ability === 'Shield Dust') continue;   // りんぷん: 追加効果を受けない
+    if (sec.status) {
+      const types = getEffectiveTypes(defSide, battle.active[defSide]);
+      const immune = (STATUS_IMMUNE_TYPES[sec.status] || []).some(t => types.includes(t));
+      if (!defRt.status && !immune) {
+        defRt.status = sec.status;
+        if (sec.status === 'tox') defRt.toxicCount = 0;
+        addLog(`  ${defLabel}: 追加効果で${STATUS_JA[sec.status] || sec.status}状態になった！`, false, 'dmg-line');
+        if (sec.status === 'frz' || sec.status === 'slp') addLog(`    (行動不能は手動で「行動なし」を選択)`);
+      }
+    }
+    if (sec.boosts) applyBoostChanges(defRt, sec.boosts, defLabel);
+    if (sec.volatile === 'flinch') flinched.add(defSide);
+    if (sec.volatile === 'confusion') addLog(`  ${defLabel}はこんらんした！ (自傷は手動管理)`);
+  }
+}
+
+function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg, flinched) {
   const atkLabel = atkSide === 'a' ? '自分' : '相手';
   const defLabel = defSide === 'a' ? '自分' : '相手';
   const move = DATA.moves[moveName];
@@ -581,6 +646,9 @@ function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg) {
     }
   }
   addLog(`  ${defLabel}: HP ${defRt.hp}/${defRt.maxHp}`);
+
+  // 追加効果 (確定自己効果 + 確率抽選: 状態異常/ランク変動/ひるみ)
+  applySecondaries(move, atkSide, defSide, flinched);
 
   // Post-attack effects (もえつきる等はレジストリのafterHitから)
   const fxAfter = MOVE_EFFECTS[moveName];
