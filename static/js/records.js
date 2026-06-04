@@ -1,5 +1,5 @@
 // Pokemon Champions Calculator - Records Page
-import { esc } from './app.js';
+import { esc } from './data.js';
 import { DB } from './db.js';
 
 export function initRecordsPage() { renderRecordsPage(); }

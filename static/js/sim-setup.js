@@ -1,12 +1,11 @@
 // Pokemon Champions - Sim Setup/Editor/Selection phases
 import {
   DATA, ja, esc, spriteImg, typeBadge,
-  showToast, makePokemonState, generateUid,
-  currentTeam,
-} from './app.js';
+} from './data.js';
+import { makePokemonState, generateUid, currentTeam, markDirty } from './state.js';
 import { DB } from './db.js';
 import { parties, selection, field, startBattle } from './sim.js';
-import { buildMiniEditor, openEditorModal, showPokemonDetailModal } from './ui.js';
+import { showToast, buildMiniEditor, openEditorModal, showPokemonDetailModal } from './ui.js';
 
 // ============================================================
 // PHASE 1: SETUP
@@ -104,6 +103,7 @@ function openEditor(side, idx) {
         if (!entry.uid) entry.uid = generateUid();
         entry.savedCalcs = []; entry.notes = '';
         await DB.add('box', entry);
+        markDirty('box');
         showToast(`${ja('pokemon', s.name)} をBOXに追加`);
       },
     }],
@@ -193,6 +193,7 @@ async function savePartyAsTeam(side) {
   const teamName = `SIM_${side === 'a' ? '自分' : '相手'}_${new Date().toLocaleDateString('ja')}`;
   const team = { name: teamName, members: parties[side].map(p => { const c = JSON.parse(JSON.stringify(p)); delete c._moveEntries; if (!c.uid) c.uid = generateUid(); return c; }), notes: '', updatedAt: Date.now() };
   await DB.add('teams', team);
+  markDirty('team');
   showToast(`「${teamName}」をチームに保存`);
 }
 

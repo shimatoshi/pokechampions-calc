@@ -1,13 +1,11 @@
 // Pokemon Champions Calculator - Box Page
 import {
-  DATA, ja, esc, spriteImg, typeBadge,
-  atkState, showdownHTML, switchPage, showToast,
-  restoreStateToUI, currentTeam,
-  makePokemonState, generateUid,
-} from './app.js';
+  DATA, ja, esc, spriteImg, typeBadge, showdownHTML,
+} from './data.js';
+import { atkState, currentTeam, makePokemonState, generateUid, markDirty } from './state.js';
 import { DB } from './db.js';
 import { selectPokemon, initCalcPage } from './calc.js';
-import { buildMiniEditor, openEditorModal } from './ui.js';
+import { switchPage, showToast, restoreStateToUI, buildMiniEditor, openEditorModal } from './ui.js';
 
 export async function renderBoxPage() {
   const boxAll = await DB.getAll('box');
@@ -56,6 +54,7 @@ export async function renderBoxPage() {
       if (!b) return;
       if (currentTeam.members.length >= 6) { showToast('チームは6匹まで'); return; }
       currentTeam.members.push(JSON.parse(JSON.stringify(b)));
+      markDirty('team');
       showToast(`${ja('pokemon', b.name)} をチームに追加`);
     });
     entry.querySelector('.box-to-calc')?.addEventListener('click', e => {

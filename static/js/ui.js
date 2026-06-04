@@ -1,10 +1,216 @@
 // Shared UI components used across calc, sim, team pages
 import {
-  DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT, STAT_JA,
-  pokemonNames, buildNatureUI, initNatureUI, updateNatureDisplay,
-  setupSearch, setupItemSearch, showToast,
-} from './app.js';
+  DATA, JA, ja, esc, spriteImg, typeBadge, STAT_SHORT, STAT_JA,
+  pokemonNames,
+} from './data.js';
 import { DMG } from './damage.js';
+
+// ===== NAVIGATION =====
+export function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('show');
+  document.querySelector(`nav button[data-page="${page}"]`).classList.add('active');
+}
+
+// ===== TOAST =====
+export function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:8px 20px;border-radius:20px;font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.style.opacity = '1');
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2000);
+}
+
+// ===== AUTOCOMPLETE SEARCH =====
+export function setupSearch(inputEl, listEl, entries, onSelect) {
+  let _searchTimer = null;
+  inputEl.addEventListener('input', () => {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => {
+    const q = inputEl.value.toLowerCase();
+    if (q.length < 1) { listEl.classList.remove('open'); return; }
+    const matches = entries.filter(e => {
+      const name = typeof e === 'string' ? e : e.key;
+      const jaName = typeof e === 'string' ? (JA.pokemon[e] || JA.moves[e] || '') : (e.ja || '');
+      return name.toLowerCase().includes(q) || jaName.includes(q);
+    }).slice(0, 30);
+    listEl.innerHTML = matches.map(e => {
+      const name = typeof e === 'string' ? e : e.key;
+      const jaName = typeof e === 'string' ? (JA.pokemon[name] || JA.moves[name] || '') : (e.ja || '');
+      const p = DATA.pokemon[name];
+      const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
+      const moveInfo = DATA.moves[name] ? `<span class="type-badge type-${DATA.moves[name].type}">${DATA.moves[name].type}</span>${DATA.moves[name].cat === 'Status' ? '<span style="font-size:.6rem;color:var(--fg2);margin-left:2px">変化</span>' : ''}` : '';
+      const display = jaName ? `${jaName} <span style="color:var(--fg2);font-size:.7rem">${name}</span>` : name;
+      return `<div class="item" data-name="${name}">${p ? spriteImg(name, 28) : ''}<span>${display}</span>${types}${moveInfo}</div>`;
+    }).join('');
+    listEl.classList.add('open');
+    }, 120);
+  });
+  // pointerdown で blur を抑止: tap中に input が blur → setTimeout(150ms) で list が閉じ、
+  // 後続 click が item に届かない競合を防ぐ
+  listEl.addEventListener('pointerdown', e => e.preventDefault());
+  listEl.addEventListener('click', e => {
+    const item = e.target.closest('.item');
+    if (!item) return;
+    const name = item.dataset.name;
+    const jaName = JA.pokemon[name] || JA.moves[name] || name;
+    inputEl.value = jaName !== name ? `${jaName} (${name})` : name;
+    inputEl.dataset.key = name;
+    listEl.classList.remove('open');
+    inputEl.blur();
+    onSelect(name);
+  });
+  inputEl.addEventListener('blur', () => {
+    setTimeout(() => {
+      listEl.classList.remove('open');
+      if (!inputEl.dataset.key && inputEl.value.trim()) {
+        inputEl.dataset.key = inputEl.value.trim();
+        onSelect(inputEl.value.trim());
+      }
+    }, 150);
+  });
+}
+
+// ===== ITEM SEARCH =====
+export function setupItemSearch(inputEl, listEl, entries, onSelect) {
+  let _t = null;
+  inputEl.addEventListener('input', () => {
+    clearTimeout(_t);
+    _t = setTimeout(() => {
+    const q = inputEl.value.toLowerCase();
+    if (q.length < 1) { listEl.classList.remove('open'); return; }
+    const matches = entries.filter(e =>
+      e.key.toLowerCase().includes(q) || e.ja.toLowerCase().includes(q)
+    ).slice(0, 20);
+    listEl.innerHTML = matches.map(e => {
+      const display = e.ja !== e.key ? `${e.ja} <span style="color:var(--fg2);font-size:.7rem">${e.key}</span>` : e.key;
+      return `<div class="item" data-name="${e.key}"><span>${display}</span></div>`;
+    }).join('');
+    if (matches.length === 0) {
+      listEl.innerHTML = '<div class="item" style="color:var(--fg2)">該当なし</div>';
+    }
+    listEl.classList.add('open');
+    }, 120);
+  });
+  // Clear item on empty input
+  inputEl.addEventListener('change', () => {
+    if (!inputEl.value.trim()) { inputEl.dataset.key = ''; onSelect(''); }
+  });
+  listEl.addEventListener('pointerdown', e => e.preventDefault());
+  listEl.addEventListener('click', e => {
+    const item = e.target.closest('.item');
+    if (!item || !item.dataset.name) return;
+    const name = item.dataset.name;
+    const jaName = ja('items', name);
+    inputEl.value = jaName !== name ? `${jaName}` : name;
+    inputEl.dataset.key = name;
+    listEl.classList.remove('open');
+    inputEl.blur();
+    onSelect(name);
+  });
+  inputEl.addEventListener('blur', () => {
+    setTimeout(() => listEl.classList.remove('open'), 150);
+  });
+}
+
+// ===== NATURE UI =====
+export function buildNatureUI(side) {
+  const stats = ['at','df','sa','sd','sp'];
+  return `
+    <div class="nature-grid" id="${side}-nature-grid">
+      <div style="font-size:.7rem;color:var(--fg2);margin-bottom:2px">性格補正（タップで+/-切替）</div>
+      ${stats.map(s => `
+        <div class="nature-btn" data-stat="${s}" id="${side}-nbtn-${s}">
+          <span class="nature-mark" id="${side}-nmark-${s}"></span>
+          <span>${STAT_JA[s]}</span>
+        </div>
+      `).join('')}
+      <div class="nature-name" id="${side}-nature-name" style="font-size:.7rem;color:var(--fg2);margin-top:2px"></div>
+    </div>`;
+}
+
+// onChange: 補正変更後に呼ばれる追加フック（セッション保存等）
+export function initNatureUI(side, state, onChange) {
+  const stats = ['at','df','sa','sd','sp'];
+  for (const s of stats) {
+    const btn = document.getElementById(`${side}-nbtn-${s}`);
+    btn.addEventListener('click', () => {
+      if (state.natureMods.plus === s) {
+        state.natureMods.plus = '';
+      } else if (state.natureMods.minus === s) {
+        state.natureMods.minus = '';
+      } else if (!state.natureMods.plus) {
+        state.natureMods.plus = s;
+      } else if (!state.natureMods.minus) {
+        if (s !== state.natureMods.plus) state.natureMods.minus = s;
+      } else {
+        if (s !== state.natureMods.plus) state.natureMods.minus = s;
+      }
+      updateNatureDisplay(side, state);
+      updateStatDisplay(side, state);
+      onChange?.();
+    });
+  }
+  updateNatureDisplay(side, state);
+}
+
+export function updateNatureDisplay(side, state) {
+  const stats = ['at','df','sa','sd','sp'];
+  for (const s of stats) {
+    const mark = document.getElementById(`${side}-nmark-${s}`);
+    const btn = document.getElementById(`${side}-nbtn-${s}`);
+    if (state.natureMods.plus === s) {
+      mark.textContent = '+'; mark.style.color = '#e74c3c';
+      btn.classList.add('nature-plus'); btn.classList.remove('nature-minus');
+    } else if (state.natureMods.minus === s) {
+      mark.textContent = '-'; mark.style.color = '#3498db';
+      btn.classList.remove('nature-plus'); btn.classList.add('nature-minus');
+    } else {
+      mark.textContent = ''; btn.classList.remove('nature-plus','nature-minus');
+    }
+  }
+  const nameEl = document.getElementById(`${side}-nature-name`);
+  if (state.natureMods.plus && state.natureMods.minus) {
+    const en = DMG.findNatureName(state.natureMods.plus, state.natureMods.minus);
+    nameEl.textContent = `${ja('natures', en)} (${en})`;
+  } else if (!state.natureMods.plus && !state.natureMods.minus) {
+    nameEl.textContent = '補正なし';
+  } else {
+    nameEl.textContent = '（+と-を1つずつ選択）';
+  }
+}
+
+// ===== RESTORE STATE TO UI (shared by calc & team) =====
+export function restoreStateToUI(side, state) {
+  for (const stat of ['hp','at','df','sa','sd','sp']) {
+    const input = document.getElementById(`${side}-sp-${stat}`);
+    if (input) input.value = state.sp[stat] || 0;
+  }
+  for (let i = 0; i < 4; i++) {
+    const input = document.getElementById(`${side}-move-${i}`);
+    if (input) {
+      const m = state.moves[i];
+      input.value = m ? `${ja('moves', m)} (${m})` : '';
+      input.dataset.key = m || '';
+    }
+  }
+  const itemEl = document.getElementById(`${side}-item-search`);
+  if (itemEl && state.item) {
+    itemEl.value = ja('items', state.item);
+    itemEl.dataset.key = state.item;
+  } else if (itemEl) {
+    itemEl.value = '';
+    itemEl.dataset.key = '';
+  }
+  if (side === 'def') {
+    const hpInput = document.getElementById('def-current-hp');
+    if (hpInput) hpInput.value = state.currentHP != null ? state.currentHP : '';
+  }
+  updateNatureDisplay(side, state);
+  updateStatDisplay(side, state);
+}
 
 // ===== POKEMON INFO DISPLAY =====
 export function renderPokemonInfo(name, size = 40) {

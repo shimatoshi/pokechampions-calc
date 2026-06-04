@@ -1,15 +1,18 @@
 // Pokemon Champions Calculator - Calc Page
 import {
-  DATA, ja, esc, spriteImg, typeBadge, STAT_JA, STAT_SHORT,
-  atkState, defState, fieldState, pokemonNames,
+  DATA, ja, esc, spriteImg, typeBadge, STAT_JA, STAT_SHORT, pokemonNames,
+} from './data.js';
+import {
+  atkState, defState, fieldState,
+  makePokemonState, generateUid, scheduleSessionSave, currentTeam, markDirty,
+} from './state.js';
+import {
   buildNatureUI, initNatureUI, updateNatureDisplay,
-  restoreStateToUI, setupSearch, setupItemSearch,
-  showToast, switchPage, makePokemonState, generateUid,
-  scheduleSessionSave, currentTeam,
-} from './app.js';
+  restoreStateToUI, setupSearch, setupItemSearch, showToast, switchPage,
+  updateStatDisplay as _updateStatDisplay, getFilteredMoves,
+} from './ui.js';
 import { DMG } from './damage.js';
 import { DB } from './db.js';
-import { updateStatDisplay as _updateStatDisplay, getFilteredMoves } from './ui.js';
 
 function buildSidePanel(side) {
   const s = side;
@@ -174,9 +177,9 @@ export function initCalcPage() {
     }
   }
 
-  // Nature UI
-  initNatureUI('atk', atkState);
-  initNatureUI('def', defState);
+  // Nature UI (補正変更時にセッション保存)
+  initNatureUI('atk', atkState, scheduleSessionSave);
+  initNatureUI('def', defState, scheduleSessionSave);
 
   // Item search setup
   const itemNames = Object.keys(DATA.items).sort();
@@ -673,6 +676,7 @@ async function addCalcToBox(side) {
   entry.savedCalcs = [];
   entry.notes = '';
   await DB.add('box', entry);
+  markDirty('box');
   // ダメ計側のstateにもuidを反映
   state.uid = entry.uid;
   showToast(`${ja('pokemon', state.name)} をBOXに追加 (${entry.uid.slice(0,8)})`);
@@ -686,6 +690,7 @@ async function addToThreat(side) {
   if (!entry.uid) entry.uid = generateUid();
   state.uid = entry.uid;
   await DB.add('threats', entry);
+  markDirty('team');
   showToast(`${ja('pokemon', state.name)} を仮想敵に追加`);
 }
 
@@ -731,6 +736,7 @@ async function saveCalcToBox() {
   await upsertCalcs(atkState, atkCalcs);
   await upsertCalcs(defState, defCalcs);
 
+  markDirty('box');
   showToast(`ダメ計結果をBOXに保存 (${saved}件)`);
 }
 
@@ -748,5 +754,6 @@ function addCalcToTeam(side) {
   if (!member.uid) member.uid = generateUid();
   state.uid = member.uid;
   currentTeam.members.push(member);
+  markDirty('team');
   showToast(`${ja('pokemon', state.name)} をチームに追加しました (${currentTeam.members.length}/6)`);
 }

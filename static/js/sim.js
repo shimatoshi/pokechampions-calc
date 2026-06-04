@@ -1,10 +1,9 @@
 // Pokemon Champions - Battle Simulator (battle phase + state)
 import {
   DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT,
-  showToast,
-} from './app.js';
+} from './data.js';
 import { DMG } from './damage.js';
-import { showPokemonDetailModal } from './ui.js';
+import { showToast, showPokemonDetailModal } from './ui.js';
 import {
   TWO_TURN_MOVES, SKIN_ABILITIES, applyBoost,
   FORCE_SWITCH_MOVES, WEATHER_ROCK, TERRAIN_EXTENDER, getMoveAccuracy,

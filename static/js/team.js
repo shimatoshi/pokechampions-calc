@@ -1,15 +1,15 @@
 // Pokemon Champions Calculator - Team & Threats Page
 import {
   DATA, ja, esc, spriteImg, typeBadge,
-  atkState, defState,
-  restoreStateToUI,
-  showToast, switchPage, makePokemonState, generateUid,
   showdownHTML, teamToShowdownText,
+} from './data.js';
+import {
+  atkState, defState, makePokemonState, generateUid,
   currentTeam, setCurrentTeam,
-} from './app.js';
+} from './state.js';
 import { DB } from './db.js';
 import { selectPokemon, initCalcPage } from './calc.js';
-import { buildMiniEditor } from './ui.js';
+import { restoreStateToUI, showToast, switchPage, buildMiniEditor } from './ui.js';
 let teamView = 'list';
 
 export function initTeamPage() { renderTeamList(); }
