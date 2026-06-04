@@ -7,7 +7,17 @@ import { switchPage } from './ui.js';
 import { initCalcPage } from './calc.js';
 
 async function init() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+    // 新SWがcontrollerを乗っ取ったら一度だけリロード。
+    // 旧ページが新キャッシュから遅延importして新旧モジュールが混在するのを防ぐ。
+    // (初回訪問のclaim()では hadController=false なのでリロードしない)
+    let hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController) location.reload();
+      hadController = true;
+    });
+  }
   DB.persist();
   await loadData();
   restoreCalcSession();

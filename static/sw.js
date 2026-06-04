@@ -1,5 +1,8 @@
-// v26: ui.jsの構文エラー(余分な `: ''`)で起動チェーン全体が死んでいたのを修正
-const CACHE = 'pokechamp-v26';
+// v27: リファクタ(エンジン分離/3層化) + 新旧JS混在の構造的対策
+// アプリ本体(JS/CSS/HTML)はこのCACHEバージョンのスナップショットからのみ配信し、
+// SW更新時に一括差し替え(+クライアント側でcontrollerchangeリロード)。
+// 個別ファイルが裏でバラバラに更新されて新旧モジュールが混在する事故を根絶する。
+const CACHE = 'pokechamp-v27';
 
 const PRECACHE = [
   './',
@@ -51,13 +54,25 @@ self.addEventListener('activate', e => {
   })());
 });
 
-// キャッシュ優先 + バックグラウンド更新 (stale-while-revalidate)
-// キャッシュがあれば即返し、裏でネットワークから取得してキャッシュを更新。
-// 次回アクセス時に最新版が使われる。
+// 配信戦略:
+// - アプリ本体(JS/CSS/HTML): cache-only。precacheされたスナップショットだけを返し、
+//   裏更新はしない。更新はSWバージョンbump(=新CACHE一括precache)経由のみ → 常に一貫
+// - データJSON/画像: stale-while-revalidate。キャッシュ即返し+裏で更新
+const APP_SHELL_RE = /\.(?:js|css|html)$|\/$/;
+
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  const isShell = url.origin === location.origin && APP_SHELL_RE.test(url.pathname);
   e.respondWith((async () => {
     const cached = await caches.match(e.request);
+    if (isShell) {
+      if (cached) return cached;
+      // precache漏れ: 一度だけ取得して今のスナップショットに固定
+      const fresh = await fetch(e.request).catch(() => null);
+      if (fresh?.ok) caches.open(CACHE).then(c => c.put(e.request, fresh.clone()));
+      return fresh || new Response('', { status: 503 });
+    }
     // バックグラウンドでキャッシュ更新（レスポンスは待たない）
     const fetchAndUpdate = fetch(e.request).then(res => {
       if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
