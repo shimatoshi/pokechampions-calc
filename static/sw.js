@@ -18,6 +18,7 @@ const PRECACHE = [
   './js/ui.js',
   './js/sim.js',
   './js/sim-setup.js',
+  './js/battle-engine.js',
   './manifest.json',
   './data/data_pokemon.json',
   './data/data_learnsets.json',

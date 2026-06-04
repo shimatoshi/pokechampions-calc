@@ -4,7 +4,8 @@ import {
 } from './data.js';
 import { makePokemonState, generateUid, currentTeam, markDirty } from './state.js';
 import { DB } from './db.js';
-import { parties, selection, field, startBattle } from './sim.js';
+import { parties, selection, field } from './battle-engine.js';
+import { startBattle } from './sim.js';
 import { showToast, buildMiniEditor, openEditorModal, showPokemonDetailModal } from './ui.js';
 
 // ============================================================
