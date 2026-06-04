@@ -379,16 +379,23 @@ function rollHitCount(move, modHits, rollMode, atkPoke) {
   return a + Math.floor(Math.random() * (b - a + 1)); // その他は一様
 }
 
-// 連続技の合計ダメージ。randomは1発ごとに個別乱数
-function rollMultiHitDamage(result, count, rollMode) {
+// 連続技の合計ダメージ。randomは1発ごとに個別乱数。
+// critPer(急所時の1発ダメージテーブル)を渡すと、各ヒットで急所1/24を個別抽選し
+// 急所ヒットだけ急所テーブルから引く。戻り値は { dmg, critHits }
+function rollMultiHitDamage(result, count, rollMode, critPer = null) {
   const per = result.perHitDamages || [result.minDmg];
   const n = per.length;
-  if (result.fixed || rollMode === 'min') return per[0] * count;
-  if (rollMode === 'max') return per[n - 1] * count;
-  if (rollMode === 'avg') return Math.round(per.reduce((s, d) => s + d, 0) / n * count);
-  let total = 0;
-  for (let i = 0; i < count; i++) total += per[Math.floor(Math.random() * n)];
-  return total;
+  if (result.fixed || rollMode === 'min') return { dmg: per[0] * count, critHits: 0 };
+  if (rollMode === 'max') return { dmg: per[n - 1] * count, critHits: 0 };
+  if (rollMode === 'avg') return { dmg: Math.round(per.reduce((s, d) => s + d, 0) / n * count), critHits: 0 };
+  let total = 0, critHits = 0;
+  for (let i = 0; i < count; i++) {
+    const crit = critPer && Math.random() < 1 / 24;
+    const table = crit ? critPer : per;
+    if (crit) critHits++;
+    total += table[Math.floor(Math.random() * table.length)];
+  }
+  return { dmg: total, critHits };
 }
 
 // ===== 追加効果 (secondary / selfEffect) =====
@@ -516,8 +523,9 @@ function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg, flinche
   const defState = { ...defPoke, boosts: { ...defRt.boosts }, currentHP: defRt.hp, status: defRt.status, disguiseIntact: defRt.disguise, _types: defTypes };
 
   // Crit: 手動チェック、または急所率(1/24)抽選（ランダム時のみ）
+  // 連続技は技全体ではなく1発ごとに抽選するため、ここでは引かない(rollMultiHitDamageで処理)
   let isCrit = battle.crit[atkSide];
-  if (!isCrit && simOptions.autoCritRate && battle.rollMode[atkSide] === 'random' && Math.random() < 1/24) isCrit = true;
+  if (!isCrit && simOptions.autoCritRate && battle.rollMode[atkSide] === 'random' && !move.hits && Math.random() < 1/24) isCrit = true;
   const mod = battle.mod[atkSide];
   const faintedCount = battle.rt[atkSide].filter(r => r.hp <= 0).length;
   const calcField = { ...field,
@@ -567,7 +575,7 @@ function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg, flinche
       const defState2 = { ...defState, currentHP: defRt.hp, disguiseIntact: false };
       const r2 = DMG.calculate(atkState, defState2, moveName, calcField);
       if (r2 && !r2.counter && r2.typeEff !== 0) {
-        const rest = rollMultiHitDamage(r2, hitCount - 1, battle.rollMode[atkSide]);
+        const rest = rollMultiHitDamage(r2, hitCount - 1, battle.rollMode[atkSide]).dmg;
         defRt.hp = Math.max(0, defRt.hp - rest);
         if (move.cat === 'Physical' || move.cat === 'Special') turnDmg[defSide][move.cat] += rest;
         addLog(`  残り${hitCount - 1}発 → ${defLabel}に${rest}ダメージ`, false, 'dmg-line');
@@ -581,9 +589,16 @@ function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg, flinche
   const rollMode = battle.rollMode[atkSide];
   let useDmg, rollNote;
   if (move.hits) {
-    // 連続技: 1発ごとに個別乱数で合計
-    useDmg = rollMultiHitDamage(result, hitCount, rollMode);
-    rollNote = ` [${hitCount}発]`;
+    // 連続技: 1発ごとに個別乱数で合計。急所も1発ごとに1/24抽選
+    // (手動の急所チェック時は全弾急所 = resultが既に急所テーブル)
+    let critPer = null;
+    if (!isCrit && simOptions.autoCritRate && rollMode === 'random') {
+      const rc = DMG.calculate(atkState, defState, moveName, { ...calcField, crit: true });
+      if (rc?.perHitDamages && !rc.disguiseConsumed) critPer = rc.perHitDamages;
+    }
+    const mh = rollMultiHitDamage(result, hitCount, rollMode, critPer);
+    useDmg = mh.dmg;
+    rollNote = ` [${hitCount}発${mh.critHits > 0 ? `, 急所${mh.critHits}発!` : ''}]`;
   } else if (result.fixed) {
     // 定数ダメージ: 乱数なし
     useDmg = result.minDmg;

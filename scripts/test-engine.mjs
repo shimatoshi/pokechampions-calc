@@ -255,5 +255,28 @@ simOptions.autoCritRate = false;
   assert((getActiveRt('b').boosts.df || 0) === 0, 'secondary: ちからずくで追加効果消失');
 }
 
+// ===== 17. 連続技の急所: 1発ごとに1/24抽選される =====
+{
+  const origRandom = Math.random;
+  // Math.random=0: 発数2(r<0.35)、各ヒットの急所判定 0<1/24 → 全ヒット急所、ロールは最低
+  Math.random = () => 0;
+  setupBattle([mon('Garchomp', ['Icicle Spear'])], [mon('Azumarill', ['Earthquake'])]);
+  engine.simOptions.autoCritRate = true;
+  engine.battle.rollMode.a = 'random';
+  engine.battle.actions.a = { type: 'move', move: 'Icicle Spear' };
+  engine.battle.actions.b = { type: 'skip' };
+  const before = getActiveRt('b').hp;
+  executeTurn();
+  Math.random = origRandom;
+  engine.simOptions.autoCritRate = false;
+  const log = engine.battle.log.map(e => e.text).join('\n');
+  assert(log.includes('[2発, 急所2発!]'), `multihit-crit: 全ヒット急所 (${log.match(/\[.*?\]/)?.[0]})`);
+  // 急所(1.5倍)が乗っている = 非急所最低ロール×2発より大きい
+  const { DMG } = await import('../static/js/damage.js');
+  const rNorm = DMG.calculate(mon('Garchomp', []), mon('Azumarill', []), 'Icicle Spear', {});
+  const dealt = before - getActiveRt('b').hp;
+  assert(dealt > rNorm.perHitDamages[0] * 2, `multihit-crit: 急所倍率が乗る (${dealt} > ${rNorm.perHitDamages[0] * 2})`);
+}
+
 console.log(failed ? `\n${failed} test(s) FAILED` : '\nall engine tests passed');
 process.exit(failed ? 1 : 0);
