@@ -2,7 +2,7 @@
 import {
   DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT, STAT_JA,
   pokemonNames, buildNatureUI, initNatureUI, updateNatureDisplay,
-  setupSearch, setupItemSearch,
+  setupSearch, setupItemSearch, showToast,
 } from './app.js';
 import { DMG } from './damage.js';
 
@@ -142,17 +142,27 @@ export function setupAbilitySelect(selectEl, wrapEl, state, data) {
   selectEl.onchange = e => { state.ability = e.target.value; };
 }
 
-// ===== MINI POKEMON EDITOR =====
-// Compact editor used in team/threat editing. Renders HTML into containerEl, wires events.
-// Returns nothing; calls onSave(state) when user clicks OK.
-export function buildMiniEditor(containerEl, state, prefix, { title, onSave, onCancel }) {
+// ===== POKEMON EDITOR (shared by team/threat/box/sim) =====
+// Renders the editor card into containerEl and wires all events.
+// options:
+//   title        — heading text
+//   saveLabel    — OK button label (default 'OK')
+//   onSave(state)   — called with DOM-read-back state on OK
+//   onCancel()      — called on cancel
+//   extraButtons — [{ label, style, handler(state) }] 追加アクション(BOXに保存等)。
+//                  handlerにも読み戻し済みstateが渡る
+export function buildMiniEditor(containerEl, state, prefix, { title, saveLabel = 'OK', onSave, onCancel, extraButtons = [] }) {
+  // 古いデータはsp/moves/natureModsを持たないことがある
+  if (!state.sp) state.sp = { hp: 0, at: 0, df: 0, sa: 0, sd: 0, sp: 0 };
+  if (!state.moves) state.moves = ['', '', '', ''];
+  if (!state.natureMods) state.natureMods = { plus: '', minus: '' };
   const moveEntries = getFilteredMoves(state.name);
 
   containerEl.innerHTML = `
     <div class="card" style="border:2px solid var(--accent)">
       <h3>${esc(title)}</h3>
       <div class="search-wrap">
-        <input type="text" id="${prefix}-search" value="${esc(state.name ? ja('pokemon', state.name) : '')}" placeholder="ポケモン名..." autocomplete="off">
+        <input type="text" id="${prefix}-search" value="${esc(state.name ? `${ja('pokemon', state.name)} (${state.name})` : '')}" placeholder="ポケモン名..." autocomplete="off">
         <div class="search-list" id="${prefix}-list"></div>
       </div>
       <div id="${prefix}-info">${state.name ? renderPokemonInfo(state.name, 48) : ''}</div>
@@ -162,27 +172,41 @@ export function buildMiniEditor(containerEl, state, prefix, { title, onSave, onC
         <input type="text" id="${prefix}-item-search" value="${esc(state.item ? ja('items', state.item) : '')}" placeholder="もちもの検索..." autocomplete="off">
         <div class="search-list" id="${prefix}-item-list"></div>
       </div>
-      <label>とくせい</label>
-      <select id="${prefix}-ability"></select>
-      <label>SP配分</label>
-      ${['hp','at','df','sa','sd','sp'].map(stat => `
-        <div class="sp-row">
-          <span class="sp-label">${STAT_SHORT[stat]}</span>
-          <input type="number" id="${prefix}-sp-${stat}" min="0" max="32" value="${state.sp?.[stat] || 0}">
-        </div>
-      `).join('')}
+      <div id="${prefix}-ability-wrap" class="${state.name ? '' : 'hidden'}">
+        <label>とくせい</label>
+        <select id="${prefix}-ability"></select>
+      </div>
+      <label>SP配分 <span id="${prefix}-sp-total" class="sp-total">0/66</span></label>
+      <div id="${prefix}-sp">
+        ${['hp','at','df','sa','sd','sp'].map(stat => `
+          <div class="sp-row">
+            <span class="sp-label">${STAT_SHORT[stat]}</span>
+            <button class="sp-btn" data-side="${prefix}" data-stat="${stat}" data-act="0">0</button>
+            <button class="sp-btn" data-side="${prefix}" data-stat="${stat}" data-act="-">-</button>
+            <input type="number" id="${prefix}-sp-${stat}" min="0" max="32" value="${state.sp?.[stat] || 0}" data-stat="${stat}">
+            <button class="sp-btn" data-side="${prefix}" data-stat="${stat}" data-act="+">+</button>
+            <button class="sp-btn" data-side="${prefix}" data-stat="${stat}" data-act="32">32</button>
+            <span class="sp-val" id="${prefix}-val-${stat}">-</span>
+          </div>
+        `).join('')}
+      </div>
       <label>わざ</label>
       ${[0,1,2,3].map(i => `
         <div class="search-wrap" style="margin-bottom:4px">
-          <input type="text" id="${prefix}-move-${i}" value="${esc(state.moves[i] ? ja('moves', state.moves[i]) : '')}" placeholder="わざ${i+1}..." autocomplete="off">
+          <input type="text" id="${prefix}-move-${i}" value="${esc(state.moves[i] ? `${ja('moves', state.moves[i])} (${state.moves[i]})` : '')}" placeholder="わざ${i+1}..." autocomplete="off">
           <div class="search-list" id="${prefix}-movelist-${i}"></div>
         </div>
       `).join('')}
-      <div class="row mt">
-        <button class="btn" id="${prefix}-ok">OK</button>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn" id="${prefix}-ok" style="flex:1">${esc(saveLabel)}</button>
+        ${extraButtons.map((b, i) => `<button class="btn btn-outline" id="${prefix}-extra-${i}" style="flex:1;${b.style || ''}">${esc(b.label)}</button>`).join('')}
         <button class="btn btn-outline" id="${prefix}-cancel">キャンセル</button>
       </div>
     </div>`;
+  // イベントは毎回作り直されるカード要素に付ける
+  // (再利用されるcontainerElに付けると、再renderのたびに古いstateを掴んだ
+  //  リスナーが積み重なる)
+  const card = containerEl.firstElementChild;
 
   // Pokemon search
   setupSearch(document.getElementById(`${prefix}-search`), document.getElementById(`${prefix}-list`), pokemonNames, name => {
@@ -190,10 +214,11 @@ export function buildMiniEditor(containerEl, state, prefix, { title, onSave, onC
     const p = DATA.pokemon[name];
     if (!p) return;
     document.getElementById(`${prefix}-info`).innerHTML = renderPokemonInfo(name, 48);
-    setupAbilitySelect(document.getElementById(`${prefix}-ability`), null, state, p);
+    setupAbilitySelect(document.getElementById(`${prefix}-ability`), document.getElementById(`${prefix}-ability-wrap`), state, p);
     // Update move candidates
     moveEntries.length = 0;
     getFilteredMoves(name).forEach(m => moveEntries.push(m));
+    updateStatDisplay(prefix, state);
   });
 
   // Nature
@@ -215,21 +240,66 @@ export function buildMiniEditor(containerEl, state, prefix, { title, onSave, onC
 
   // Ability (pre-existing)
   if (state.name && DATA.pokemon[state.name]) {
-    setupAbilitySelect(document.getElementById(`${prefix}-ability`), null, state, DATA.pokemon[state.name]);
+    setupAbilitySelect(document.getElementById(`${prefix}-ability`), document.getElementById(`${prefix}-ability-wrap`), state, DATA.pokemon[state.name]);
   }
 
-  // Save: read back all fields from DOM
-  document.getElementById(`${prefix}-ok`).addEventListener('click', () => {
-    if (!state.name) return;
-    state.item = document.getElementById(`${prefix}-item-search`).dataset?.key || '';
-    state.ability = document.getElementById(`${prefix}-ability`).value;
+  // SP inputs + +/-/0/32 buttons
+  for (const stat of ['hp','at','df','sa','sd','sp']) {
+    document.getElementById(`${prefix}-sp-${stat}`).addEventListener('input', e => {
+      state.sp[stat] = Math.max(0, Math.min(32, parseInt(e.target.value) || 0));
+      updateStatDisplay(prefix, state);
+    });
+  }
+  card.addEventListener('click', e => {
+    const btn = e.target.closest('.sp-btn');
+    if (!btn || btn.dataset.side !== prefix) return;
+    const { stat, act } = btn.dataset;
+    let val = state.sp[stat] || 0;
+    if (act === '+') val = Math.min(32, val + 1);
+    else if (act === '-') val = Math.max(0, val - 1);
+    else if (act === '0') val = 0;
+    else if (act === '32') val = 32;
+    state.sp[stat] = val;
+    document.getElementById(`${prefix}-sp-${stat}`).value = val;
+    updateStatDisplay(prefix, state);
+  });
+
+  updateStatDisplay(prefix, state);
+
+  // Read back all fields from DOM into state
+  const readBack = () => {
+    state.item = document.getElementById(`${prefix}-item-search`).dataset.key || '';
+    const abilSel = document.getElementById(`${prefix}-ability`);
+    if (abilSel && abilSel.value) state.ability = abilSel.value;
     for (const stat of ['hp','at','df','sa','sd','sp'])
       state.sp[stat] = parseInt(document.getElementById(`${prefix}-sp-${stat}`).value) || 0;
-    for (let i = 0; i < 4; i++) {
-      const el = document.getElementById(`${prefix}-move-${i}`);
-      state.moves[i] = el.dataset?.key || el.value || '';
-    }
-    onSave(state);
+    for (let i = 0; i < 4; i++)
+      state.moves[i] = document.getElementById(`${prefix}-move-${i}`).dataset.key || '';
+    return state;
+  };
+
+  document.getElementById(`${prefix}-ok`).addEventListener('click', () => {
+    if (!state.name) { showToast('ポケモンを選択してください'); return; }
+    onSave(readBack());
+  });
+  extraButtons.forEach((b, i) => {
+    document.getElementById(`${prefix}-extra-${i}`).addEventListener('click', () => {
+      if (!state.name) { showToast('ポケモンを選択してください'); return; }
+      b.handler(readBack());
+    });
   });
   document.getElementById(`${prefix}-cancel`).addEventListener('click', onCancel);
+}
+
+// Full-screen modal container for the editor. Returns { modal, inner } —
+// buildMiniEditor renders into inner; close with modal.remove().
+export function openEditorModal(id, parentEl) {
+  let modal = document.getElementById(id);
+  if (!modal) { modal = document.createElement('div'); modal.id = id; parentEl.appendChild(modal); }
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;overflow-y:auto;padding:10px';
+  modal.innerHTML = '';
+  const inner = document.createElement('div');
+  inner.style.cssText = 'max-width:400px;margin:0 auto';
+  modal.appendChild(inner);
+  return { modal, inner };
 }

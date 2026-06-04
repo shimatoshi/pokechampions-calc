@@ -1,13 +1,12 @@
 // Pokemon Champions - Sim Setup/Editor/Selection phases
 import {
-  DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT,
-  pokemonNames, buildNatureUI, initNatureUI,
-  setupSearch, setupItemSearch, showToast, makePokemonState, generateUid,
+  DATA, ja, esc, spriteImg, typeBadge,
+  showToast, makePokemonState, generateUid,
   currentTeam,
 } from './app.js';
 import { DB } from './db.js';
 import { parties, selection, field, startBattle } from './sim.js';
-import { renderPokemonInfo, updateStatDisplay, getFilteredMoves, setupAbilitySelect, showPokemonDetailModal } from './ui.js';
+import { buildMiniEditor, openEditorModal, showPokemonDetailModal } from './ui.js';
 
 // ============================================================
 // PHASE 1: SETUP
@@ -78,149 +77,37 @@ function renderPartySection(side) {
     </div>`;
 }
 
-// ===== EDITOR MODAL =====
+// ===== EDITOR MODAL (共通エディタ buildMiniEditor を使用) =====
 function openEditor(side, idx) {
   const page = document.getElementById('page-sim');
   const isNew = idx < 0;
   const state = isNew ? makePokemonState() : JSON.parse(JSON.stringify(parties[side][idx]));
-  state._moveEntries = getFilteredMoves(state.name);
+  const { modal, inner } = openEditorModal('sim-editor-modal', page);
 
-  let modal = document.getElementById('sim-editor-modal');
-  if (!modal) { modal = document.createElement('div'); modal.id = 'sim-editor-modal'; page.appendChild(modal); }
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;overflow-y:auto;padding:10px';
-  modal.innerHTML = `
-    <div class="card" style="max-width:400px;margin:0 auto">
-      <h3>${isNew ? 'ポケモン追加' : '編集'} (${side === 'a' ? '自分' : '相手'})</h3>
-      <div class="search-wrap">
-        <input type="text" id="ed-search" placeholder="ポケモン名..." autocomplete="off" value="${state.name ? `${ja('pokemon', state.name)} (${state.name})` : ''}">
-        <div class="search-list" id="ed-list"></div>
-      </div>
-      <div id="ed-info"></div>
-      ${buildNatureUI('ed')}
-      <label>もちもの</label>
-      <div class="search-wrap">
-        <input type="text" id="ed-item-search" placeholder="もちもの..." autocomplete="off" value="${state.item ? ja('items', state.item) : ''}">
-        <div class="search-list" id="ed-item-list"></div>
-      </div>
-      <div id="ed-ability-wrap" class="${state.ability ? '' : 'hidden'}">
-        <label>とくせい</label>
-        <select id="ed-ability"></select>
-      </div>
-      <label>SP配分 <span id="ed-sp-total" class="sp-total">0/66</span></label>
-      <div id="ed-sp">
-        ${['hp','at','df','sa','sd','sp'].map(stat => `
-          <div class="sp-row">
-            <span class="sp-label">${STAT_SHORT[stat]}</span>
-            <button class="sp-btn" data-side="ed" data-stat="${stat}" data-act="0">0</button>
-            <button class="sp-btn" data-side="ed" data-stat="${stat}" data-act="-">-</button>
-            <input type="number" id="ed-sp-${stat}" min="0" max="32" value="${state.sp[stat] || 0}" data-stat="${stat}">
-            <button class="sp-btn" data-side="ed" data-stat="${stat}" data-act="+">+</button>
-            <button class="sp-btn" data-side="ed" data-stat="${stat}" data-act="32">32</button>
-            <span class="sp-val" id="ed-val-${stat}">-</span>
-          </div>
-        `).join('')}
-      </div>
-      <label>わざ</label>
-      ${[0,1,2,3].map(i => `
-        <div class="search-wrap" style="margin-bottom:4px">
-          <input type="text" id="ed-move-${i}" placeholder="わざ${i+1}..." autocomplete="off" value="${state.moves[i] ? `${ja('moves', state.moves[i])} (${state.moves[i]})` : ''}">
-          <div class="search-list" id="ed-movelist-${i}"></div>
-        </div>
-      `).join('')}
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <button class="btn" id="ed-save" style="flex:1">${isNew ? '追加' : '保存'}</button>
-        <button class="btn btn-outline" id="ed-box" style="flex:1;border-color:var(--accent2);color:var(--accent2)">BOXに保存</button>
-        <button class="btn btn-outline" id="ed-cancel">キャンセル</button>
-      </div>
-    </div>`;
-
-  // Pokemon search
-  setupSearch(document.getElementById('ed-search'), document.getElementById('ed-list'), pokemonNames, n => {
-    state.name = n;
-    const data = DATA.pokemon[n];
-    if (!data) return;
-    showEdInfo(state);
-    state._moveEntries.length = 0;
-    getFilteredMoves(n).forEach(m => state._moveEntries.push(m));
-    setupAbilitySelect(document.getElementById('ed-ability'), document.getElementById('ed-ability-wrap'), state, data);
-    edUpdateStats(state);
+  buildMiniEditor(inner, state, 'ed', {
+    title: `${isNew ? 'ポケモン追加' : '編集'} (${side === 'a' ? '自分' : '相手'})`,
+    saveLabel: isNew ? '追加' : '保存',
+    onSave: (s) => {
+      delete s._moveEntries; // 旧データの残骸を念のため除去
+      if (isNew) parties[side].push(s);
+      else parties[side][idx] = s;
+      modal.remove();
+      renderSetup();
+    },
+    onCancel: () => modal.remove(),
+    extraButtons: [{
+      label: 'BOXに保存',
+      style: 'border-color:var(--accent2);color:var(--accent2)',
+      handler: async (s) => {
+        const entry = JSON.parse(JSON.stringify(s));
+        delete entry._moveEntries; delete entry.id;
+        if (!entry.uid) entry.uid = generateUid();
+        entry.savedCalcs = []; entry.notes = '';
+        await DB.add('box', entry);
+        showToast(`${ja('pokemon', s.name)} をBOXに追加`);
+      },
+    }],
   });
-
-  // Item
-  const itemEntries = Object.keys(DATA.items).sort().map(k => ({ key: k, ja: ja('items', k) }));
-  const itemInput = document.getElementById('ed-item-search');
-  itemInput.dataset.key = state.item || '';
-  setupItemSearch(itemInput, document.getElementById('ed-item-list'), itemEntries, n => { state.item = n; });
-
-  // Nature
-  initNatureUI('ed', state);
-
-  // Ability (pre-existing)
-  if (state.name && DATA.pokemon[state.name]) {
-    setupAbilitySelect(document.getElementById('ed-ability'), document.getElementById('ed-ability-wrap'), state, DATA.pokemon[state.name]);
-  }
-
-  // Moves
-  for (let i = 0; i < 4; i++) {
-    const inp = document.getElementById(`ed-move-${i}`);
-    inp.dataset.key = state.moves[i] || '';
-    setupSearch(inp, document.getElementById(`ed-movelist-${i}`), state._moveEntries, n => { state.moves[i] = n; });
-  }
-
-  // SP inputs + buttons (event delegation)
-  for (const stat of ['hp','at','df','sa','sd','sp']) {
-    document.getElementById(`ed-sp-${stat}`).addEventListener('input', e => {
-      state.sp[stat] = Math.max(0, Math.min(32, parseInt(e.target.value) || 0));
-      edUpdateStats(state);
-    });
-  }
-  modal.addEventListener('click', e => {
-    const btn = e.target.closest('.sp-btn');
-    if (!btn || btn.dataset.side !== 'ed') return;
-    const { stat, act } = btn.dataset;
-    let val = state.sp[stat] || 0;
-    if (act === '+') val = Math.min(32, val + 1);
-    else if (act === '-') val = Math.max(0, val - 1);
-    else if (act === '0') val = 0;
-    else if (act === '32') val = 32;
-    state.sp[stat] = val;
-    document.getElementById(`ed-sp-${stat}`).value = val;
-    edUpdateStats(state);
-  });
-
-  if (state.name) showEdInfo(state);
-  edUpdateStats(state);
-
-  // Save / Cancel
-  document.getElementById('ed-save').addEventListener('click', () => {
-    if (!state.name) { showToast('ポケモンを選択してください'); return; }
-    const abilSel = document.getElementById('ed-ability');
-    if (abilSel) state.ability = abilSel.value;
-    delete state._moveEntries;
-    if (isNew) parties[side].push(state);
-    else parties[side][idx] = state;
-    modal.remove();
-    renderSetup();
-  });
-  document.getElementById('ed-box').addEventListener('click', async () => {
-    if (!state.name) { showToast('ポケモンを選択してください'); return; }
-    const abilSel = document.getElementById('ed-ability');
-    if (abilSel) state.ability = abilSel.value;
-    const entry = JSON.parse(JSON.stringify(state));
-    delete entry._moveEntries; delete entry.id;
-    if (!entry.uid) entry.uid = generateUid();
-    entry.savedCalcs = []; entry.notes = '';
-    await DB.add('box', entry);
-    showToast(`${ja('pokemon', state.name)} をBOXに追加`);
-  });
-  document.getElementById('ed-cancel').addEventListener('click', () => modal.remove());
-}
-
-function showEdInfo(state) {
-  if (state.name) document.getElementById('ed-info').innerHTML = renderPokemonInfo(state.name, 40);
-}
-
-function edUpdateStats(state) { return updateStatDisplay('ed', state);
 }
 
 // ===== LOAD PARTY =====

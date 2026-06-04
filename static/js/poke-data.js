@@ -90,6 +90,10 @@ export function getMoveAccuracy(moveName, moveData) {
   return 100;
 }
 
+// ===== TYPE NAMES =====
+export const ALL_TYPES = ['Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'];
+export const TYPE_JA = {Normal:'ノーマル',Fire:'ほのお',Water:'みず',Grass:'くさ',Electric:'でんき',Ice:'こおり',Fighting:'かくとう',Poison:'どく',Ground:'じめん',Flying:'ひこう',Psychic:'エスパー',Bug:'むし',Rock:'いわ',Ghost:'ゴースト',Dragon:'ドラゴン',Dark:'あく',Steel:'はがね',Fairy:'フェアリー',Stellar:'ステラ'};
+
 // ===== HELPERS =====
 export function applyBoost(stat, boost) {
   if (boost >= 0) return Math.floor(stat * (2 + boost) / 2);

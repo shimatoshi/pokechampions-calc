@@ -1,6 +1,7 @@
 // Pokemon Champions Calculator - Core (entry point)
 import { DB } from './db.js';
 import { DMG } from './damage.js';
+import { TYPE_JA } from './poke-data.js';
 import { initCalcPage, updateStatDisplay } from './calc.js';
 
 export let DATA = { pokemon: {}, moves: {}, types: {}, natures: {}, items: {} };
@@ -36,8 +37,7 @@ export function spriteImg(name, size = 40) {
 }
 
 export function typeBadge(t) {
-  const typeJa = {Normal:'ノーマル',Fire:'ほのお',Water:'みず',Grass:'くさ',Electric:'でんき',Ice:'こおり',Fighting:'かくとう',Poison:'どく',Ground:'じめん',Flying:'ひこう',Psychic:'エスパー',Bug:'むし',Rock:'いわ',Ghost:'ゴースト',Dragon:'ドラゴン',Dark:'あく',Steel:'はがね',Fairy:'フェアリー',Stellar:'ステラ'};
-  return `<span class="type-badge type-${t}">${typeJa[t]||t}</span>`;
+  return `<span class="type-badge type-${t}">${TYPE_JA[t]||t}</span>`;
 }
 
 export const STAT_JA = {hp:'HP',at:'攻撃',df:'防御',sa:'特攻',sd:'特防',sp:'素早'};

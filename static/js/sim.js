@@ -8,6 +8,7 @@ import { showPokemonDetailModal } from './ui.js';
 import {
   TWO_TURN_MOVES, SKIN_ABILITIES, applyBoost,
   FORCE_SWITCH_MOVES, WEATHER_ROCK, TERRAIN_EXTENDER, getMoveAccuracy,
+  ALL_TYPES, TYPE_JA,
   getRecoilFrac as _getRecoilFrac, getDrainFrac as _getDrainFrac,
   getEffectiveMoveType as _getEffectiveMoveType,
 } from './poke-data.js';
@@ -517,9 +518,6 @@ function renderBattleSide(side) {
       ${renderModPanel(side, poke)}
     </div>`;
 }
-
-const ALL_TYPES = ['Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'];
-const TYPE_JA = {Normal:'ノーマル',Fire:'ほのお',Water:'みず',Grass:'くさ',Electric:'でんき',Ice:'こおり',Fighting:'かくとう',Poison:'どく',Ground:'じめん',Flying:'ひこう',Psychic:'エスパー',Bug:'むし',Rock:'いわ',Ghost:'ゴースト',Dragon:'ドラゴン',Dark:'あく',Steel:'はがね',Fairy:'フェアリー'};
 
 function renderModPanel(side, poke) {
   const mod = battle.mod[side];
