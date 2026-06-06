@@ -24,6 +24,7 @@ async function renderTeamList() {
       <div class="row" style="align-items:center;gap:4px">
         <h3 style="flex:1;margin:0">チーム一覧</h3>
         <button class="btn btn-sm" id="tl-new">+ 新規</button>
+        <button class="btn btn-sm btn-outline" id="tl-random">🎲 抽選</button>
         <button class="btn btn-sm btn-outline" id="tl-import">インポート</button>
         <input type="file" id="tl-import-file" accept=".json" class="hidden">
       </div>
@@ -47,6 +48,11 @@ async function renderTeamList() {
   document.getElementById('tl-new').addEventListener('click', () => {
     setCurrentTeam({ id: null, name: '新チーム', members: [], notes: '' });
     renderTeamDetail();
+  });
+  document.getElementById('tl-random').addEventListener('click', () => {
+    setCurrentTeam(generateRandomTeam());
+    renderTeamDetail();
+    showToast('6匹を抽選しました（保存するまで未確定）');
   });
   document.getElementById('tl-import').addEventListener('click', () => document.getElementById('tl-import-file').click());
   document.getElementById('tl-import-file').addEventListener('change', async e => {
@@ -112,6 +118,42 @@ async function renderTeamList() {
       restoreStateToUI('def', defState);
     });
   });
+}
+
+// ===== ランダムチーム生成 =====
+// メガシンカと戦闘中フォルムチェンジは抽選対象外（実際に選出できる姿のみ）
+const RANDOM_EXCLUDE = new Set([
+  'Aegislash-Blade', 'Aegislash-Shield',  // ベースのAegislashのみ
+  'Morpeko-Hangry', 'Palafin-Hero',       // 戦闘中フォルム
+  'Maushold-Four',                        // Mausholdと実質重複
+]);
+
+function pickRandom(arr) {
+  const i = Math.floor(Math.random() * arr.length);
+  return arr.splice(i, 1)[0];
+}
+
+function generateRandomTeam() {
+  const pool = Object.keys(DATA.pokemon).filter(n => !n.startsWith('Mega ') && !RANDOM_EXCLUDE.has(n));
+  const members = [];
+  for (let k = 0; k < 6 && pool.length > 0; k++) {
+    const name = pickRandom(pool);
+    const p = DATA.pokemon[name];
+    const m = makePokemonState();
+    m.uid = generateUid();
+    m.name = name;
+    m.ability = p.abilities?.length ? p.abilities[Math.floor(Math.random() * p.abilities.length)] : '';
+    // 技: 攻撃技3 + 自由枠1（そのままシミュ/ダメ計で使える構成にする）
+    const known = (p.learnset || []).filter(mv => DATA.moves[mv]);
+    const attacks = known.filter(mv => (DATA.moves[mv].bp || 0) > 0);
+    const others = known.filter(mv => !(DATA.moves[mv].bp > 0));
+    let slot = 0;
+    while (slot < 3 && attacks.length > 0) m.moves[slot++] = pickRandom(attacks);
+    const rest = attacks.concat(others);
+    while (slot < 4 && rest.length > 0) m.moves[slot++] = pickRandom(rest);
+    members.push(m);
+  }
+  return { id: null, name: 'ランダムチーム', members, notes: '' };
 }
 
 function renderTeamRow(team) {
