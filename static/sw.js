@@ -1,8 +1,8 @@
-// v30: マルチスケイルがHP満タン以外でも半減していたのを修正
+// v31: ランダムチーム抽選機能 + スプライトをlossless WebP化（古いGPUでのネガ反転対策）
 // 配信戦略: アプリ本体(JS/CSS/HTML)はこのCACHEバージョンのスナップショットからのみ配信し、
 // SW更新時に一括差し替え(+クライアント側でcontrollerchangeリロード)。
 // 個別ファイルが裏でバラバラに更新されて新旧モジュールが混在する事故を根絶する。
-const CACHE = 'pokechamp-v30';
+const CACHE = 'pokechamp-v31';
 
 const PRECACHE = [
   './',
