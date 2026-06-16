@@ -102,6 +102,7 @@ function renderBoxSlot(b) {
       <div style="display:flex;align-items:flex-start;gap:6px">
         ${spriteImg(b.name, 40)}
         <div style="flex:1;min-width:0">
+          ${b.nickname ? `<div style="font-size:.95rem;font-weight:700;color:var(--accent);line-height:1.2">${esc(b.nickname)}</div>` : ''}
           ${b.uid ? `<div style="font-size:.55rem;color:var(--fg2);font-family:monospace">ID: ${esc(b.uid.slice(0,8))}</div>` : ''}
           ${showdownHTML(b)}
         </div>
@@ -129,7 +130,8 @@ function renderBoxSlot(b) {
           </div>
         </div>` : ''}
       <div style="margin-top:4px">
-        <textarea class="box-notes" data-id="${b.id}" rows="2" placeholder="メモ（調整意図、立ち回り等）" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:4px;font-size:.7rem;resize:vertical">${esc(b.notes||'')}</textarea>
+        <label style="display:block;font-size:.65rem;color:var(--fg2);margin-bottom:2px">📝 メモ（調整意図・立ち回り・対面の判断など）</label>
+        <textarea class="box-notes" data-id="${b.id}" rows="5" placeholder="例: HB特化で○○の△△確定耐え。先発から起点作り。○○には引く。" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:8px;font-size:.85rem;line-height:1.5;resize:vertical;min-height:5em">${esc(b.notes||'')}</textarea>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-top:2px">
         <button class="btn btn-sm btn-danger box-del" style="font-size:.6rem;padding:2px 6px">削除</button>

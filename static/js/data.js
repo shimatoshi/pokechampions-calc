@@ -57,7 +57,10 @@ export function toShowdownText(poke) {
   if (!p) return '';
   const jaName = ja('pokemon', poke.name);
   const itemStr = poke.item ? ` @ ${ja('items', poke.item)}` : '';
-  const lines = [`${jaName}${itemStr}`];
+  // Showdown標準の "ニックネーム (種族名)" 形式。ニックが無い/種族名と同じなら種族名のみ
+  const nick = (poke.nickname || '').trim();
+  const head = nick && nick !== jaName ? `${nick} (${jaName})` : jaName;
+  const lines = [`${head}${itemStr}`];
 
   // Ability
   if (poke.ability) lines.push(`特性: ${ja('abilities', poke.ability) || poke.ability}`);

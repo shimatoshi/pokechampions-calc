@@ -23,6 +23,7 @@ export function generateUid() {
 export function makePokemonState() {
   return {
     uid: null,        // 個体ID: BOX登録時に発行、チーム・ダメ計で一貫参照
+    nickname: '',     // 任意のニックネーム（個体の識別・役割メモ用）
     name: '',
     natureMods: { plus: '', minus: '' },
     sp: { hp: 0, at: 0, df: 0, sa: 0, sd: 0, sp: 0 },

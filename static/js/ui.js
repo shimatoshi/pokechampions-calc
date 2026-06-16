@@ -372,6 +372,8 @@ export function buildMiniEditor(containerEl, state, prefix, { title, saveLabel =
         <div class="search-list" id="${prefix}-list"></div>
       </div>
       <div id="${prefix}-info">${state.name ? renderPokemonInfo(state.name, 48) : ''}</div>
+      <label>ニックネーム（任意）</label>
+      <input type="text" id="${prefix}-nickname" value="${esc(state.nickname || '')}" placeholder="例: 物理受けカバ / 起点作りエルフ" autocomplete="off" maxlength="24">
       ${buildNatureUI(prefix)}
       <label>もちもの</label>
       <div class="search-wrap">
@@ -474,6 +476,7 @@ export function buildMiniEditor(containerEl, state, prefix, { title, saveLabel =
 
   // Read back all fields from DOM into state
   const readBack = () => {
+    state.nickname = document.getElementById(`${prefix}-nickname`).value.trim();
     state.item = document.getElementById(`${prefix}-item-search`).dataset.key || '';
     const abilSel = document.getElementById(`${prefix}-ability`);
     if (abilSel && abilSel.value) state.ability = abilSel.value;
