@@ -1,10 +1,11 @@
+// v35: コミュニティ共有 — BOX/編成データを共有サーバー(pixel5/Tunnel, url-board解決)へ投稿&取得
 // v34: アップデート対応 — 新ポケモン22体＋メガ16形態＋新アイテム/特性を追加
 // v33: 個体ニックネーム対応＋BOXメモ欄を拡大
 // v32: スプライト全277枚＋アイコンをプリキャッシュ（オフライン時にドットが出ない不具合を修正）
 // 配信戦略: アプリ本体(JS/CSS/HTML)はこのCACHEバージョンのスナップショットからのみ配信し、
 // SW更新時に一括差し替え(+クライアント側でcontrollerchangeリロード)。
 // 個別ファイルが裏でバラバラに更新されて新旧モジュールが混在する事故を根絶する。
-const CACHE = 'pokechamp-v34';
+const CACHE = 'pokechamp-v35';
 
 const APP_PRECACHE = [
   './',
@@ -390,6 +391,9 @@ const APP_SHELL_RE = /\.(?:js|css|html)$|\/$/;
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
+  // 第三者オリジン(共有サーバー / url-board / Cloudflare Tunnel 等)はSWを介さず直接ネットワークへ。
+  // 投稿直後に古い一覧がキャッシュから返る事故を防ぎ、動的エンドポイント解決も常に最新にする。
+  if (url.origin !== location.origin) return;
   const isShell = url.origin === location.origin && APP_SHELL_RE.test(url.pathname);
   e.respondWith((async () => {
     const cached = await caches.match(e.request);
