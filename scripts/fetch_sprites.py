@@ -78,9 +78,12 @@ def main():
     pokemon = json.loads((ROOT / 'static/data/data_pokemon.json').read_text())
     OUT.mkdir(parents=True, exist_ok=True)
     ok, failed = 0, []
+    skip_existing = '--missing-only' in sys.argv
     for name in pokemon:
         slug = slugify(name)
         dest = OUT / f'{slug}.webp'
+        if skip_existing and dest.exists():
+            continue
         png_url = None
         for cand in api_candidates(name):
             raw = fetch(API + cand)

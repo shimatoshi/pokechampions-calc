@@ -160,6 +160,8 @@ export const DMG = (() => {
       if (aAbil === 'Torrent' && move.type === 'Water') bp = Math.floor(bp * 1.5);
       if (aAbil === 'Swarm' && move.type === 'Bug') bp = Math.floor(bp * 1.5);
     }
+    // Fire Mane (Mega Pyroar): 常時ほのお技1.5倍（Blazeと違いHP条件なし）
+    if (aAbil === 'Fire Mane' && move.type === 'Fire') bp = Math.floor(bp * 1.5);
 
     return bp;
   }
@@ -211,7 +213,7 @@ export const DMG = (() => {
 
   function checkImmunity(dAbil, moveName, effectiveMoveType, isPhysical, bp, atkStats, defStats, hasHazards) {
     const args = [moveName, effectiveMoveType, bp, atkStats, defStats, dAbil];
-    if (dAbil === 'Levitate' && effectiveMoveType === 'Ground') return makeImmune(...args);
+    if ((dAbil === 'Levitate' || dAbil === 'Eelevate') && effectiveMoveType === 'Ground') return makeImmune(...args);
     if (dAbil === 'Flash Fire' && effectiveMoveType === 'Fire') return makeImmune(...args);
     if ((dAbil === 'Water Absorb' || dAbil === 'Storm Drain') && effectiveMoveType === 'Water') return makeImmune(...args);
     if ((dAbil === 'Volt Absorb' || dAbil === 'Lightning Rod' || dAbil === 'Motor Drive') && effectiveMoveType === 'Electric') return makeImmune(...args);
