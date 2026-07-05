@@ -37,6 +37,11 @@ function renderRecord(r) {
       ${r.myTeam ? `<div style="font-size:.75rem;color:var(--fg2);margin-top:2px">自分: ${esc(r.myTeam)}</div>` : ''}
       ${r.oppTeam ? `<div style="font-size:.75rem;color:var(--fg2)">相手: ${esc(r.oppTeam)}</div>` : ''}
       ${r.notes ? `<div class="notes">${esc(r.notes)}</div>` : ''}
+      ${r.log ? `
+      <details style="margin-top:4px">
+        <summary style="font-size:.7rem;color:var(--fg2);cursor:pointer">バトルログ (${r.log.split('\n').length}行)</summary>
+        <pre style="font-size:.65rem;line-height:1.5;white-space:pre-wrap;max-height:300px;overflow-y:auto;background:var(--bg);border-radius:4px;padding:6px;margin-top:4px">${esc(r.log)}</pre>
+      </details>` : ''}
       <div class="record-actions">
         <button class="btn btn-sm btn-outline" data-action="edit" data-id="${r.id}">編集</button>
         <button class="btn btn-sm btn-danger" data-action="delete" data-id="${r.id}">削除</button>

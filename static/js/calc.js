@@ -536,6 +536,13 @@ function runCalc() {
         ${r.berryActive ? `<div style="font-size:.75rem;color:var(--ok)">${ja('items', r.berryItem)}で半減</div>` : ''}
         ${r.atkRecoil ? `<div style="font-size:.75rem;color:var(--fg2)">${r.atkRecoil}</div>` : ''}
         <div class="effectiveness">${effText}</div>
+        ${r.breakdown && r.breakdown.length ? `
+        <details style="margin-top:4px;text-align:left">
+          <summary style="font-size:.7rem;color:var(--fg2);cursor:pointer">計算内訳</summary>
+          <div style="font-size:.7rem;color:var(--fg2);padding:4px 0 0 8px;line-height:1.6">
+            ${r.breakdown.map(l => `<div>・${esc(l)}</div>`).join('')}
+          </div>
+        </details>` : ''}
         <div class="row" style="gap:4px;margin-top:6px;flex-wrap:wrap;justify-content:center">
           ${r.disguiseConsumed
             ? `<button class="btn btn-sm next-hit" data-move="${esc(moveName)}" data-consume-disguise="1" style="font-size:.75rem;padding:3px 10px">ばけのかわを消費して進む</button>`

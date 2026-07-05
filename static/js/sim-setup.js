@@ -8,6 +8,9 @@ import { parties, selection, field } from './battle-engine.js';
 import { startBattle } from './sim.js';
 import { showToast, buildMiniEditor, openEditorModal, showPokemonDetailModal } from './ui.js';
 
+// 読込元チームの記憶: パーティ保存時に「更新 or 新規」を選べるようにする
+const loadedTeam = { a: null, b: null }; // { id, name } | null
+
 // ============================================================
 // PHASE 1: SETUP
 // ============================================================
@@ -167,8 +170,14 @@ async function openPartyLoadPicker(side) {
   picker.querySelectorAll('.pick-team').forEach(el => {
     el.addEventListener('click', async () => {
       let teamMembers;
-      if (el.dataset.src === 'current') teamMembers = members;
-      else { const t = teams.find(t => t.id === parseInt(el.dataset.id)); teamMembers = t?.members || []; }
+      if (el.dataset.src === 'current') {
+        teamMembers = members;
+        loadedTeam[side] = currentTeam?.id ? { id: currentTeam.id, name: currentTeam.name } : null;
+      } else {
+        const t = teams.find(t => t.id === parseInt(el.dataset.id));
+        teamMembers = t?.members || [];
+        loadedTeam[side] = t ? { id: t.id, name: t.name } : null;
+      }
       parties[side].length = 0;
       teamMembers.forEach(m => parties[side].push(JSON.parse(JSON.stringify(m))));
       picker.remove(); renderSetup();
@@ -191,11 +200,40 @@ async function openPartyLoadPicker(side) {
 
 async function savePartyAsTeam(side) {
   if (parties[side].length === 0) return;
-  const teamName = `SIM_${side === 'a' ? '自分' : '相手'}_${new Date().toLocaleDateString('ja')}`;
-  const team = { name: teamName, members: parties[side].map(p => { const c = JSON.parse(JSON.stringify(p)); delete c._moveEntries; if (!c.uid) c.uid = generateUid(); return c; }), notes: '', updatedAt: Date.now() };
-  await DB.add('teams', team);
-  markDirty('team');
-  showToast(`「${teamName}」をチームに保存`);
+  const cleanMembers = () => parties[side].map(p => { const c = JSON.parse(JSON.stringify(p)); delete c._moveEntries; if (!c.uid) c.uid = generateUid(); return c; });
+
+  const saveNew = async () => {
+    const teamName = `SIM_${side === 'a' ? '自分' : '相手'}_${new Date().toLocaleDateString('ja')}`;
+    await DB.add('teams', { name: teamName, members: cleanMembers(), notes: '', updatedAt: Date.now() });
+    markDirty('team');
+    showToast(`「${teamName}」をチームに保存`);
+  };
+
+  const src = loadedTeam[side];
+  const srcTeam = src ? await DB.get('teams', src.id) : null;
+  if (!srcTeam) { await saveNew(); return; }
+
+  // 読込元があるときは 更新 or 新規 を選ばせる (似たようなパーティが無限に増えるのを防ぐ)
+  const page = document.getElementById('page-sim');
+  const { modal, inner } = openEditorModal('sim-save-choice', page);
+  inner.innerHTML = `
+    <div class="card" style="margin-top:20vh">
+      <h3 style="margin:0 0 8px">パーティ保存</h3>
+      <p style="font-size:.75rem;color:var(--fg2);margin:0 0 10px">このパーティは「${esc(srcTeam.name)}」から読み込んだもの。どう保存する？</p>
+      <button class="btn" id="psv-update" style="width:100%;margin-bottom:6px">「${esc(srcTeam.name)}」を更新</button>
+      <button class="btn btn-outline" id="psv-new" style="width:100%;margin-bottom:6px">新規チームとして保存 (バックアップ)</button>
+      <button class="btn btn-outline" id="psv-cancel" style="width:100%;color:var(--fg2)">キャンセル</button>
+    </div>`;
+  inner.querySelector('#psv-update').addEventListener('click', async () => {
+    srcTeam.members = cleanMembers();
+    srcTeam.updatedAt = Date.now();
+    await DB.put('teams', srcTeam);
+    markDirty('team');
+    modal.remove();
+    showToast(`「${srcTeam.name}」を更新した`);
+  });
+  inner.querySelector('#psv-new').addEventListener('click', async () => { await saveNew(); modal.remove(); });
+  inner.querySelector('#psv-cancel').addEventListener('click', () => modal.remove());
 }
 
 // ============================================================

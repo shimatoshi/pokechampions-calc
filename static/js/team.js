@@ -5,7 +5,7 @@ import {
 } from './data.js';
 import {
   atkState, defState, makePokemonState, generateUid,
-  currentTeam, setCurrentTeam,
+  currentTeam, setCurrentTeam, markDirty,
 } from './state.js';
 import { DB } from './db.js';
 import { selectPokemon, initCalcPage } from './calc.js';
@@ -182,6 +182,7 @@ async function renderTeamDetail() {
         <button class="btn btn-sm btn-outline" id="td-back">← 一覧</button>
         <input type="text" id="team-name" value="${esc(currentTeam.name)}" style="font-weight:700;font-size:1rem;flex:1">
         <button class="btn btn-sm" id="team-save">保存</button>
+        ${currentTeam.id ? '<button class="btn btn-sm btn-outline" id="team-save-copy" title="現在の内容を別チームとして保存">複製保存</button>' : ''}
       </div>
     </div>
     <div class="team-sprites-bar">
@@ -219,6 +220,7 @@ async function renderTeamDetail() {
   document.getElementById('team-name').addEventListener('change', e => currentTeam.name = e.target.value);
   document.getElementById('team-notes').addEventListener('input', e => currentTeam.notes = e.target.value);
   document.getElementById('team-save')?.addEventListener('click', saveTeam);
+  document.getElementById('team-save-copy')?.addEventListener('click', saveTeamAsCopy);
   document.getElementById('team-add')?.addEventListener('click', () => openTeamEditor(-1));
   document.getElementById('team-add-from-box')?.addEventListener('click', openAddFromBox);
   document.getElementById('team-copy-sd')?.addEventListener('click', () => {
@@ -255,6 +257,20 @@ async function renderTeamDetail() {
       selectPokemon('atk', atkState.name);
       restoreStateToUI('atk', atkState);
     });
+    slot.querySelector('.to-box-btn')?.addEventListener('click', async e => {
+      e.stopPropagation();
+      const m = currentTeam.members[idx];
+      const boxAll = await DB.getAll('box');
+      if (m.uid && boxAll.find(b => b.uid === m.uid)) { showToast('同じ個体がBOXに存在します'); return; }
+      const entry = JSON.parse(JSON.stringify(m));
+      delete entry.id; delete entry._moveEntries;
+      if (!entry.uid) { entry.uid = generateUid(); m.uid = entry.uid; }
+      entry.savedCalcs = entry.savedCalcs || [];
+      entry.notes = entry.notes || '';
+      await DB.add('box', entry);
+      markDirty('box');
+      showToast(`${ja('pokemon', m.name)} をBOXに追加`);
+    });
   });
 }
 
@@ -274,6 +290,7 @@ function renderTeamSlot(member, idx) {
           <div style="font-weight:700">${esc(ja('pokemon', member.name))} ${types}</div>
         </div>
         <button class="btn btn-sm to-calc-btn" style="font-size:.6rem;padding:2px 6px">ダメ計</button>
+        <button class="btn btn-sm btn-outline to-box-btn" style="font-size:.6rem;padding:2px 6px;border-color:var(--accent2);color:var(--accent2)">BOX</button>
         <button class="btn btn-sm btn-outline edit-btn">編集</button>
         <button class="btn btn-sm btn-danger del-btn">×</button>
       </div>
@@ -394,4 +411,20 @@ async function saveTeam() {
   const id = await DB.put('teams', team);
   if (!currentTeam.id) currentTeam.id = id;
   showToast('保存しました');
+}
+
+// 現在の内容を元チームに触れず別チームとして保存（バックアップ用途）
+async function saveTeamAsCopy() {
+  const name = `${currentTeam.name} (複製)`;
+  const team = {
+    name,
+    members: JSON.parse(JSON.stringify(currentTeam.members)),
+    notes: currentTeam.notes || '',
+    updatedAt: Date.now(),
+  };
+  const id = await DB.add('teams', team);
+  // 以後の編集は複製側を触る (元チームは保存時点のまま残る)
+  setCurrentTeam({ id, name, members: team.members, notes: team.notes });
+  renderTeamDetail();
+  showToast(`「${name}」として保存 (元チームは保持)`);
 }

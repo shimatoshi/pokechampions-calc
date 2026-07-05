@@ -4,16 +4,22 @@ import {
 } from './data.js';
 import { atkState, currentTeam, makePokemonState, generateUid, markDirty } from './state.js';
 import { DB } from './db.js';
+import { DMG } from './damage.js';
 import { selectPokemon, initCalcPage } from './calc.js';
-import { switchPage, showToast, restoreStateToUI, buildMiniEditor, openEditorModal } from './ui.js';
+import { switchPage, showToast, restoreStateToUI, buildMiniEditor, openEditorModal, showPokemonDetailModal } from './ui.js';
+
+// 表示モード: 'list' | 'grid' (実際のゲームのボックス風 6列×5行)
+const BOX_VIEW_KEY = 'pokechamp_box_view';
 
 export async function renderBoxPage() {
   const boxAll = await DB.getAll('box');
+  const view = localStorage.getItem(BOX_VIEW_KEY) || 'list';
   const page = document.getElementById('page-box');
   page.innerHTML = `
     <div class="card">
       <div class="row" style="align-items:center;gap:4px;flex-wrap:wrap">
         <h3 style="flex:1;margin:0">BOX (${boxAll.length}匹)</h3>
+        <button class="btn btn-sm btn-outline" id="box-view-toggle">${view === 'grid' ? '📃 リスト' : '🗃 グリッド'}</button>
         <button class="btn btn-sm" id="box-add-new" style="background:var(--accent2)">＋追加</button>
         <button class="btn btn-sm" id="box-export">エクスポート</button>
         <button class="btn btn-sm btn-outline" id="box-import">インポート</button>
@@ -27,10 +33,14 @@ export async function renderBoxPage() {
     </div>
     <div id="box-list">
       ${boxAll.length === 0 ? '<div class="card"><p style="text-align:center;color:var(--fg2)">BOXは空です。上の「＋追加」からポケモンを登録できます</p></div>' : ''}
-      ${boxAll.map(b => renderBoxSlot(b)).join('')}
+      ${view === 'grid' ? renderBoxGrid(boxAll) : boxAll.map(b => renderBoxSlot(b)).join('')}
     </div>
   `;
 
+  document.getElementById('box-view-toggle').addEventListener('click', () => {
+    localStorage.setItem(BOX_VIEW_KEY, view === 'grid' ? 'list' : 'grid');
+    renderBoxPage();
+  });
   document.getElementById('box-add-new').addEventListener('click', () => openBoxEditor());
   document.getElementById('box-export').addEventListener('click', exportData);
   document.getElementById('box-import').addEventListener('click', () => document.getElementById('box-import-file').click());
@@ -38,12 +48,51 @@ export async function renderBoxPage() {
   document.getElementById('box-publish').addEventListener('click', openPublishModal);
   document.getElementById('box-fetch').addEventListener('click', openServerBrowseModal);
 
+  if (view === 'grid') {
+    page.querySelectorAll('.box-grid-cell').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const b = boxAll.find(x => x.id === parseInt(cell.dataset.id));
+        if (!b) return;
+        showPokemonDetailModal(b, null, [
+          { label: '✏ 編集', handler: (p, close) => { close(); openBoxEditor(b); } },
+          {
+            label: '⚔ ダメ計へ',
+            handler: (p, close) => {
+              close();
+              Object.assign(atkState, JSON.parse(JSON.stringify(b)));
+              switchPage('calc');
+              initCalcPage();
+              selectPokemon('atk', atkState.name);
+              restoreStateToUI('atk', atkState);
+            },
+          },
+        ]);
+      });
+    });
+    return; // グリッド表示ではリスト用の配線は不要
+  }
+
   page.querySelectorAll('.box-entry').forEach(entry => {
     const id = parseInt(entry.dataset.id);
     entry.querySelector('.box-detail-toggle')?.addEventListener('click', e => {
       e.stopPropagation();
       const detail = entry.querySelector('.box-detail');
       detail?.classList.toggle('hidden');
+    });
+    // メガ前後の実数値切替タブ
+    entry.querySelectorAll('.box-forme-tab').forEach(tab => {
+      tab.addEventListener('click', e => {
+        e.stopPropagation();
+        const b = boxAll.find(x => x.id === id);
+        if (!b) return;
+        const st = DMG.getStats({ ...b, name: tab.dataset.forme }) || {};
+        const L = [['hp','H'],['at','A'],['df','B'],['sa','C'],['sd','D'],['sp','S']];
+        const line = entry.querySelector('.box-forme-stats');
+        if (line) line.innerHTML = L.map(([k, l]) => `<span style="white-space:nowrap"><span style="color:var(--fg2)">${l}</span>${st[k] ?? '-'}</span>`).join(' ');
+        entry.querySelectorAll('.box-forme-tab').forEach(t => { t.style.background = 'var(--bg)'; t.style.color = 'var(--fg2)'; });
+        tab.style.background = 'var(--accent2)';
+        tab.style.color = '#fff';
+      });
     });
     entry.querySelector('.box-edit')?.addEventListener('click', e => {
       e.stopPropagation();
@@ -99,6 +148,48 @@ export async function renderBoxPage() {
   });
 }
 
+// ===== グリッド表示 (実ゲームのボックス風: 1ボックス=6列×5行=30匹) =====
+function renderBoxGrid(boxAll) {
+  if (boxAll.length === 0) return '';
+  const chunks = [];
+  for (let i = 0; i < boxAll.length; i += 30) chunks.push(boxAll.slice(i, i + 30));
+  return chunks.map((chunk, ci) => `
+    <div class="card" style="padding:6px">
+      <div style="font-size:.75rem;font-weight:700;color:var(--fg2);margin-bottom:4px">ボックス ${ci + 1}</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:3px">
+        ${chunk.map(b => `
+          <div class="box-grid-cell" data-id="${b.id}" style="text-align:center;background:var(--bg);border:1px solid var(--bg3);border-radius:6px;padding:3px 1px;cursor:pointer">
+            ${spriteImg(b.name, 40)}
+            <div style="font-size:.5rem;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.nickname || ja('pokemon', b.name))}</div>
+          </div>`).join('')}
+        ${Array.from({ length: 30 - chunk.length }, () => '<div style="background:var(--bg);border:1px dashed var(--bg3);border-radius:6px;min-height:52px;opacity:.4"></div>').join('')}
+      </div>
+    </div>`).join('');
+}
+
+// 実数値行: メガ前後をタブで切替できる
+function renderStatLine(b) {
+  const data = DATA.pokemon[b.name];
+  if (!data) return '';
+  const formes = (data.formes || []).length > 1 ? data.formes : [b.name];
+  const statsFor = name => DMG.getStats({ ...b, name }) || {};
+  const STAT_LABELS = [['hp','H'],['at','A'],['df','B'],['sa','C'],['sd','D'],['sp','S']];
+  const row = name => {
+    const st = statsFor(name);
+    return STAT_LABELS.map(([k, l]) => `<span style="white-space:nowrap"><span style="color:var(--fg2)">${l}</span>${st[k] ?? '-'}</span>`).join(' ');
+  };
+  if (formes.length === 1) {
+    return `<div class="box-statline" style="font-size:.7rem;font-family:monospace;margin-top:2px">${row(b.name)}</div>`;
+  }
+  return `
+    <div class="box-statline" style="margin-top:2px" data-id="${b.id}">
+      <div style="display:flex;gap:2px;margin-bottom:1px">
+        ${formes.map((f, i) => `<button class="box-forme-tab" data-forme="${esc(f)}" style="font-size:.55rem;padding:1px 6px;border-radius:3px;border:1px solid var(--bg3);background:${i === 0 ? 'var(--accent2)' : 'var(--bg)'};color:${i === 0 ? '#fff' : 'var(--fg2)'}">${esc(ja('pokemon', f))}</button>`).join('')}
+      </div>
+      <div class="box-forme-stats" style="font-size:.7rem;font-family:monospace">${row(formes[0])}</div>
+    </div>`;
+}
+
 function renderBoxSlot(b) {
   const p = DATA.pokemon[b.name];
   const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
@@ -112,6 +203,7 @@ function renderBoxSlot(b) {
           ${b.nickname ? `<div style="font-size:.95rem;font-weight:700;color:var(--accent);line-height:1.2">${esc(b.nickname)}</div>` : ''}
           ${b.uid ? `<div style="font-size:.55rem;color:var(--fg2);font-family:monospace">ID: ${esc(b.uid.slice(0,8))}</div>` : ''}
           ${showdownHTML(b)}
+          ${renderStatLine(b)}
         </div>
         <div style="display:flex;flex-direction:column;gap:2px">
           <button class="btn btn-sm box-to-calc" style="font-size:.6rem;padding:2px 6px">ダメ計</button>

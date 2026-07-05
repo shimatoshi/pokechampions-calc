@@ -61,6 +61,46 @@ export const MOVE_EFFECTS = {
     note: ({ field }) => field?.terrain === 'Electric' ? 'エレキフィールドで威力2倍' : '',
   },
 
+  // ===== 動的威力技 (速度比/体重/残りHPで威力が決まる) =====
+  // ctx追加フィールド: atkSpe/defSpe(ランク込み実数値), atkW/defW(kg), defCurHP/defMaxHP
+  'Gyro Ball': {
+    bp: (bp, { atkSpe, defSpe }) => atkSpe > 0 ? Math.min(150, Math.floor(25 * defSpe / atkSpe) + 1) : 1,
+    note: '相手が速いほど高威力 (S比で最大150)',
+  },
+  'Electro Ball': {
+    bp: (bp, { atkSpe, defSpe }) => {
+      const r = defSpe > 0 ? atkSpe / defSpe : 4;
+      return r >= 4 ? 150 : r >= 3 ? 120 : r >= 2 ? 80 : r >= 1 ? 60 : 40;
+    },
+    note: '自分が速いほど高威力 (S比で40〜150)',
+  },
+  'Heavy Slam': {
+    bp: (bp, { atkW, defW }) => {
+      const r = defW > 0 ? atkW / defW : 5;
+      return r >= 5 ? 120 : r >= 4 ? 100 : r >= 3 ? 80 : r >= 2 ? 60 : 40;
+    },
+    note: '体重比で威力40〜120',
+  },
+  'Heat Crash': {
+    bp: (bp, { atkW, defW }) => {
+      const r = defW > 0 ? atkW / defW : 5;
+      return r >= 5 ? 120 : r >= 4 ? 100 : r >= 3 ? 80 : r >= 2 ? 60 : 40;
+    },
+    note: '体重比で威力40〜120',
+  },
+  'Grass Knot': {
+    bp: (bp, { defW }) => defW >= 200 ? 120 : defW >= 100 ? 100 : defW >= 50 ? 80 : defW >= 25 ? 60 : defW >= 10 ? 40 : 20,
+    note: '相手が重いほど高威力 (20〜120)',
+  },
+  'Low Kick': {
+    bp: (bp, { defW }) => defW >= 200 ? 120 : defW >= 100 ? 100 : defW >= 50 ? 80 : defW >= 25 ? 60 : defW >= 10 ? 40 : 20,
+    note: '相手が重いほど高威力 (20〜120)',
+  },
+  'Hard Press': {
+    bp: (bp, { defCurHP, defMaxHP }) => Math.max(1, Math.floor(100 * defCurHP / (defMaxHP || 1))),
+    note: '相手の残りHPが多いほど高威力 (最大100)',
+  },
+
   // ===== 相性補正 =====
   'Freeze-Dry': {
     typeEff: (eff, { defTypes }) => defTypes.includes('Water') ? eff * 4 : eff, // 水半減(0.5)→抜群(2)で実質×4

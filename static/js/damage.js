@@ -136,10 +136,10 @@ export const DMG = (() => {
 
   // ===== PHASE 2: Resolve BP (move-specific + ability modifiers) =====
 
-  function resolveBP(moveName, move, bp, aAbil, attacker, defender, field) {
+  function resolveBP(moveName, move, bp, aAbil, attacker, defender, field, bpCtx) {
     // Move-specific (レジストリから)
     const fx = MOVE_EFFECTS[moveName];
-    if (fx?.bp) bp = fx.bp(bp, { attacker, defender, field });
+    if (fx?.bp) bp = fx.bp(bp, { attacker, defender, field, ...bpCtx });
     // じゅうでん: Electric move 2x
     if (field?.charged && move.type === 'Electric') bp *= 2;
 
@@ -397,7 +397,17 @@ export const DMG = (() => {
     let { atk, def, isPhysical } = resolveAtkDef(moveName, move, attacker, defender, atkStats, defStats, aAbil, dAbil, field?.crit);
 
     // Phase 2: BP modifiers
-    let bp = field?.bpOverride != null ? field.bpOverride : resolveBP(moveName, move, move.bp, aAbil, attacker, defender, field);
+    // 動的威力技(ジャイロボール/ヘビーボンバー/くさむすび等)用の追加コンテキスト
+    const defMaxHP0 = defStats.hp;
+    const bpCtx = {
+      atkSpe: applyBoost(atkStats.sp, attacker.boosts?.sp || 0),
+      defSpe: applyBoost(defStats.sp, defender.boosts?.sp || 0),
+      atkW: atkData.w || 0,
+      defW: defData.w || 0,
+      defCurHP: defender.currentHP == null ? defMaxHP0 : Math.max(0, Math.min(defMaxHP0, defender.currentHP)),
+      defMaxHP: defMaxHP0,
+    };
+    let bp = field?.bpOverride != null ? field.bpOverride : resolveBP(moveName, move, move.bp, aAbil, attacker, defender, field, bpCtx);
 
     // Phase 3: Atk ability modifiers
     atk = resolveAtkAbilMods(atk, aAbil, attacker, isPhysical, field);
@@ -542,6 +552,37 @@ export const DMG = (() => {
     let statNote = buildStatNote(moveName, defender, dAbil, defTypes, field);
     if (parentalBond) statNote += (statNote ? ' / ' : '') + 'おやこあい(2発目25%)';
 
+    // ===== 計算内訳 (表示用) =====
+    const breakdown = [];
+    {
+      const st = MOVE_EFFECTS[moveName]?.stats || {};
+      const atkKey = st.atkStat || (isPhysical ? 'at' : 'sa');
+      const defKey = st.defStat || (isPhysical ? 'df' : 'sd');
+      const STAT_LABEL = { at: '攻撃', df: '防御', sa: '特攻', sd: '特防', sp: '素早さ' };
+      breakdown.push(`威力 ${move.bp}${bp !== move.bp ? ` → ${bp} (補正後)` : ''}`);
+      breakdown.push(`攻撃側 ${STAT_LABEL[atkKey]} ${atk}${st.atkSide === 'defender' ? ' (相手参照)' : ''} / 防御側 ${STAT_LABEL[defKey]} ${def}`);
+      if (fixed) {
+        breakdown.push('定数ダメージ (通常式・乱数なし)');
+      } else {
+        breakdown.push(`基礎ダメージ ${baseDmg} (Lv50式: floor(floor(22×威力×A÷D)÷50)+2)`);
+        if (spreadMod !== 1) breakdown.push(`複数対象 ×${spreadMod}`);
+        if (weatherMod !== 1) breakdown.push(`天候 ×${weatherMod}`);
+        if (critMod !== 1) breakdown.push(`急所 ×${critMod}`);
+        breakdown.push('乱数 ×0.85〜1.00 (16段階)');
+        if (stabMod !== 1) breakdown.push(`タイプ一致(STAB) ×${stabMod}`);
+        if (typeEff !== 1) breakdown.push(`タイプ相性 ×${typeEff}`);
+        if (items.berryMod !== 1) breakdown.push(`半減きのみ ×${items.berryMod}`);
+        if (burnMod !== 1) breakdown.push(`やけど ×${burnMod}`);
+        if (terrainMod !== 1) breakdown.push(`フィールド ×${terrainMod}`);
+        if (items.itemMod !== 1) breakdown.push(`アイテム(${items.item}) ×${items.itemMod}`);
+        if (itemAtkMod !== 1) breakdown.push(`こだわり系 攻撃×${itemAtkMod} (適用済)`);
+        if (defAbilMod !== 1) breakdown.push(`相手特性(${dAbil}) ×${defAbilMod}`);
+        if (hits > 1) breakdown.push(`連続 ×${hits}発`);
+        if (parentalBond) breakdown.push('おやこあい: +25%の2発目');
+      }
+      if (hazardDmg > 0) breakdown.push(`設置技ダメージ ${hazardDmg} (KO判定に加味)`);
+    }
+
     return {
       move: moveName,
       moveType: effectiveMoveType,
@@ -560,7 +601,8 @@ export const DMG = (() => {
       atkStats, defStats,
       atkRecoil: items.item === 'Life Orb' ? `(LO反動: ${Math.floor(atkStats.hp / 10)}ダメージ)` : '',
       berryActive: items.berryActive, berryItem: items.berryActive ? items.dItem : '',
-      statNote
+      statNote,
+      breakdown
     };
   }
 

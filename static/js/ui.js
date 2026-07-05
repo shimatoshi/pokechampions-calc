@@ -289,16 +289,21 @@ export function renderPokemonDetailCard(poke, rt = null) {
 }
 
 // Full-screen modal wrapper around the detail card
-export function showPokemonDetailModal(poke, rt = null) {
+// actions: [{ label, style, handler(poke, close) }] — 追加アクション(BOXに保存等)
+export function showPokemonDetailModal(poke, rt = null, actions = []) {
   let modal = document.getElementById('poke-detail-modal');
   if (!modal) { modal = document.createElement('div'); modal.id = 'poke-detail-modal'; document.body.appendChild(modal); }
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;overflow-y:auto;padding:14px;display:flex;align-items:flex-start;justify-content:center';
   modal.innerHTML = `<div class="card" style="max-width:380px;width:100%;margin-top:8vh">
     ${renderPokemonDetailCard(poke, rt)}
+    ${actions.map((a, i) => `<button class="btn btn-outline mt poke-detail-act" data-i="${i}" style="width:100%;${a.style || ''}">${esc(a.label)}</button>`).join('')}
     <button class="btn btn-outline mt" style="width:100%" id="poke-detail-close">閉じる</button>
   </div>`;
   const close = () => modal.remove();
   modal.querySelector('#poke-detail-close').addEventListener('click', close);
+  modal.querySelectorAll('.poke-detail-act').forEach(btn => {
+    btn.addEventListener('click', () => actions[parseInt(btn.dataset.i)].handler(poke, close));
+  });
   modal.addEventListener('click', e => { if (e.target === modal) close(); });
 }
 

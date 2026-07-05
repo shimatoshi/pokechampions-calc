@@ -4,6 +4,8 @@ import {
   DATA, ja, esc, spriteImg, typeBadge, STAT_SHORT,
 } from './data.js';
 import { DMG } from './damage.js';
+import { DB } from './db.js';
+import { generateUid, markDirty } from './state.js';
 import { showToast, showPokemonDetailModal } from './ui.js';
 import { TWO_TURN_MOVES, ALL_TYPES, TYPE_JA } from './poke-data.js';
 import {
@@ -33,6 +35,9 @@ export function startBattle() {
   renderBattle();
 }
 
+// 手動調整パネルの開閉状態 (renderBattleは頻繁に呼ばれるため、閉じ直されないよう保持)
+let manualPanelOpen = false;
+
 function renderBattle() {
   const page = document.getElementById('page-sim');
   page.innerHTML = `
@@ -42,8 +47,9 @@ function renderBattle() {
     </div>
     ${renderBench('a')}
     ${renderBench('b')}
-    <div class="card" style="margin-top:6px">
-      <div class="col2">
+    <details class="card" id="sim-manual-panel" style="margin-top:6px;padding:6px" ${manualPanelOpen ? 'open' : ''}>
+      <summary style="cursor:pointer;font-size:.8rem;font-weight:700;color:var(--fg2)">⚙ 手動調整（状態異常・フィールド・設置技・ランク）</summary>
+      <div class="col2" style="margin-top:4px">
         <div><label>自分 状態異常</label><select id="sim-st-a" style="font-size:.75rem">
           <option value="">なし</option><option value="brn">やけど</option><option value="psn">どく</option><option value="tox">もうどく</option><option value="par">まひ</option><option value="frz">こおり</option><option value="slp">ねむり</option>
         </select></div>
@@ -65,12 +71,13 @@ function renderBattle() {
         ${renderBoostUI('a')}
         ${renderBoostUI('b')}
       </div>
-    </div>
+    </details>
     ${renderPartyOverview()}
     <div class="sim-actions">
       <button class="btn btn-sm" id="sim-exec" style="background:var(--accent);flex:2">ターン実行</button>
       <button class="btn btn-sm btn-outline" id="sim-eot">EOT処理</button>
       <button class="btn btn-sm btn-outline" id="sim-undo" ${canUndo() ? '' : 'disabled'} style="color:var(--accent2);border-color:var(--accent2)">↩ 戻す</button>
+      <button class="btn btn-sm btn-outline" id="sim-savelog" style="color:var(--ok);border-color:var(--ok)">📝 ログ保存</button>
       <button class="btn btn-sm btn-outline" id="sim-reselect">選出に戻る</button>
       <button class="btn btn-sm btn-danger" id="sim-end">終了</button>
     </div>
@@ -254,15 +261,58 @@ function renderBattle() {
     restorePreBattleParties();
     import('./sim-setup.js').then(m => m.renderSetup());
   });
-  // パーティ概観: タップで個体詳細（選出済みなら現在HP/ランクも表示）
+  // 手動調整パネルの開閉を保持
+  document.getElementById('sim-manual-panel')?.addEventListener('toggle', e => {
+    manualPanelOpen = e.target.open;
+  });
+  // バトルログを記録タブに保存
+  document.getElementById('sim-savelog').addEventListener('click', saveBattleLog);
+  // パーティ概観: タップで個体詳細（選出済みなら現在HP/ランクも表示）＋BOX保存導線
   document.querySelectorAll('.sim-ov-poke').forEach(box => {
     box.addEventListener('click', () => {
       const side = box.dataset.side, pi = parseInt(box.dataset.pi);
       const selIdx = selection[side].indexOf(pi);
       const rt = selIdx >= 0 ? battle.rt[side][selIdx] : null;
-      showPokemonDetailModal(parties[side][pi], rt);
+      showPokemonDetailModal(parties[side][pi], rt, [{
+        label: '📦 BOXに保存',
+        style: 'border-color:var(--accent2);color:var(--accent2)',
+        handler: (p, close) => savePokeToBox(p, close),
+      }]);
     });
   });
+}
+
+// 対戦中の個体をそのままBOXへ (「シミュ回してこいつ欲しい」→即保存の導線)
+async function savePokeToBox(poke, close) {
+  const boxAll = await DB.getAll('box');
+  if (poke.uid && boxAll.find(b => b.uid === poke.uid)) { showToast('同じ個体がBOXに存在します'); return; }
+  const entry = JSON.parse(JSON.stringify(poke));
+  delete entry.id; delete entry._moveEntries;
+  if (!entry.uid) entry.uid = generateUid();
+  entry.savedCalcs = entry.savedCalcs || [];
+  entry.notes = entry.notes || '';
+  await DB.add('box', entry);
+  markDirty('box');
+  showToast(`${ja('pokemon', poke.name)} をBOXに追加`);
+  close?.();
+}
+
+async function saveBattleLog() {
+  if (!battle?.log?.length) { showToast('ログがまだありません'); return; }
+  const teamStr = s => selection[s].map(i => ja('pokemon', parties[s][i].name)).join(', ');
+  const aliveA = battle.rt.a.filter(r => r.hp > 0).length;
+  const aliveB = battle.rt.b.filter(r => r.hp > 0).length;
+  await DB.add('records', {
+    result: aliveA >= aliveB ? 'win' : 'lose',
+    opponent: 'シミュレーション',
+    myTeam: teamStr('a'),
+    oppTeam: teamStr('b'),
+    notes: `残数 自分${aliveA} - 相手${aliveB}`,
+    log: battle.log.map(e => e.text).join('\n'),
+    date: Date.now(),
+  });
+  markDirty('records');
+  showToast('バトルログを記録タブに保存した');
 }
 
 function renderBattleSide(side) {

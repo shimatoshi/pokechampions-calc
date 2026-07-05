@@ -26,6 +26,7 @@ async function init() {
   document.querySelectorAll('nav button').forEach(btn => {
     btn.addEventListener('click', async () => {
       const page = btn.dataset.page;
+      if (page === 'dex') { toggleDexOverlay(); return; } // 図鑑は通常ページでなくオーバーレイ
       switchPage(page);
       if (!initialized[page]) {
         if (page === 'sim')     (await import('./sim.js')).initSimPage();
@@ -43,4 +44,22 @@ async function init() {
     });
   });
 }
+
+// 図鑑 (static/dex/ の自己完結サイト) をアプリ内オーバーレイで開く
+function toggleDexOverlay() {
+  const existing = document.getElementById('dex-overlay');
+  if (existing) { existing.remove(); return; }
+  const ov = document.createElement('div');
+  ov.id = 'dex-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:#1a1a2e;display:flex;flex-direction:column';
+  ov.innerHTML = `
+    <div style="display:flex;align-items:center;padding:4px 8px;gap:8px;background:#16213e;border-bottom:1px solid #e94560">
+      <strong style="flex:1;color:#e0e0e0;font-size:.9rem">ポケモンチャンピオンズ 図鑑</strong>
+      <button id="dex-close" style="background:#444;color:#eee;border:none;border-radius:4px;padding:6px 14px;font-size:.8rem">閉じる</button>
+    </div>
+    <iframe src="dex/index.html" style="flex:1;border:none;width:100%"></iframe>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#dex-close').addEventListener('click', () => ov.remove());
+}
+
 init();
