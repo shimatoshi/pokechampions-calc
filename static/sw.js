@@ -5,11 +5,12 @@
 // 配信戦略: アプリ本体(JS/CSS/HTML)はこのCACHEバージョンのスナップショットからのみ配信し、
 // SW更新時に一括差し替え(+クライアント側でcontrollerchangeリロード)。
 // 個別ファイルが裏でバラバラに更新されて新旧モジュールが混在する事故を根絶する。
-const CACHE = 'pokechamp-v35';
+const CACHE = 'pokechamp-v36';
 
 const APP_PRECACHE = [
   './',
   './index.html',
+  './debug-note.js',
   './css/style.css',
   './js/app.js',
   './js/data.js',
