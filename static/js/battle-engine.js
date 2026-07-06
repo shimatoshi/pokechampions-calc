@@ -367,15 +367,13 @@ export function hasAliveBench(side) {
 // 推定ダメージを出し、最大ダメージの技を選ぶ貪欲AI。手動はいつでも上書き可。
 // ============================================================
 
-// atkSide→defSide に moveName を撃った時の推定平均ダメージ (crit無し/手動補正無し)。
-// 無効(typeEff0)・変化技・計算不可は 0。
-function estimateAvgDamage(atkSide, defSide, moveName) {
+// atkSideのアクティブが、任意の防御側個体(defPoke/defRt/defTypes)に moveName を
+// 撃った時の推定平均ダメージ (crit無し/手動補正無し)。無効・変化技・計算不可は 0。
+function avgDmgCore(atkSide, defSide, defPoke, defRt, defTypes, moveName) {
   const move = DATA.moves[moveName];
   if (!move || !move.bp) return 0;
-  const atkPoke = getActive(atkSide), defPoke = getActive(defSide);
-  const atkRt = getActiveRt(atkSide), defRt = getActiveRt(defSide);
+  const atkPoke = getActive(atkSide), atkRt = getActiveRt(atkSide);
   const atkTypes = getEffectiveTypes(atkSide, battle.active[atkSide]);
-  const defTypes = getEffectiveTypes(defSide, battle.active[defSide]);
   const atkState = { ...atkPoke, boosts: { ...atkRt.boosts }, currentHP: atkRt.hp, status: atkRt.status, _types: atkTypes };
   const defState = { ...defPoke, boosts: { ...defRt.boosts }, currentHP: defRt.hp, status: defRt.status, disguiseIntact: defRt.disguise, _types: defTypes };
   const faintedCount = battle.rt[atkSide].filter(r => r.hp <= 0).length;
@@ -393,7 +391,26 @@ function estimateAvgDamage(atkSide, defSide, moveName) {
   return ((r.minDmg || 0) + (r.maxDmg || 0)) / 2;
 }
 
-// 指定サイドのAI行動。瀕死なら生存控えへ交代、そうでなければ最大ダメージの技。
+// atkSide→defSideアクティブ の推定平均ダメージ (AI自身の技選択用)。
+function estimateAvgDamage(atkSide, defSide, moveName) {
+  const defPoke = getActive(defSide), defRt = getActiveRt(defSide);
+  const defTypes = getEffectiveTypes(defSide, battle.active[defSide]);
+  return avgDmgCore(atkSide, defSide, defPoke, defRt, defTypes, moveName);
+}
+
+// 相手アクティブが個体pokeに与える「最大の推定平均ダメージ」(受け出し評価用)。
+function worstIncoming(oppSide, mySide, poke, rt) {
+  const types = DATA.pokemon[poke.name]?.types || [];
+  let worst = 0;
+  for (const m of (getActive(oppSide).moves || [])) {
+    if (!m || !DATA.moves[m]) continue;
+    const d = avgDmgCore(oppSide, mySide, poke, rt, types, m);
+    if (d > worst) worst = d;
+  }
+  return worst;
+}
+
+// 指定サイドのAI行動。瀕死なら受けの良い控えへ、そうでなければ最大ダメージの技。
 export function pickAiAction(side) {
   const opp = side === 'a' ? 'b' : 'a';
   if (getActiveRt(side).hp <= 0) {
@@ -411,9 +428,19 @@ export function pickAiAction(side) {
   return moves.length ? { type: 'move', move: moves[0] } : { type: 'skip' };
 }
 
-// 最初の生存控えの選出index。無ければ -1。
+// 交代先の選出index。相手アクティブの攻撃を最も受けにくい生存控え。無ければ -1。
 export function pickAiBench(side) {
-  return battle.rt[side].findIndex((r, i) => i !== battle.active[side] && r.hp > 0);
+  const opp = side === 'a' ? 'b' : 'a';
+  let best = -1, bestScore = Infinity;
+  battle.rt[side].forEach((rt, i) => {
+    if (i === battle.active[side] || rt.hp <= 0) return;
+    const poke = parties[side][selection[side][i]];
+    // 被推定ダメージ小 → 良。同点はHP割合が高い方を優先。
+    const incoming = worstIncoming(opp, side, poke, rt);
+    const score = incoming - (rt.hp / rt.maxHp) * 0.001; // 微小tie-breaker
+    if (score < bestScore) { bestScore = score; best = i; }
+  });
+  return best;
 }
 
 // どちらかが全滅していれば勝者('a'|'b')、続行中は null。
