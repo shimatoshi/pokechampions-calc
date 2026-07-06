@@ -45,9 +45,28 @@ function renderBattle() {
   const page = document.getElementById('page-sim');
   page.innerHTML = `
     ${renderPivotPrompt()}
-    <div class="sim-sides" style="margin-bottom:6px">
-      ${renderBattleSide('a')}
-      ${renderBattleSide('b')}
+    <div class="sim-hud">
+      ${renderSideHud('a')}
+      ${renderSideHud('b')}
+    </div>
+    <div class="sim-decide">
+      <div class="sim-decide-col">
+        <div class="sim-decide-label">自分の技</div>
+        ${renderSideMoves('a')}
+      </div>
+      <div class="sim-decide-col">
+        <div class="sim-decide-label">相手の技</div>
+        ${renderSideMoves('b')}
+      </div>
+    </div>
+    <div class="sim-result" id="sim-result">${renderLastTurn()}</div>
+    <div class="sim-actions">
+      <button class="btn btn-sm" id="sim-exec" style="background:var(--accent);flex:2">ターン実行</button>
+      <button class="btn btn-sm btn-outline" id="sim-eot">EOT処理</button>
+      <button class="btn btn-sm btn-outline" id="sim-undo" ${canUndo() ? '' : 'disabled'} style="color:var(--accent2);border-color:var(--accent2)">↩ 戻す</button>
+      <button class="btn btn-sm btn-outline" id="sim-savelog" style="color:var(--ok);border-color:var(--ok)">📝 ログ保存</button>
+      <button class="btn btn-sm btn-outline" id="sim-reselect">選出に戻る</button>
+      <button class="btn btn-sm btn-danger" id="sim-end">終了</button>
     </div>
     <details class="card" id="sim-manual-panel" style="margin-top:6px;padding:6px" ${manualPanelOpen ? 'open' : ''}>
       <summary style="cursor:pointer;font-size:.8rem;font-weight:700;color:var(--fg2)">⚙ 手動調整（状態異常・フィールド・設置技・ランク）</summary>
@@ -75,14 +94,6 @@ function renderBattle() {
       </div>
     </details>
     ${renderPartyOverview()}
-    <div class="sim-actions">
-      <button class="btn btn-sm" id="sim-exec" style="background:var(--accent);flex:2">ターン実行</button>
-      <button class="btn btn-sm btn-outline" id="sim-eot">EOT処理</button>
-      <button class="btn btn-sm btn-outline" id="sim-undo" ${canUndo() ? '' : 'disabled'} style="color:var(--accent2);border-color:var(--accent2)">↩ 戻す</button>
-      <button class="btn btn-sm btn-outline" id="sim-savelog" style="color:var(--ok);border-color:var(--ok)">📝 ログ保存</button>
-      <button class="btn btn-sm btn-outline" id="sim-reselect">選出に戻る</button>
-      <button class="btn btn-sm btn-danger" id="sim-end">終了</button>
-    </div>
     <div class="sim-turn-log" id="sim-log">
       <h3>ターン履歴</h3>
       ${renderLog()}
@@ -360,87 +371,112 @@ function renderPivotPrompt() {
     </div>`;
 }
 
-function renderBattleSide(side) {
+// 上部固定HUD: 両者の状態(画像/名前/HP/すばやさ/メガ)をコンパクトに
+function renderSideHud(side) {
   const poke = getActive(side);
   const rt = getActiveRt(side);
   const label = side === 'a' ? '自分' : '相手';
   const pct = rt.maxHp > 0 ? (rt.hp / rt.maxHp * 100) : 0;
   const hpClass = pct > 50 ? 'hp-high' : pct > 25 ? 'hp-mid' : 'hp-low';
   const stats = DMG.getStats(poke);
-  const moves = poke.moves.filter(m => m && DATA.moves[m]);
+  const abilityJa = poke.ability ? (ja('abilities', poke.ability) || poke.ability) : '';
 
   // Mega evolution / Aegislash buttons
   const megaForme = getMegaForme(poke);
   const canMega = megaForme && !isMega(poke.name) && !battle.megaUsed[side];
   const isAegi = isAegislash(poke.name);
-  const abilityJa = poke.ability ? (ja('abilities', poke.ability) || poke.ability) : '';
+  const megaBtns = canMega
+    ? `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(megaForme)}">メガ → ${esc(ja('pokemon', megaForme))}</button>`
+    : (!isMega(poke.name) && !battle.megaUsed[side] && getMegaFormes(poke).length > 1
+        ? getMegaFormes(poke).map(mf => `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(mf)}">メガ → ${esc(ja('pokemon', mf))}</button>`).join('')
+        : '');
+  const aegisBtn = isAegi ? `<button class="btn btn-sm sim-aegis-btn" data-side="${side}">${poke.name.includes('Blade') ? 'シールドへ' : 'ブレードへ'}</button>` : '';
 
   return `
-    <div class="sim-side">
-      <div class="sim-poke-header">
-        ${spriteImg(poke.name, 40)}
-        <div>
-          <div style="font-weight:700;font-size:.85rem">${esc(ja('pokemon', poke.name))}</div>
-          <div>${DATA.pokemon[poke.name]?.types.map(t => typeBadge(t)).join(' ') || ''}</div>
-          <div style="font-size:.6rem;color:var(--fg2)">${esc(abilityJa)}</div>
+    <div class="sim-hud-row sim-hud-${side}">
+      <div class="sim-hud-side">${side === 'a' ? '自' : '相'}</div>
+      ${spriteImg(poke.name, 40)}
+      <div class="sim-hud-info">
+        <div class="sim-hud-name">${esc(ja('pokemon', poke.name))}
+          <span class="sim-hud-types">${DATA.pokemon[poke.name]?.types.map(t => typeBadge(t)).join('') || ''}</span>
         </div>
+        <div class="sim-hud-sub">${esc(abilityJa)}${stats ? ` · S${stats.sp}` : ''}${poke.item ? ` · @${esc(ja('items', poke.item))}` : ''}</div>
       </div>
-      ${canMega ? `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(megaForme)}">メガシンカ → ${esc(ja('pokemon', megaForme))}</button>` : ''}
-      ${!canMega && !isMega(poke.name) && !battle.megaUsed[side] && getMegaFormes(poke).length > 1 ? getMegaFormes(poke).map(mf => `<button class="btn btn-sm sim-mega-btn" data-side="${side}" data-forme="${esc(mf)}">メガシンカ → ${esc(ja('pokemon', mf))}</button>`).join('') : ''}
-      ${isAegi ? `<button class="btn btn-sm sim-aegis-btn" data-side="${side}">${poke.name.includes('Blade') ? 'シールドフォルムへ' : 'ブレードフォルムへ'}</button>` : ''}
-      <div class="sim-hp-bar"><div class="sim-hp-fill ${hpClass}" id="sim-hpbar-${side}" style="width:${pct}%"></div></div>
-      <div class="sim-hp-text" id="sim-hptext-${side}">${rt.hp} / ${rt.maxHp}</div>
-      ${stats ? `<div style="font-size:.65rem;color:var(--fg2);text-align:center">S:${stats.sp} ${poke.item ? '@ ' + esc(ja('items', poke.item)) : ''}</div>` : ''}
-      ${rt.disguise ? `<div style="font-size:.7rem;text-align:center;color:var(--accent2);font-weight:700">${poke.ability === 'Disguise' ? 'ばけのかわ' : 'こおりのすがた'} 生存</div>` : ''}
-      <div class="sim-move-sel">
-        <div style="font-size:.7rem;color:var(--fg2);margin-bottom:2px">${label}の行動:</div>
-        ${moves.map(m => {
-          const move = DATA.moves[m];
-          const sel = battle.actions[side]?.type === 'move' && battle.actions[side]?.move === m;
-          const effType = getEffectiveMoveType(m, poke.ability);
-          const skinChanged = effType !== move.type;
-          const twoTurn = TWO_TURN_MOVES.has(m);
-          return `<button class="sim-act-btn sim-move-btn${sel ? ' selected' : ''}" data-side="${side}" data-type="move" data-move="${esc(m)}">
-            ${skinChanged ? typeBadge(effType) : typeBadge(move.type)} ${esc(ja('moves', m))} <span style="color:var(--fg2);font-size:.65rem">威力${move.bp || '-'}</span>
-            ${skinChanged ? `<span style="font-size:.55rem;color:var(--accent2)">スキン</span>` : ''}
-            ${twoTurn ? `<span style="font-size:.55rem;color:var(--fg2)">2T</span>` : ''}
-            ${getRecoilFrac(m) ? '<span style="color:var(--danger);font-size:.6rem">反動</span>' : ''}
-            ${getDrainFrac(m) ? '<span style="color:var(--ok);font-size:.6rem">吸収</span>' : ''}
-          </button>`;
-        }).join('')}
-        <button class="sim-act-btn sim-move-btn${battle.actions[side]?.type === 'skip' ? ' selected' : ''}" data-side="${side}" data-type="skip" style="color:var(--fg2)">
-          — 行動なし <span style="font-size:.6rem">(怯み/外し/行動不能)</span>
-        </button>
+      <div class="sim-hud-hp">
+        <div class="sim-hp-bar"><div class="sim-hp-fill ${hpClass}" id="sim-hpbar-${side}" style="width:${pct}%"></div></div>
+        <div class="sim-hp-text" id="sim-hptext-${side}">${rt.hp} / ${rt.maxHp}</div>
       </div>
-      ${renderBench(side)}
-      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.7rem">
-        <label style="display:flex;align-items:center;gap:2px;white-space:nowrap"><input type="checkbox" class="sim-crit" data-side="${side}" ${battle.crit[side] ? 'checked' : ''}> 急所</label>
-        <select class="sim-roll" data-side="${side}" style="font-size:.7rem;padding:1px 2px;flex:1">
-          <option value="random"${battle.rollMode[side]==='random' ? ' selected' : ''}>抽選(ランダム)</option>
-          <option value="min"${battle.rollMode[side]==='min' ? ' selected' : ''}>最低乱数</option>
-          <option value="max"${battle.rollMode[side]==='max' ? ' selected' : ''}>最高乱数</option>
-          <option value="avg"${battle.rollMode[side]==='avg' ? ' selected' : ''}>平均</option>
-        </select>
-      </div>
-      <details class="sim-side-detail" data-side="${side}" ${sideDetailOpen[side] ? 'open' : ''}>
-        <summary class="sim-detail-sum">🔧 HP調整・威力補正</summary>
-        <div class="sim-hp-btns">
-          <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/16}">+1/16</button>
-          <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/8}">+1/8</button>
-          <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/4}">+1/4</button>
-          <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/2}">+1/2</button>
-          <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/16}">-1/16</button>
-          <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/8}">-1/8</button>
-          <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/4}">-1/4</button>
-          <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/2}">-1/2</button>
-        </div>
-        <div class="sim-custom-hp">
-          <input type="number" id="sim-hp-input-${side}" placeholder="HP" min="0" max="${rt.maxHp}">
-          <button class="btn btn-sm btn-outline" id="sim-hp-set-${side}" style="font-size:.7rem;padding:2px 6px">設定</button>
-        </div>
-        ${renderModPanel(side, poke)}
-      </details>
+      ${(megaBtns || aegisBtn || rt.disguise) ? `<div class="sim-hud-actions">
+        ${megaBtns}${aegisBtn}
+        ${rt.disguise ? `<span class="sim-hud-tag">${poke.ability === 'Disguise' ? 'ばけのかわ' : 'こおりのすがた'}生存</span>` : ''}
+      </div>` : ''}
     </div>`;
+}
+
+// 行動選択: 技(2×2)/交代/急所・乱数/🔧調整
+function renderSideMoves(side) {
+  const poke = getActive(side);
+  const rt = getActiveRt(side);
+  const moves = poke.moves.filter(m => m && DATA.moves[m]);
+
+  return `
+    <div class="sim-moves-grid">
+      ${moves.map(m => {
+        const move = DATA.moves[m];
+        const sel = battle.actions[side]?.type === 'move' && battle.actions[side]?.move === m;
+        const effType = getEffectiveMoveType(m, poke.ability);
+        const skinChanged = effType !== move.type;
+        const twoTurn = TWO_TURN_MOVES.has(m);
+        return `<button class="sim-act-btn sim-move-btn${sel ? ' selected' : ''}" data-side="${side}" data-type="move" data-move="${esc(m)}">
+          <span class="sim-move-top">${skinChanged ? typeBadge(effType) : typeBadge(move.type)}<span class="sim-move-name">${esc(ja('moves', m))}</span></span>
+          <span class="sim-move-meta">威${move.bp || '-'}${skinChanged ? '<span style="color:var(--accent2)">・スキン</span>' : ''}${twoTurn ? '・2T' : ''}${getRecoilFrac(m) ? '<span style="color:var(--danger)">・反動</span>' : ''}${getDrainFrac(m) ? '<span style="color:var(--ok)">・吸収</span>' : ''}</span>
+        </button>`;
+      }).join('')}
+      <button class="sim-act-btn sim-move-btn sim-move-skip${battle.actions[side]?.type === 'skip' ? ' selected' : ''}" data-side="${side}" data-type="skip">
+        — 行動なし <span style="font-size:.55rem">(怯み/外し等)</span>
+      </button>
+    </div>
+    ${renderBench(side)}
+    <div class="sim-crit-row">
+      <label><input type="checkbox" class="sim-crit" data-side="${side}" ${battle.crit[side] ? 'checked' : ''}> 急所</label>
+      <select class="sim-roll" data-side="${side}">
+        <option value="random"${battle.rollMode[side]==='random' ? ' selected' : ''}>抽選</option>
+        <option value="min"${battle.rollMode[side]==='min' ? ' selected' : ''}>最低</option>
+        <option value="max"${battle.rollMode[side]==='max' ? ' selected' : ''}>最高</option>
+        <option value="avg"${battle.rollMode[side]==='avg' ? ' selected' : ''}>平均</option>
+      </select>
+    </div>
+    <details class="sim-side-detail" data-side="${side}" ${sideDetailOpen[side] ? 'open' : ''}>
+      <summary class="sim-detail-sum">🔧 HP調整・威力補正</summary>
+      <div class="sim-hp-btns">
+        <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/16}">+1/16</button>
+        <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/8}">+1/8</button>
+        <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/4}">+1/4</button>
+        <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/2}">+1/2</button>
+        <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/16}">-1/16</button>
+        <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/8}">-1/8</button>
+        <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/4}">-1/4</button>
+        <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/2}">-1/2</button>
+      </div>
+      <div class="sim-custom-hp">
+        <input type="number" id="sim-hp-input-${side}" placeholder="HP" min="0" max="${rt.maxHp}">
+        <button class="btn btn-sm btn-outline" id="sim-hp-set-${side}" style="font-size:.7rem;padding:2px 6px">設定</button>
+      </div>
+      ${renderModPanel(side, poke)}
+    </details>`;
+}
+
+// 実行ボタン直上に出す「直前ターンの結果」(最後のターンヘッダ以降のログ)
+function renderLastTurn() {
+  if (!battle?.log?.length) return '<span class="sim-result-empty">技を選んで「ターン実行」</span>';
+  let start = 0;
+  for (let i = battle.log.length - 1; i >= 0; i--) {
+    if (battle.log[i].isHeader) { start = i; break; }
+  }
+  const entries = battle.log.slice(start);
+  return entries.map(e =>
+    `<div class="sim-result-line${e.isHeader ? ' res-header' : ''}">${e.cls ? `<span class="${e.cls}">` : ''}${esc(e.text)}${e.cls ? '</span>' : ''}</div>`
+  ).join('');
 }
 
 function renderModPanel(side, poke) {
@@ -724,6 +760,8 @@ function updateBattleLight() {
   syncBoostUI('a');
   syncBoostUI('b');
   appendNewLogs();
+  const resEl = document.getElementById('sim-result');
+  if (resEl) resEl.innerHTML = renderLastTurn();
   const undoBtn = document.getElementById('sim-undo');
   if (undoBtn) undoBtn.disabled = !canUndo();
 }

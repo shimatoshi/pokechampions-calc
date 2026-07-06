@@ -156,9 +156,39 @@ hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
 .eff-0{color:#705898;font-weight:700}
 
 /* ===== SIMULATOR ===== */
-.sim-sides{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.sim-side{background:var(--bg2);border-radius:var(--radius);padding:8px}
-.sim-side h3{font-size:.8rem;margin-bottom:4px}
+/* --- 対面HUD (上部固定): 両者の状態を常時表示 --- */
+.sim-hud{position:sticky;top:0;z-index:15;background:var(--bg);display:flex;flex-direction:column;gap:4px;padding:4px 0;margin-bottom:6px;border-bottom:1px solid var(--bg3)}
+.sim-hud-row{display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:var(--radius);padding:4px 6px}
+.sim-hud-a{border-left:3px solid var(--accent)}
+.sim-hud-b{border-left:3px solid var(--accent2)}
+.sim-hud-row img{width:36px;height:36px;flex:none}
+.sim-hud-side{font-size:.72rem;font-weight:700;color:var(--fg2);flex:none;text-align:center}
+.sim-hud-info{flex:1;min-width:0}
+.sim-hud-name{font-weight:700;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px}
+.sim-hud-types{display:inline-flex;gap:1px;flex:none}
+.sim-hud-sub{font-size:.58rem;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sim-hud-hp{width:33%;max-width:150px;flex:none}
+.sim-hud-hp .sim-hp-text{font-size:.7rem}
+.sim-hud-actions{display:flex;flex-direction:column;gap:2px;flex:none;align-items:stretch}
+.sim-hud-actions .sim-mega-btn,.sim-hud-actions .sim-aegis-btn{width:auto;margin:0;font-size:.6rem;padding:2px 5px;white-space:nowrap}
+.sim-hud-tag{font-size:.55rem;color:var(--accent2);font-weight:700;text-align:center}
+/* --- 行動選択: 両サイド横並び, 技2×2 --- */
+.sim-decide{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+.sim-decide-col{background:var(--bg2);border-radius:var(--radius);padding:6px}
+.sim-decide-label{font-size:.68rem;font-weight:700;color:var(--fg2);margin-bottom:3px;text-align:center}
+.sim-moves-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.sim-move-skip{grid-column:1 / -1}
+.sim-crit-row{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.7rem}
+.sim-crit-row label{display:flex;align-items:center;gap:2px;white-space:nowrap;margin:0}
+.sim-crit-row select{font-size:.7rem;padding:1px 2px;flex:1;width:auto}
+/* --- 直前ターンの結果 (実行ボタン直上) --- */
+.sim-result{background:var(--bg2);border-radius:var(--radius);padding:6px 8px;margin-bottom:4px;max-height:22vh;overflow-y:auto;border:1px solid var(--bg3)}
+.sim-result-empty{font-size:.72rem;color:var(--fg2)}
+.sim-result-line{font-size:.74rem;padding:1px 0}
+.sim-result-line.res-header{font-weight:700;color:var(--accent);font-size:.78rem;margin-bottom:2px}
+.sim-result-line .dmg-line{color:var(--warn)}
+.sim-result-line .heal-line{color:var(--ok)}
+.sim-result-line .ko-line{color:var(--danger);font-weight:700}
 .sim-hp-bar{height:10px;background:var(--bg);border-radius:5px;overflow:hidden;margin:4px 0}
 .sim-hp-fill{height:100%;border-radius:5px;transition:width .3s}
 .sim-hp-fill.hp-high{background:var(--ok)}
@@ -171,9 +201,13 @@ hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
 .sim-hp-btns button.hp-heal{border-color:var(--ok);color:var(--ok)}
 .sim-hp-btns button.hp-dmg{border-color:var(--danger);color:var(--danger)}
 .sim-move-sel{margin:4px 0}
-.sim-move-btn{display:block;width:100%;padding:6px 8px;margin:2px 0;font-size:.75rem;text-align:left;background:var(--bg);border:1px solid var(--bg3);border-radius:4px;color:var(--fg);cursor:pointer}
+.sim-move-btn{display:flex;flex-direction:column;gap:1px;width:100%;padding:5px 6px;font-size:.72rem;text-align:left;background:var(--bg);border:1px solid var(--bg3);border-radius:4px;color:var(--fg);cursor:pointer;min-height:38px;justify-content:center}
 .sim-move-btn:active{border-color:var(--accent);background:var(--bg3)}
 .sim-move-btn.selected{border-color:var(--accent);background:rgba(233,69,96,.15)}
+.sim-move-top{display:flex;align-items:center;gap:3px;line-height:1.1}
+.sim-move-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sim-move-meta{font-size:.58rem;color:var(--fg2);line-height:1}
+.sim-move-skip{flex-direction:row;align-items:center;gap:4px;min-height:0;padding:4px 6px;color:var(--fg2);justify-content:flex-start}
 .sim-turn-log{background:var(--bg2);border-radius:var(--radius);padding:8px;margin-top:6px}
 .sim-turn-entry{font-size:.78rem;padding:4px 6px;border-left:3px solid var(--bg3);margin:4px 0;background:var(--bg);border-radius:0 4px 4px 0}
 .sim-turn-entry.turn-header{border-left-color:var(--accent);font-weight:700;background:none;font-size:.82rem}
