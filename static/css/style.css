@@ -180,7 +180,7 @@ hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
 .sim-turn-entry .dmg-line{color:var(--warn)}
 .sim-turn-entry .heal-line{color:var(--ok)}
 .sim-turn-entry .ko-line{color:var(--danger);font-weight:700}
-.sim-actions{display:flex;gap:4px;margin:6px 0;flex-wrap:wrap}
+.sim-actions{display:flex;gap:4px;margin:6px 0;flex-wrap:wrap;position:sticky;bottom:0;z-index:20;background:var(--bg);padding:6px 0;box-shadow:0 -4px 8px rgba(0,0,0,.25)}
 .sim-actions button{flex:1;min-width:80px}
 .sim-status-row{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}
 .sim-status-row label{font-size:.7rem;margin:0}

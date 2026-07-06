@@ -4,6 +4,7 @@ import { DATA, ja, STAT_JA } from './data.js';
 import { DMG } from './damage.js';
 import {
   applyBoost, FORCE_SWITCH_MOVES, WEATHER_ROCK, TERRAIN_EXTENDER, getMoveAccuracy,
+  PIVOT_MOVES, BATON_PASS_MOVES, SCREEN_MOVES, SCREEN_BREAK_MOVES, LIGHT_CLAY,
   getRecoilFrac as _getRecoilFrac, getDrainFrac as _getDrainFrac,
   getEffectiveMoveType as _getEffectiveMoveType,
 } from './poke-data.js';
@@ -58,7 +59,12 @@ export const field = { weather: '', terrain: '' };
 export const fieldTurns = {
   weather: 0, terrain: 0, trickRoom: 0, gravity: 0,
   tailwind: { a: 0, b: 0 },
+  // 壁（張った側で管理。reflect=物理半減 / lightScreen=特殊半減 / auroraVeil=両方）
+  reflect: { a: 0, b: 0 },
+  lightScreen: { a: 0, b: 0 },
+  auroraVeil: { a: 0, b: 0 },
 };
+export const SCREEN_JA = { reflect: 'リフレクター', lightScreen: 'ひかりのかべ', auroraVeil: 'オーロラベール' };
 // 設置技（hazards[side] = side が交代で着地したとき発動するもの）
 export const hazards = {
   a: { sr: false, spikes: 0, tspikes: 0 },
@@ -113,7 +119,7 @@ export function snapshotBattle() {
       mod: { a: { ...battle.mod.a }, b: { ...battle.mod.b } },
     },
     field: { weather: field.weather, terrain: field.terrain },
-    fieldTurns: { weather: fieldTurns.weather, terrain: fieldTurns.terrain, trickRoom: fieldTurns.trickRoom, gravity: fieldTurns.gravity, tailwind: { ...fieldTurns.tailwind } },
+    fieldTurns: { weather: fieldTurns.weather, terrain: fieldTurns.terrain, trickRoom: fieldTurns.trickRoom, gravity: fieldTurns.gravity, tailwind: { ...fieldTurns.tailwind }, reflect: { ...fieldTurns.reflect }, lightScreen: { ...fieldTurns.lightScreen }, auroraVeil: { ...fieldTurns.auroraVeil } },
     hazards: { a: { ...hazards.a }, b: { ...hazards.b } },
     parties: {
       a: parties.a.map(p => JSON.parse(JSON.stringify(p))),
@@ -141,7 +147,17 @@ export function undoBattle() {
   battle.mod = snap.battle.mod;
   // Restore field / fieldTurns / hazards
   if (snap.field) { field.weather = snap.field.weather; field.terrain = snap.field.terrain; }
-  if (snap.fieldTurns) { Object.assign(fieldTurns, { weather: snap.fieldTurns.weather, terrain: snap.fieldTurns.terrain, trickRoom: snap.fieldTurns.trickRoom, gravity: snap.fieldTurns.gravity }); fieldTurns.tailwind.a = snap.fieldTurns.tailwind.a; fieldTurns.tailwind.b = snap.fieldTurns.tailwind.b; }
+  if (snap.fieldTurns) {
+    Object.assign(fieldTurns, { weather: snap.fieldTurns.weather, terrain: snap.fieldTurns.terrain, trickRoom: snap.fieldTurns.trickRoom, gravity: snap.fieldTurns.gravity });
+    fieldTurns.tailwind.a = snap.fieldTurns.tailwind.a; fieldTurns.tailwind.b = snap.fieldTurns.tailwind.b;
+    for (const k of ['reflect','lightScreen','auroraVeil']) {
+      fieldTurns[k].a = snap.fieldTurns[k]?.a || 0;
+      fieldTurns[k].b = snap.fieldTurns[k]?.b || 0;
+    }
+  }
+  // 交代技の後続選択待ちなどの途中状態は破棄
+  battle.pendingPivot = null;
+  battle._turnCtx = null;
   if (snap.hazards) { hazards.a = { ...snap.hazards.a }; hazards.b = { ...snap.hazards.b }; }
   // Restore parties (forme changes are written directly to parties)
   for (const s of ['a','b']) {
@@ -165,6 +181,8 @@ export function initBattle() {
     crit: { a: false, b: false },
     mod: { a: { bp: null, moveType: null, stab2x: false, hits: null },
            b: { bp: null, moveType: null, stab2x: false, hits: null } },
+    pendingPivot: null, // とんぼ返り等の後続選択待ち: 'a' | 'b' | null
+    _turnCtx: null,     // 中断中のターン実行コンテキスト
   };
   for (const s of ['a','b']) {
     battle.rt[s] = selection[s].map(pi => makeBattleRuntime(parties[s][pi]));
@@ -175,6 +193,7 @@ export function initBattle() {
   fieldTurns.terrain = field.terrain ? 5 : 0;
   fieldTurns.trickRoom = 0; fieldTurns.gravity = 0;
   fieldTurns.tailwind.a = 0; fieldTurns.tailwind.b = 0;
+  for (const k of ['reflect','lightScreen','auroraVeil']) { fieldTurns[k].a = 0; fieldTurns[k].b = 0; }
   battle.log.push({ text: 'バトル開始！', isHeader: true });
   _undoStack = [];
   _preBattleParties = { a: parties.a.map(p => JSON.parse(JSON.stringify(p))),
@@ -214,16 +233,14 @@ export function addLog(text, isHeader = false, cls = '') {
 }
 
 // ===== TURN EXECUTION =====
-// 戻り値: フル再描画が必要ならtrue（交代/強制交代があった場合）。
+// 戻り値: { needRender, pivot }
+//   needRender: フル再描画が必要（交代/強制交代/交代技があった場合）
+//   pivot: 'a'|'b'なら交代技の後続選択待ちで中断中 → UIが選ばせて resolvePivot() を呼ぶ
 // 行動未選択の検証(toast)はUI側で行う。
 export function executeTurn() {
   const actA = battle.actions.a;
   const actB = battle.actions.b;
   snapshotBattle();
-  const forcedSides = new Set(); // このターン強制交代が発生した側
-  const flinched = new Set();    // このターンひるんだ側 (追加効果)
-  // ターン中の被ダメージ記録 (カウンター/ミラーコート/メタルバースト用)
-  const turnDmg = { a: { Physical: 0, Special: 0 }, b: { Physical: 0, Special: 0 } };
 
   battle.turnNum++;
   addLog(`--- ターン ${battle.turnNum} ---`, true);
@@ -264,20 +281,44 @@ export function executeTurn() {
     }
   }
 
-  for (let i = 0; i < attackers.length; i++) {
-    const { side, move } = attackers[i];
+  battle._turnCtx = {
+    attackers, i: 0,
+    forcedSides: new Set(),  // このターン強制交代が発生した側
+    flinched: new Set(),     // このターンひるんだ側 (追加効果)
+    pivotedSides: new Set(), // このターン交代技で入れ替わった側
+    // ターン中の被ダメージ記録 (カウンター/ミラーコート/メタルバースト用)
+    turnDmg: { a: { Physical: 0, Special: 0 }, b: { Physical: 0, Special: 0 } },
+    actA, actB,
+    switched: actA?.type === 'switch' || actB?.type === 'switch',
+  };
+  return continueTurn();
+}
+
+function continueTurn() {
+  const ctx = battle._turnCtx;
+  while (ctx.i < ctx.attackers.length) {
+    const { side, move } = ctx.attackers[ctx.i];
+    ctx.i++;
     const opp = side === 'a' ? 'b' : 'a';
     if (getActiveRt(side).hp <= 0) continue;
     if (getActiveRt(opp).hp <= 0) continue;
     // 強制交代させられた側: 元の個体の行動は失われ、交代先も行動しない
-    if (forcedSides.has(side)) continue;
+    if (ctx.forcedSides.has(side)) continue;
     // 先攻の追加効果でひるんだ
-    if (flinched.has(side)) {
+    if (ctx.flinched.has(side)) {
       addLog(`${side === 'a' ? '自分' : '相手'}はひるんで動けない！`);
       continue;
     }
-    executeAttack(side, opp, move, forcedSides, turnDmg, flinched);
+    executeAttack(side, opp, move, ctx.forcedSides, ctx.turnDmg, ctx.flinched);
+    // とんぼ返り等: 後続選択待ちで中断（UIがresolvePivotで再開する）
+    if (battle.pendingPivot) return { needRender: true, pivot: battle.pendingPivot };
   }
+  return finishTurn();
+}
+
+function finishTurn() {
+  const ctx = battle._turnCtx;
+  battle._turnCtx = null;
 
   // Check KO
   for (const s of ['a','b']) {
@@ -286,11 +327,39 @@ export function executeTurn() {
     }
   }
 
-  // Keep move actions for next turn (強制交代された側は別個体になるためクリア)
-  battle.actions.a = (actA?.type === 'move' && !forcedSides.has('a')) ? actA : null;
-  battle.actions.b = (actB?.type === 'move' && !forcedSides.has('b')) ? actB : null;
-  const switched = actA?.type === 'switch' || actB?.type === 'switch';
-  return switched || forcedSides.size > 0;
+  // Keep move actions for next turn (強制交代/交代技で入れ替わった側は別個体になるためクリア)
+  battle.actions.a = (ctx.actA?.type === 'move' && !ctx.forcedSides.has('a') && !ctx.pivotedSides.has('a')) ? ctx.actA : null;
+  battle.actions.b = (ctx.actB?.type === 'move' && !ctx.forcedSides.has('b') && !ctx.pivotedSides.has('b')) ? ctx.actB : null;
+  return {
+    needRender: ctx.switched || ctx.forcedSides.size > 0 || ctx.pivotedSides.size > 0,
+    pivot: null,
+  };
+}
+
+// 交代技の後続選択に応答してターンを再開する。
+// toIdx = 選出内index。-1なら交代せず続行（控えなし/手動キャンセル）。
+export function resolvePivot(toIdx) {
+  const side = battle.pendingPivot;
+  battle.pendingPivot = null;
+  const baton = battle._pivotBaton;
+  battle._pivotBaton = false;
+  if (side && toIdx != null && toIdx >= 0) {
+    const passedBoosts = baton ? { ...getActiveRt(side).boosts } : null;
+    doSwitch(side, toIdx);
+    if (passedBoosts) {
+      const rt = getActiveRt(side);
+      rt.boosts = passedBoosts;
+      addLog(`  ${side === 'a' ? '自分' : '相手'}: ランク変動を引き継いだ`);
+    }
+    battle._turnCtx?.pivotedSides.add(side);
+  }
+  if (!battle._turnCtx) return { needRender: true, pivot: null }; // 保険
+  return continueTurn();
+}
+
+// 控えに生存個体がいるか
+export function hasAliveBench(side) {
+  return battle.rt[side].some((r, i) => i !== battle.active[side] && r.hp > 0);
 }
 
 export function getEffectiveSpeed(side) {
@@ -496,6 +565,38 @@ function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg, flinche
   }
 
   if (!move.bp || move.bp === 0) {
+    // 壁 (リフレクター/ひかりのかべ/オーロラベール)
+    if (SCREEN_MOVES[moveName]) {
+      const kind = SCREEN_MOVES[moveName];
+      const turns = getActive(atkSide).item === LIGHT_CLAY ? 8 : 5;
+      if (fieldTurns[kind][atkSide] > 0) {
+        addLog(`${atkLabel}の${ja('moves', moveName)}！ → しかし既に張られている`);
+      } else {
+        fieldTurns[kind][atkSide] = turns;
+        const veilNote = kind === 'auroraVeil' && field.weather !== 'Snow' ? ' ※本来はゆき時のみ' : '';
+        addLog(`${atkLabel}の${ja('moves', moveName)}！ → ${atkLabel}側に${SCREEN_JA[kind]}を展開 (${turns}T)${veilNote}`, false, 'heal-line');
+      }
+      return;
+    }
+    // 交代技 (すてゼリフ/テレポート/バトンタッチ等)
+    if (PIVOT_MOVES.has(moveName)) {
+      addLog(`${atkLabel}の${ja('moves', moveName)}！`);
+      if (moveName === 'Parting Shot') {
+        applyBoostChanges(getActiveRt(defSide), { at: -1, sa: -1 }, defLabel);
+      }
+      if (moveName === 'Chilly Reception') {
+        field.weather = 'Snow';
+        fieldTurns.weather = weatherRockTurns('weather');
+        addLog(`  天候: ゆき (${fieldTurns.weather}T)`);
+      }
+      if (hasAliveBench(atkSide)) {
+        battle.pendingPivot = atkSide;
+        battle._pivotBaton = BATON_PASS_MOVES.has(moveName);
+      } else {
+        addLog(`  ${atkLabel}: 交代できる控えがいない`);
+      }
+      return;
+    }
     // 変化技のシミュ内効果はレジストリ(move-effects.js)から
     const fx = MOVE_EFFECTS[moveName];
     if (fx?.statusMove) {
@@ -528,12 +629,22 @@ function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg, flinche
   if (!isCrit && simOptions.autoCritRate && battle.rollMode[atkSide] === 'random' && !move.hits && Math.random() < 1/24) isCrit = true;
   const mod = battle.mod[atkSide];
   const faintedCount = battle.rt[atkSide].filter(r => r.hp <= 0).length;
+  // 相手側の壁 (かべこわし系は壁を無視して破壊するので計算に入れない)
+  const isScreenBreaker = SCREEN_BREAK_MOVES.has(moveName);
+  const defScreens = {
+    reflect: !isScreenBreaker && fieldTurns.reflect[defSide] > 0,
+    lightScreen: !isScreenBreaker && fieldTurns.lightScreen[defSide] > 0,
+    auroraVeil: !isScreenBreaker && fieldTurns.auroraVeil[defSide] > 0,
+  };
   const calcField = { ...field,
     ...(isCrit && { crit: true }),
     ...(faintedCount > 0 && { faintedCount }),
     ...(atkRt.charged && { charged: true }),
     // ピンチ特性(もうか/げきりゅう等): HP1/3以下で自動発動
     ...(atkRt.hp * 3 <= atkRt.maxHp && { pinch: true }),
+    ...(defScreens.reflect && { reflect: true }),
+    ...(defScreens.lightScreen && { lightScreen: true }),
+    ...(defScreens.auroraVeil && { auroraVeil: true }),
     ...(mod.bp != null && { bpOverride: mod.bp }),
     ...(mod.moveType && { moveTypeOverride: mod.moveType }),
     ...(mod.stab2x && { stab2x: true }),
@@ -543,6 +654,15 @@ function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg, flinche
   if (!result) { addLog(`${atkLabel}の${ja('moves', moveName)}！ (計算不可)`); return; }
 
   if (result.typeEff === 0) { addLog(`${atkLabel}の${ja('moves', moveName)}！ → 効果なし`); return; }
+
+  // かべこわし (Brick Break/Psychic Fangs/Raging Bull): ダメージ前に相手側の壁を破壊
+  if (isScreenBreaker) {
+    const broken = ['reflect','lightScreen','auroraVeil'].filter(k => fieldTurns[k][defSide] > 0);
+    if (broken.length) {
+      broken.forEach(k => { fieldTurns[k][defSide] = 0; });
+      addLog(`  ${defLabel}側の${broken.map(k => SCREEN_JA[k]).join('・')}が砕けた！`);
+    }
+  }
 
   // カウンター/ミラーコート/メタルバースト: ターン中の被ダメから反射
   if (result.counter) {
@@ -683,6 +803,16 @@ function executeAttack(atkSide, defSide, moveName, forcedSides, turnDmg, flinche
 
   // 強制交代技（ダメージ後、相手が生存していれば控えへ）
   if (FORCE_SWITCH_MOVES.has(moveName) && defRt.hp > 0) forceSwitch(defSide, forcedSides);
+
+  // 交代技 (とんぼ返り/ボルトチェンジ/クイックターン): 自分が生存していれば後続選択へ
+  if (PIVOT_MOVES.has(moveName) && atkRt.hp > 0) {
+    if (hasAliveBench(atkSide)) {
+      battle.pendingPivot = atkSide;
+      battle._pivotBaton = false;
+    } else {
+      addLog(`  ${atkLabel}: 交代できる控えがいない`);
+    }
+  }
 }
 
 // 強制交代: 控えの生存個体からランダムに繰り出す
@@ -774,5 +904,21 @@ export function executeEndOfTurn() {
   }
   for (const s of ['a','b']) {
     if (getActiveRt(s).hp <= 0) addLog(`${s === 'a' ? '自分' : '相手'}の${ja('pokemon', getActive(s).name)}はたおれた！`, false, 'ko-line');
+  }
+  tickFieldTurns();
+}
+
+// 天候/フィールド/壁などの残りターンをEOTで1減らし、切れたら解除
+function tickFieldTurns() {
+  if (fieldTurns.weather > 0 && --fieldTurns.weather === 0) { addLog('天候が元に戻った'); field.weather = ''; }
+  if (fieldTurns.terrain > 0 && --fieldTurns.terrain === 0) { addLog('フィールドが元に戻った'); field.terrain = ''; }
+  if (fieldTurns.trickRoom > 0 && --fieldTurns.trickRoom === 0) addLog('トリックルームが解除された');
+  if (fieldTurns.gravity > 0 && --fieldTurns.gravity === 0) addLog('じゅうりょくが解除された');
+  for (const s of ['a','b']) {
+    const label = s === 'a' ? '自分' : '相手';
+    if (fieldTurns.tailwind[s] > 0 && --fieldTurns.tailwind[s] === 0) addLog(`${label}側のおいかぜが止んだ`);
+    for (const k of ['reflect','lightScreen','auroraVeil']) {
+      if (fieldTurns[k][s] > 0 && --fieldTurns[k][s] === 0) addLog(`${label}側の${SCREEN_JA[k]}が消えた`);
+    }
   }
 }

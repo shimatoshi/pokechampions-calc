@@ -122,6 +122,10 @@ export function initCalcPage() {
         <label><input type="checkbox" id="field-crit"> 急所</label>
       </div>
       <div class="col2 mt">
+        <label><input type="checkbox" id="field-reflect"> リフレクター(防御側)</label>
+        <label><input type="checkbox" id="field-lightscreen"> ひかりのかべ(防御側)</label>
+      </div>
+      <div class="col2 mt">
         <label><input type="checkbox" id="field-pinch"> HP1/3以下</label>
         <div style="display:flex;align-items:center;gap:3px">
           <label style="white-space:nowrap">倒れた味方</label>
@@ -280,6 +284,8 @@ export function initCalcPage() {
   document.getElementById('field-doubles').addEventListener('change', e => { fieldState.doubles = e.target.checked; scheduleSessionSave(); });
   document.getElementById('field-crit').addEventListener('change', e => { fieldState.crit = e.target.checked; scheduleSessionSave(); });
   document.getElementById('field-pinch').addEventListener('change', e => { fieldState.pinch = e.target.checked; scheduleSessionSave(); });
+  document.getElementById('field-reflect').addEventListener('change', e => { fieldState.reflect = e.target.checked; scheduleSessionSave(); });
+  document.getElementById('field-lightscreen').addEventListener('change', e => { fieldState.lightScreen = e.target.checked; scheduleSessionSave(); });
   document.getElementById('field-sr').addEventListener('change', e => { fieldState.stealthRock = e.target.checked; scheduleSessionSave(); });
   document.getElementById('field-spikes').addEventListener('change', e => { fieldState.spikes = parseInt(e.target.value); scheduleSessionSave(); });
   document.getElementById('field-fainted').addEventListener('change', e => { fieldState.faintedCount = parseInt(e.target.value); scheduleSessionSave(); });
@@ -290,6 +296,8 @@ export function initCalcPage() {
   document.getElementById('field-doubles').checked = fieldState.doubles;
   document.getElementById('field-crit').checked = fieldState.crit;
   document.getElementById('field-pinch').checked = fieldState.pinch;
+  document.getElementById('field-reflect').checked = !!fieldState.reflect;
+  document.getElementById('field-lightscreen').checked = !!fieldState.lightScreen;
   document.getElementById('field-sr').checked = fieldState.stealthRock;
   document.getElementById('field-spikes').value = fieldState.spikes;
   document.getElementById('field-fainted').value = fieldState.faintedCount || 0;

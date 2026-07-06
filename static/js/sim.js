@@ -9,9 +9,10 @@ import { generateUid, markDirty } from './state.js';
 import { showToast, showPokemonDetailModal } from './ui.js';
 import { TWO_TURN_MOVES, ALL_TYPES, TYPE_JA } from './poke-data.js';
 import {
-  parties, selection, field, fieldTurns, hazards, battle, simOptions,
+  parties, selection, field, fieldTurns, hazards, battle, simOptions, SCREEN_JA,
   initBattle, getActive, getActiveRt, restorePreBattleParties,
   executeTurn as engineExecuteTurn, executeEndOfTurn as engineExecuteEndOfTurn,
+  resolvePivot, hasAliveBench,
   undoBattle as engineUndoBattle, canUndo, snapshotBattle, addLog, weatherRockTurns,
   getMegaFormes, getMegaForme, isMega, isAegislash, getAegislashAlternateForme, applyFormeChange,
   getRecoilFrac, getDrainFrac, getEffectiveMoveType,
@@ -41,6 +42,7 @@ let manualPanelOpen = false;
 function renderBattle() {
   const page = document.getElementById('page-sim');
   page.innerHTML = `
+    ${renderPivotPrompt()}
     <div class="sim-sides" style="margin-bottom:6px">
       ${renderBattleSide('a')}
       ${renderBattleSide('b')}
@@ -86,6 +88,13 @@ function renderBattle() {
       ${renderLog()}
     </div>
   `;
+
+  // Pivot prompt (とんぼ返り等の後続選択)
+  document.querySelectorAll('.sim-pivot-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      handleTurnResult(resolvePivot(parseInt(btn.dataset.to)));
+    });
+  });
 
   // Wire events
   for (const s of ['a','b']) {
@@ -238,10 +247,9 @@ function renderBattle() {
   });
 
   document.getElementById('sim-exec').addEventListener('click', () => {
+    if (battle.pendingPivot) { showToast('後続を選択してください'); return; }
     if (!battle.actions.a && !battle.actions.b) { showToast('行動を選択してください'); return; }
-    const needFullRender = engineExecuteTurn();
-    if (needFullRender) renderBattle();
-    else updateBattleLight();
+    handleTurnResult(engineExecuteTurn());
   });
   document.getElementById('sim-eot').addEventListener('click', () => {
     engineExecuteEndOfTurn();
@@ -313,6 +321,36 @@ async function saveBattleLog() {
   });
   markDirty('records');
   showToast('バトルログを記録タブに保存した');
+}
+
+// ターン実行/再開の結果を描画に反映
+function handleTurnResult(res) {
+  if (!res) { updateBattleLight(); return; }
+  if (res.pivot || res.needRender) renderBattle(); // pendingPivot中はrenderPivotPromptが出る
+  else updateBattleLight();
+}
+
+// とんぼ返り等で中断中: 後続選択パネル
+function renderPivotPrompt() {
+  if (!battle?.pendingPivot) return '';
+  const side = battle.pendingPivot;
+  const label = side === 'a' ? '自分' : '相手';
+  const bench = selection[side]
+    .map((pi, i) => ({ pi, i, poke: parties[side][pi], rt: battle.rt[side][i] }))
+    .filter(x => x.i !== battle.active[side] && x.rt.hp > 0);
+  return `
+    <div class="card" style="border:2px solid var(--accent);padding:8px;margin-bottom:6px">
+      <div style="font-weight:700;font-size:.85rem;margin-bottom:4px">🔄 交代技: ${label}の後続を選択</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        ${bench.map(({ poke, rt, i }) => `
+          <button class="sim-pivot-btn btn btn-sm btn-outline" data-to="${i}" style="display:flex;align-items:center;gap:3px">
+            ${spriteImg(poke.name, 22)}
+            <span style="font-size:.7rem">${esc(ja('pokemon', poke.name))}</span>
+            <span style="font-size:.6rem;color:var(--fg2)">${rt.hp}/${rt.maxHp}</span>
+          </button>`).join('')}
+        <button class="sim-pivot-btn btn btn-sm btn-outline" data-to="-1" style="color:var(--fg2)">交代しない</button>
+      </div>
+    </div>`;
 }
 
 function renderBattleSide(side) {
@@ -530,6 +568,12 @@ function renderFieldPanel() {
       <button class="btn btn-sm sim-field-toggle ${fieldTurns.tailwind.a>0?'':'btn-outline'}" data-fx="tailwind-a">おいかぜ自${fieldTurns.tailwind.a>0?` ${fieldTurns.tailwind.a}T`:''}</button>
       <button class="btn btn-sm sim-field-toggle ${fieldTurns.tailwind.b>0?'':'btn-outline'}" data-fx="tailwind-b">おいかぜ相${fieldTurns.tailwind.b>0?` ${fieldTurns.tailwind.b}T`:''}</button>
     </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
+      ${[['reflect','リフレク'],['lightScreen','ひかりのかべ'],['auroraVeil','ベール']].map(([k, name]) =>
+        ['a','b'].map(s =>
+          `<button class="btn btn-sm sim-field-toggle ${fieldTurns[k][s]>0?'':'btn-outline'}" data-fx="${k}-${s}" style="font-size:.65rem">${name}${s==='a'?'自':'相'}${fieldTurns[k][s]>0?` ${fieldTurns[k][s]}T`:''}</button>`
+        ).join('')).join('')}
+    </div>
     <div style="display:flex;gap:10px;margin-top:4px;font-size:.7rem">
       <label><input type="checkbox" id="sim-opt-acc" ${simOptions.autoAccuracy?'checked':''}> 命中判定</label>
       <label><input type="checkbox" id="sim-opt-critrate" ${simOptions.autoCritRate?'checked':''}> 急所率(1/24)を抽選に含める</label>
@@ -561,6 +605,11 @@ function wireFieldPanel() {
       else if (fx === 'gravity') { fieldTurns.gravity = on(fieldTurns.gravity); addLog(`じゅうりょく ${fieldTurns.gravity>0?'発動 (5T)':'解除'}`); }
       else if (fx === 'tailwind-a') { fieldTurns.tailwind.a = on(fieldTurns.tailwind.a); addLog(`おいかぜ(自分) ${fieldTurns.tailwind.a>0?'発動 (5T)':'解除'}`); }
       else if (fx === 'tailwind-b') { fieldTurns.tailwind.b = on(fieldTurns.tailwind.b); addLog(`おいかぜ(相手) ${fieldTurns.tailwind.b>0?'発動 (5T)':'解除'}`); }
+      else if (/^(reflect|lightScreen|auroraVeil)-(a|b)$/.test(fx)) {
+        const [k, s] = fx.split('-');
+        fieldTurns[k][s] = on(fieldTurns[k][s]);
+        addLog(`${s==='a'?'自分':'相手'}側の${SCREEN_JA[k]} ${fieldTurns[k][s]>0?'展開 (5T)':'解除'}`);
+      }
       renderBattle();
     });
   });

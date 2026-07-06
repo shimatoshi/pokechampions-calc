@@ -41,7 +41,7 @@ export function makePokemonState() {
 
 export const atkState = makePokemonState();
 export const defState = makePokemonState();
-export const fieldState = { weather: '', terrain: '', doubles: false, crit: false, stealthRock: false, spikes: 0, pinch: false };
+export const fieldState = { weather: '', terrain: '', doubles: false, crit: false, stealthRock: false, spikes: 0, pinch: false, reflect: false, lightScreen: false };
 
 // ===== CALC SESSION PERSISTENCE =====
 const SESSION_KEY = 'pokechamp_calc_session';

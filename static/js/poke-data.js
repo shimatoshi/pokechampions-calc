@@ -80,6 +80,17 @@ export const MOVE_ACCURACY = {
 // ===== FORCE-SWITCH MOVES (相手を強制交代) =====
 export const FORCE_SWITCH_MOVES = new Set(['Roar','Whirlwind','Dragon Tail','Circle Throw']);
 
+// ===== PIVOT MOVES (自分が交代 — 使用後に後続を選択) =====
+// baton: ランク変動を後続に引き継ぐ
+export const PIVOT_MOVES = new Set(['U-turn','Volt Switch','Flip Turn','Parting Shot','Teleport','Baton Pass','Chilly Reception']);
+export const BATON_PASS_MOVES = new Set(['Baton Pass']);
+
+// ===== SCREENS (壁) =====
+// 発動する壁: reflect=物理半減 / lightScreen=特殊半減 / auroraVeil=両方
+export const SCREEN_MOVES = { 'Reflect': 'reflect', 'Light Screen': 'lightScreen', 'Aurora Veil': 'auroraVeil' };
+export const SCREEN_BREAK_MOVES = new Set(['Brick Break','Psychic Fangs','Raging Bull']);
+export const LIGHT_CLAY = 'Light Clay'; // 壁5→8ターン
+
 // ===== WEATHER / TERRAIN 延長アイテム (5→8ターン) =====
 export const WEATHER_ROCK = { 'Sun':'Heat Rock','Rain':'Damp Rock','Sand':'Smooth Rock','Snow':'Icy Rock' };
 export const TERRAIN_EXTENDER = 'Terrain Extender';

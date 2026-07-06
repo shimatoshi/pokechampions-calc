@@ -282,7 +282,15 @@ export const DMG = (() => {
     const burnMod = (attacker.status === 'brn' && isPhysical && aAbil !== 'Guts') ? 0.5 : 1;
     const spreadMod = (field?.doubles && move.spread) ? 0.75 : 1;
 
-    return { weatherMod, terrainMod, burnMod, spreadMod };
+    // 壁 (リフレクター/ひかりのかべ/オーロラベール): 該当分類を半減
+    // 急所とすりぬけは壁を無視
+    let screenMod = 1;
+    const screened = isPhysical
+      ? (field?.reflect || field?.auroraVeil)
+      : (field?.lightScreen || field?.auroraVeil);
+    if (screened && !field?.crit && aAbil !== 'Infiltrator') screenMod = 0.5;
+
+    return { weatherMod, terrainMod, burnMod, spreadMod, screenMod };
   }
 
   // ===== PHASE 8: Item modifiers =====
@@ -446,7 +454,7 @@ export const DMG = (() => {
     const defAbilMod = defMods.defAbilMod;
 
     // Phase 7: Field modifiers
-    const { weatherMod, terrainMod, burnMod, spreadMod } = resolveFieldMods(effectiveMoveType, isPhysical, attacker, aAbil, move, field);
+    const { weatherMod, terrainMod, burnMod, spreadMod, screenMod } = resolveFieldMods(effectiveMoveType, isPhysical, attacker, aAbil, move, field);
 
     // Phase 8: Item modifiers
     const items = resolveItemMods(attacker, defender, effectiveMoveType, typeEff);
@@ -476,6 +484,7 @@ export const DMG = (() => {
     for (let roll = 85; roll <= 100; roll++) {
       let dmg = baseDmg;
       dmg = Math.floor(dmg * spreadMod);
+      dmg = Math.floor(dmg * screenMod);
       dmg = Math.floor(dmg * weatherMod);
       dmg = Math.floor(dmg * critMod);
       dmg = Math.floor(dmg * roll / 100);
@@ -566,6 +575,7 @@ export const DMG = (() => {
       } else {
         breakdown.push(`基礎ダメージ ${baseDmg} (Lv50式: floor(floor(22×威力×A÷D)÷50)+2)`);
         if (spreadMod !== 1) breakdown.push(`複数対象 ×${spreadMod}`);
+        if (screenMod !== 1) breakdown.push(`壁(${isPhysical ? 'リフレクター' : 'ひかりのかべ'}) ×${screenMod}`);
         if (weatherMod !== 1) breakdown.push(`天候 ×${weatherMod}`);
         if (critMod !== 1) breakdown.push(`急所 ×${critMod}`);
         breakdown.push('乱数 ×0.85〜1.00 (16段階)');

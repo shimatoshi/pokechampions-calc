@@ -84,7 +84,7 @@ simOptions.autoCritRate = false;
   assert(getActive('b').name === 'Azumarill', `forceSwitch: 交代先が場に出る (${getActive('b').name})`);
   assert(roarCount === 1, `forceSwitch: 吹き飛ばされた側は行動しない (Roarログ${roarCount}件)`);
   assert(engine.battle.actions.b === null, 'forceSwitch: 被害側のactionsがクリアされる');
-  assert(fullRender === true, 'forceSwitch: フル再描画フラグが立つ');
+  assert(fullRender.needRender === true, 'forceSwitch: フル再描画フラグが立つ');
 }
 
 // ===== 4. EOT: どくで最大HPの1/8減る =====
@@ -288,6 +288,114 @@ simOptions.autoCritRate = false;
   // ステロ込みなら満タンでも半減しない(着地チップで崩れる)
   const sr = DMG.calculate(mon('Garchomp', []), dnite(null), 'Dragon Claw', { stealthRock: true });
   assert(sr.maxDmg === damaged.maxDmg, `multiscale: ステロ込みは等倍 (${sr.maxDmg}===${damaged.maxDmg})`);
+}
+
+// ===== 19. 壁: リフレクター/ひかりのかべで半減、急所・すりぬけは無視 =====
+{
+  const { DMG } = await import('../static/js/damage.js');
+  const plain = DMG.calculate(mon('Garchomp', []), mon('Azumarill', []), 'Earthquake', {});
+  const walled = DMG.calculate(mon('Garchomp', []), mon('Azumarill', []), 'Earthquake', { reflect: true });
+  assert(walled.maxDmg < plain.maxDmg && walled.maxDmg >= Math.floor(plain.maxDmg * 0.45), `screen: リフレクターで物理半減 (${plain.maxDmg}→${walled.maxDmg})`);
+  const specPlain = DMG.calculate(mon('Garchomp', []), mon('Pikachu', []), 'Draco Meteor', {});
+  const specWalled = DMG.calculate(mon('Garchomp', []), mon('Pikachu', []), 'Draco Meteor', { lightScreen: true });
+  const specReflect = DMG.calculate(mon('Garchomp', []), mon('Pikachu', []), 'Draco Meteor', { reflect: true });
+  assert(specWalled.maxDmg < specPlain.maxDmg, `screen: ひかりのかべで特殊半減 (${specPlain.maxDmg}→${specWalled.maxDmg})`);
+  assert(specReflect.maxDmg === specPlain.maxDmg, 'screen: リフレクターは特殊技に無効');
+  const veil = DMG.calculate(mon('Garchomp', []), mon('Pikachu', []), 'Draco Meteor', { auroraVeil: true });
+  assert(veil.maxDmg === specWalled.maxDmg, 'screen: オーロラベールは特殊も半減');
+  const crit = DMG.calculate(mon('Garchomp', []), mon('Azumarill', []), 'Earthquake', { reflect: true, crit: true });
+  const critNoWall = DMG.calculate(mon('Garchomp', []), mon('Azumarill', []), 'Earthquake', { crit: true });
+  assert(crit.maxDmg === critNoWall.maxDmg, 'screen: 急所は壁を無視');
+  const infil = DMG.calculate(mon('Garchomp', [], { ability: 'Infiltrator' }), mon('Azumarill', []), 'Earthquake', { reflect: true });
+  assert(infil.maxDmg === plain.maxDmg, 'screen: すりぬけは壁を無視');
+}
+
+// ===== 20. 壁シミュ: 展開→半減→EOTで残T減→かべこわしで破壊 =====
+{
+  setupBattle(
+    [mon('Azumarill', ['Reflect', 'Light Screen'])],
+    [mon('Garchomp', ['Earthquake', 'Brick Break'])],
+  );
+  engine.battle.rollMode.a = 'min'; engine.battle.rollMode.b = 'min';
+  // T1: 壁を張る (相手はスキップ)
+  engine.battle.actions.a = { type: 'move', move: 'Reflect' };
+  engine.battle.actions.b = { type: 'skip' };
+  executeTurn();
+  assert(fieldTurns.reflect.a === 5, `screen-sim: リフレクター展開 (${fieldTurns.reflect.a}T)`);
+  // T2: 壁越しの地震 = 半減
+  const rtA = getActiveRt('a');
+  const before = rtA.hp;
+  engine.battle.actions.a = { type: 'skip' };
+  engine.battle.actions.b = { type: 'move', move: 'Earthquake' };
+  executeTurn();
+  const dealtWalled = before - rtA.hp;
+  const { DMG } = await import('../static/js/damage.js');
+  const rPlain = DMG.calculate(mon('Garchomp', []), mon('Azumarill', []), 'Earthquake', {});
+  assert(dealtWalled < rPlain.minDmg, `screen-sim: 壁越しで半減 (${dealtWalled} < ${rPlain.minDmg})`);
+  // EOTで残ターン減
+  executeEndOfTurn();
+  assert(fieldTurns.reflect.a === 4, `screen-sim: EOTで残T減 (${fieldTurns.reflect.a}T)`);
+  // T3: かべこわしで破壊 + そのダメージは等倍
+  engine.battle.actions.b = { type: 'move', move: 'Brick Break' };
+  executeTurn();
+  assert(fieldTurns.reflect.a === 0, 'screen-sim: かべこわしで破壊');
+  const log = engine.battle.log.map(e => e.text).join('\n');
+  assert(log.includes('砕けた'), 'screen-sim: 破壊ログが出る');
+}
+
+// ===== 21. 交代技: とんぼ返りで後続選択→resolvePivotで交代 =====
+{
+  setupBattle(
+    [mon('Garchomp', ['U-turn']), mon('Azumarill', ['Earthquake'])],
+    [mon('Pikachu', ['Earthquake'])],
+  );
+  engine.battle.rollMode.a = 'min'; engine.battle.rollMode.b = 'min';
+  engine.battle.actions.a = { type: 'move', move: 'U-turn' };
+  engine.battle.actions.b = { type: 'skip' };
+  const res = executeTurn();
+  assert(res.pivot === 'a', `pivot: U-turn後に後続選択待ち (${res.pivot})`);
+  assert(engine.battle.pendingPivot === 'a', 'pivot: pendingPivotが立つ');
+  const res2 = engine.resolvePivot(1);
+  assert(getActive('a').name === 'Azumarill', `pivot: 後続が場に出る (${getActive('a').name})`);
+  assert(res2.pivot === null && res2.needRender === true, 'pivot: 解決後はフル再描画');
+  assert(engine.battle.actions.a === null, 'pivot: 交代した側のactionはクリア');
+}
+
+// ===== 22. 交代技: ボルチェンをじめんタイプに → 交代発生しない =====
+{
+  setupBattle(
+    [mon('Pikachu', ['Volt Switch']), mon('Azumarill', ['Earthquake'])],
+    [mon('Garchomp', ['Earthquake'])],
+  );
+  engine.battle.actions.a = { type: 'move', move: 'Volt Switch' };
+  engine.battle.actions.b = { type: 'skip' };
+  const res = executeTurn();
+  assert(res.pivot === null && getActive('a').name === 'Pikachu', 'pivot: 効果なしなら交代しない');
+}
+
+// ===== 23. 交代技: バトンタッチでランク引き継ぎ =====
+{
+  setupBattle(
+    [mon('Azumarill', ['Baton Pass']), mon('Garchomp', ['Earthquake'])],
+    [mon('Pikachu', ['Earthquake'])],
+  );
+  getActiveRt('a').boosts.at = 2;
+  engine.battle.actions.a = { type: 'move', move: 'Baton Pass' };
+  engine.battle.actions.b = { type: 'skip' };
+  const res = executeTurn();
+  assert(res.pivot === 'a', 'baton: 後続選択待ち');
+  engine.resolvePivot(1);
+  assert(getActive('a').name === 'Garchomp' && getActiveRt('a').boosts.at === 2, `baton: ランク引き継ぎ (at+${getActiveRt('a').boosts.at})`);
+}
+
+// ===== 24. フィールド残ターン: EOTで減り、0で天候解除 =====
+{
+  setupBattle([mon('Garchomp', ['Earthquake'])], [mon('Azumarill', ['Earthquake'])]);
+  field.weather = 'Sun'; fieldTurns.weather = 1;
+  fieldTurns.tailwind.a = 1;
+  executeEndOfTurn();
+  assert(fieldTurns.weather === 0 && field.weather === '', 'tick: 天候が切れて解除');
+  assert(fieldTurns.tailwind.a === 0, 'tick: おいかぜが切れる');
 }
 
 console.log(failed ? `\n${failed} test(s) FAILED` : '\nall engine tests passed');
