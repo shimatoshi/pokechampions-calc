@@ -193,6 +193,8 @@ hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
 .sim-party-slot{transition:.15s}
 .sim-party-slot:active{transform:scale(.97)}
 .sim-turn-log{max-height:40vh;overflow-y:auto}
+.sim-detail-sum{cursor:pointer;font-size:.7rem;font-weight:700;color:var(--fg2);padding:2px 0;user-select:none}
+.sim-side-detail{margin-top:4px;border-top:1px dashed var(--bg3);padding-top:2px}
 .sel-slot{transition:.15s;text-align:center;cursor:pointer;padding:4px;border-radius:var(--radius);border:2px solid var(--bg3);background:var(--bg)}
 .sel-slot.sel-active{border-color:var(--accent);background:rgba(233,69,96,.1)}
 .sel-slot:active{transform:scale(.95)}

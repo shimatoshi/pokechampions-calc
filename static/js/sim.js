@@ -38,6 +38,8 @@ export function startBattle() {
 
 // 手動調整パネルの開閉状態 (renderBattleは頻繁に呼ばれるため、閉じ直されないよう保持)
 let manualPanelOpen = false;
+let sideDetailOpen = { a: false, b: false }; // HP調整・威力補正の折りたたみ
+let partyOvOpen = false;
 
 function renderBattle() {
   const page = document.getElementById('page-sim');
@@ -47,8 +49,6 @@ function renderBattle() {
       ${renderBattleSide('a')}
       ${renderBattleSide('b')}
     </div>
-    ${renderBench('a')}
-    ${renderBench('b')}
     <details class="card" id="sim-manual-panel" style="margin-top:6px;padding:6px" ${manualPanelOpen ? 'open' : ''}>
       <summary style="cursor:pointer;font-size:.8rem;font-weight:700;color:var(--fg2)">⚙ 手動調整（状態異常・フィールド・設置技・ランク）</summary>
       <div class="col2" style="margin-top:4px">
@@ -273,6 +273,13 @@ function renderBattle() {
   document.getElementById('sim-manual-panel')?.addEventListener('toggle', e => {
     manualPanelOpen = e.target.open;
   });
+  // サイド別 HP調整・威力補正 / パーティ概観の開閉を保持
+  document.querySelectorAll('.sim-side-detail').forEach(d => {
+    d.addEventListener('toggle', e => { sideDetailOpen[d.dataset.side] = e.target.open; });
+  });
+  document.getElementById('sim-party-ov')?.addEventListener('toggle', e => {
+    partyOvOpen = e.target.open;
+  });
   // バトルログを記録タブに保存
   document.getElementById('sim-savelog').addEventListener('click', saveBattleLog);
   // パーティ概観: タップで個体詳細（選出済みなら現在HP/ランクも表示）＋BOX保存導線
@@ -385,20 +392,6 @@ function renderBattleSide(side) {
       <div class="sim-hp-text" id="sim-hptext-${side}">${rt.hp} / ${rt.maxHp}</div>
       ${stats ? `<div style="font-size:.65rem;color:var(--fg2);text-align:center">S:${stats.sp} ${poke.item ? '@ ' + esc(ja('items', poke.item)) : ''}</div>` : ''}
       ${rt.disguise ? `<div style="font-size:.7rem;text-align:center;color:var(--accent2);font-weight:700">${poke.ability === 'Disguise' ? 'ばけのかわ' : 'こおりのすがた'} 生存</div>` : ''}
-      <div class="sim-hp-btns">
-        <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/16}">+1/16</button>
-        <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/8}">+1/8</button>
-        <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/4}">+1/4</button>
-        <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/2}">+1/2</button>
-        <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/16}">-1/16</button>
-        <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/8}">-1/8</button>
-        <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/4}">-1/4</button>
-        <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/2}">-1/2</button>
-      </div>
-      <div class="sim-custom-hp">
-        <input type="number" id="sim-hp-input-${side}" placeholder="HP" min="0" max="${rt.maxHp}">
-        <button class="btn btn-sm btn-outline" id="sim-hp-set-${side}" style="font-size:.7rem;padding:2px 6px">設定</button>
-      </div>
       <div class="sim-move-sel">
         <div style="font-size:.7rem;color:var(--fg2);margin-bottom:2px">${label}の行動:</div>
         ${moves.map(m => {
@@ -419,6 +412,7 @@ function renderBattleSide(side) {
           — 行動なし <span style="font-size:.6rem">(怯み/外し/行動不能)</span>
         </button>
       </div>
+      ${renderBench(side)}
       <div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.7rem">
         <label style="display:flex;align-items:center;gap:2px;white-space:nowrap"><input type="checkbox" class="sim-crit" data-side="${side}" ${battle.crit[side] ? 'checked' : ''}> 急所</label>
         <select class="sim-roll" data-side="${side}" style="font-size:.7rem;padding:1px 2px;flex:1">
@@ -428,7 +422,24 @@ function renderBattleSide(side) {
           <option value="avg"${battle.rollMode[side]==='avg' ? ' selected' : ''}>平均</option>
         </select>
       </div>
-      ${renderModPanel(side, poke)}
+      <details class="sim-side-detail" data-side="${side}" ${sideDetailOpen[side] ? 'open' : ''}>
+        <summary class="sim-detail-sum">🔧 HP調整・威力補正</summary>
+        <div class="sim-hp-btns">
+          <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/16}">+1/16</button>
+          <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/8}">+1/8</button>
+          <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/4}">+1/4</button>
+          <button class="sim-hp-adj hp-heal" data-side="${side}" data-frac="${1/2}">+1/2</button>
+          <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/16}">-1/16</button>
+          <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/8}">-1/8</button>
+          <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/4}">-1/4</button>
+          <button class="sim-hp-adj hp-dmg" data-side="${side}" data-frac="${-1/2}">-1/2</button>
+        </div>
+        <div class="sim-custom-hp">
+          <input type="number" id="sim-hp-input-${side}" placeholder="HP" min="0" max="${rt.maxHp}">
+          <button class="btn btn-sm btn-outline" id="sim-hp-set-${side}" style="font-size:.7rem;padding:2px 6px">設定</button>
+        </div>
+        ${renderModPanel(side, poke)}
+      </details>
     </div>`;
 }
 
@@ -468,14 +479,13 @@ function renderModPanel(side, poke) {
 }
 
 function renderBench(side) {
-  const label = side === 'a' ? '自分' : '相手';
   const benched = selection[side]
     .map((pi, i) => ({ pi, i, poke: parties[side][pi], rt: battle.rt[side][i] }))
     .filter(x => x.i !== battle.active[side]);
   if (benched.length === 0) return '';
 
   return `
-    <div style="font-size:.7rem;color:var(--fg2);margin:2px 0">${label}の控え:</div>
+    <div style="font-size:.65rem;color:var(--fg2);margin:2px 0">控え(交代):</div>
     <div style="display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap">
       ${benched.map(({ poke, rt, i }) => {
         const alive = rt.hp > 0;
@@ -521,9 +531,10 @@ function renderPartyOverview() {
         </div>
       </div>`;
   };
-  return `<div class="card" style="margin-top:6px;padding:6px">
-    <div class="col2">${renderSide('a')}${renderSide('b')}</div>
-  </div>`;
+  return `<details class="card" id="sim-party-ov" style="margin-top:6px;padding:6px" ${partyOvOpen ? 'open' : ''}>
+    <summary class="sim-detail-sum">👥 パーティ概観（タップで個体詳細）</summary>
+    <div class="col2" style="margin-top:4px">${renderSide('a')}${renderSide('b')}</div>
+  </details>`;
 }
 
 function renderBoostUI(side) {
