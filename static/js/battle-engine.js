@@ -362,6 +362,68 @@ export function hasAliveBench(side) {
   return battle.rt[side].some((r, i) => i !== battle.active[side] && r.hp > 0);
 }
 
+// ============================================================
+// 簡易AI (オート対戦) — 実際のターン解決と同じ DMG.calculate 経路で
+// 推定ダメージを出し、最大ダメージの技を選ぶ貪欲AI。手動はいつでも上書き可。
+// ============================================================
+
+// atkSide→defSide に moveName を撃った時の推定平均ダメージ (crit無し/手動補正無し)。
+// 無効(typeEff0)・変化技・計算不可は 0。
+function estimateAvgDamage(atkSide, defSide, moveName) {
+  const move = DATA.moves[moveName];
+  if (!move || !move.bp) return 0;
+  const atkPoke = getActive(atkSide), defPoke = getActive(defSide);
+  const atkRt = getActiveRt(atkSide), defRt = getActiveRt(defSide);
+  const atkTypes = getEffectiveTypes(atkSide, battle.active[atkSide]);
+  const defTypes = getEffectiveTypes(defSide, battle.active[defSide]);
+  const atkState = { ...atkPoke, boosts: { ...atkRt.boosts }, currentHP: atkRt.hp, status: atkRt.status, _types: atkTypes };
+  const defState = { ...defPoke, boosts: { ...defRt.boosts }, currentHP: defRt.hp, status: defRt.status, disguiseIntact: defRt.disguise, _types: defTypes };
+  const faintedCount = battle.rt[atkSide].filter(r => r.hp <= 0).length;
+  const isScreenBreaker = SCREEN_BREAK_MOVES.has(moveName);
+  const calcField = { ...field,
+    ...(faintedCount > 0 && { faintedCount }),
+    ...(atkRt.charged && { charged: true }),
+    ...(atkRt.hp * 3 <= atkRt.maxHp && { pinch: true }),
+    ...(!isScreenBreaker && fieldTurns.reflect[defSide] > 0 && { reflect: true }),
+    ...(!isScreenBreaker && fieldTurns.lightScreen[defSide] > 0 && { lightScreen: true }),
+    ...(!isScreenBreaker && fieldTurns.auroraVeil[defSide] > 0 && { auroraVeil: true }),
+  };
+  const r = DMG.calculate(atkState, defState, moveName, calcField);
+  if (!r || r.typeEff === 0) return 0;
+  return ((r.minDmg || 0) + (r.maxDmg || 0)) / 2;
+}
+
+// 指定サイドのAI行動。瀕死なら生存控えへ交代、そうでなければ最大ダメージの技。
+export function pickAiAction(side) {
+  const opp = side === 'a' ? 'b' : 'a';
+  if (getActiveRt(side).hp <= 0) {
+    const to = pickAiBench(side);
+    return to >= 0 ? { type: 'switch', to } : { type: 'skip' };
+  }
+  const moves = getActive(side).moves.filter(m => m && DATA.moves[m]);
+  let best = null, bestDmg = -1;
+  for (const m of moves) {
+    const d = estimateAvgDamage(side, opp, m);
+    if (d > bestDmg) { bestDmg = d; best = m; }
+  }
+  if (best && bestDmg > 0) return { type: 'move', move: best };
+  // 攻撃技が無い/全て無効 → 先頭の技(変化技含む)。それも無ければ行動なし
+  return moves.length ? { type: 'move', move: moves[0] } : { type: 'skip' };
+}
+
+// 最初の生存控えの選出index。無ければ -1。
+export function pickAiBench(side) {
+  return battle.rt[side].findIndex((r, i) => i !== battle.active[side] && r.hp > 0);
+}
+
+// どちらかが全滅していれば勝者('a'|'b')、続行中は null。
+export function battleWinner() {
+  const wiped = s => battle.rt[s].every(r => r.hp <= 0);
+  if (wiped('b')) return 'a';
+  if (wiped('a')) return 'b';
+  return null;
+}
+
 export function getEffectiveSpeed(side) {
   const poke = getActive(side);
   const rt = getActiveRt(side);

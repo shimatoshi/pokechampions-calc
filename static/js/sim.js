@@ -13,6 +13,7 @@ import {
   initBattle, getActive, getActiveRt, restorePreBattleParties,
   executeTurn as engineExecuteTurn, executeEndOfTurn as engineExecuteEndOfTurn,
   resolvePivot, hasAliveBench,
+  pickAiAction, pickAiBench, battleWinner,
   undoBattle as engineUndoBattle, canUndo, snapshotBattle, addLog, weatherRockTurns,
   getMegaFormes, getMegaForme, isMega, isAegislash, getAegislashAlternateForme, applyFormeChange,
   getRecoilFrac, getDrainFrac, getEffectiveMoveType,
@@ -60,6 +61,11 @@ function renderBattle() {
       </div>
     </div>
     <div class="sim-result" id="sim-result">${renderLastTurn()}</div>
+    <div class="sim-auto-bar">
+      <button class="btn btn-sm btn-outline" id="sim-auto1" style="color:var(--accent2);border-color:var(--accent2)">🤖 1ターン自動</button>
+      <button class="btn btn-sm btn-outline" id="sim-autoend" style="color:var(--accent2);border-color:var(--accent2)">⏩ 決着まで自動</button>
+      <span class="sim-auto-note">両者を貪欲AI(最大ダメージ/瀕死で交代)で自動進行。いつでも手動で介入可</span>
+    </div>
     <div class="sim-actions">
       <button class="btn btn-sm" id="sim-exec" style="background:var(--accent);flex:2">ターン実行</button>
       <button class="btn btn-sm btn-outline" id="sim-eot">EOT処理</button>
@@ -266,6 +272,8 @@ function renderBattle() {
     engineExecuteEndOfTurn();
     updateBattleLight();
   });
+  document.getElementById('sim-auto1')?.addEventListener('click', autoOneTurn);
+  document.getElementById('sim-autoend')?.addEventListener('click', autoToEnd);
   document.getElementById('sim-undo').addEventListener('click', () => {
     if (!engineUndoBattle()) { showToast('これ以上戻せません'); return; }
     _logRendered = 0; // force full log rebuild
@@ -339,6 +347,40 @@ async function saveBattleLog() {
   });
   markDirty('records');
   showToast('バトルログを記録タブに保存した');
+}
+
+// ===== オート対戦 (簡易AI) =====
+// 1ターン分をAIで進める。交代技の後続選択もAIで解決。決着済みなら false。
+function autoStep() {
+  if (battleWinner()) return false;
+  // 前ステップで中断した交代技があれば先に解決
+  while (battle.pendingPivot) resolvePivot(pickAiBench(battle.pendingPivot));
+  battle.actions.a = pickAiAction('a');
+  battle.actions.b = pickAiAction('b');
+  let res = engineExecuteTurn();
+  while (res && res.pivot) res = resolvePivot(pickAiBench(res.pivot));
+  engineExecuteEndOfTurn();
+  return true;
+}
+
+function autoOneTurn() {
+  if (!autoStep()) { showToast('すでに決着しています'); return; }
+  _logRendered = 0;
+  renderBattle();
+  const w = battleWinner();
+  if (w) showToast(`${w === 'a' ? '自分' : '相手'}の勝ち`);
+}
+
+function autoToEnd() {
+  let guard = 0;
+  while (!battleWinner() && guard < 100) {
+    if (!autoStep()) break;
+    guard++;
+  }
+  _logRendered = 0;
+  renderBattle();
+  const w = battleWinner();
+  showToast(w ? `${w === 'a' ? '自分' : '相手'}の勝ち (${guard}ターン自動)` : `${guard}ターンで打ち切り(決着せず)`);
 }
 
 // ターン実行/再開の結果を描画に反映
