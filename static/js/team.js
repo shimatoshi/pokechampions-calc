@@ -21,6 +21,15 @@ async function renderTeamList() {
   const page = document.getElementById('page-team');
   page.innerHTML = `
     <div class="card">
+      <div class="row" style="align-items:center;gap:6px">
+        <input type="search" id="team-web-q" placeholder="🔍 構築・トレンドを調べる" style="flex:1" enterkeyhint="search">
+        <button class="btn btn-sm" id="team-web-go">検索</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.75rem;color:var(--fg2)">
+        <input type="checkbox" id="team-web-scope"> 「ポケモンチャンピオンズ 構築」を添える
+      </label>
+    </div>
+    <div class="card">
       <div class="row" style="align-items:center;gap:4px">
         <h3 style="flex:1;margin:0">チーム一覧</h3>
         <button class="btn btn-sm" id="tl-new">+ 新規</button>
@@ -44,6 +53,17 @@ async function renderTeamList() {
     </div>
     <div id="team-load-modal" class="hidden"></div>
   `;
+
+  const webQ = document.getElementById('team-web-q');
+  const runWebSearch = () => {
+    const q = webQ.value.trim();
+    if (!q) return;
+    const scoped = document.getElementById('team-web-scope').checked;
+    const query = scoped ? `${q} ポケモンチャンピオンズ 構築` : q;
+    window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank', 'noopener');
+  };
+  document.getElementById('team-web-go').addEventListener('click', runWebSearch);
+  webQ.addEventListener('keydown', e => { if (e.key === 'Enter') runWebSearch(); });
 
   document.getElementById('tl-new').addEventListener('click', () => {
     setCurrentTeam({ id: null, name: '新チーム', members: [], notes: '' });
