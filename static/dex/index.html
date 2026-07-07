@@ -37,6 +37,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .pb{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
 .pf{height:100%;border-radius:3px}
 .bst{font-size:.68rem;padding:0 .5rem .25rem;color:var(--muted)}.bst b{color:var(--text)}
+.dexadd{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:center;margin:.15rem .5rem .55rem}
+.dexadd button{flex:1;min-width:62px;background:var(--card);border:1px solid var(--accent);color:var(--text);border-radius:6px;padding:.42rem .3rem;font-size:.72rem;font-weight:700;cursor:pointer}
+.dexadd button:active{background:var(--accent);color:#fff}
 .pa{display:flex;flex-wrap:wrap;gap:.2rem;padding:0 .5rem .4rem}
 .ab{background:rgba(255,255,255,.07);padding:.08rem .35rem;border-radius:3px;font-size:.62rem;text-transform:capitalize}
 .ab.h{border:1px dashed var(--muted)}
@@ -317,11 +320,21 @@ function openModal(p,hlMoves){
   const sorted=sortMoves(moves,curSort);
   const rowsHtml=sorted.map(mv=>moveRow(mv,hl.has(mv.key))).join('');
 
+  // アプリ内(iframe)で開かれている時だけ、BOX/編成/ダメ計への追加ボタンを出す
+  const EMB=window.parent&&window.parent!==window;
+  const actions=EMB?'<div class="dexadd">'
+    +'<button data-dest="box">＋BOX</button>'
+    +'<button data-dest="team">＋編成</button>'
+    +'<button data-dest="atk">ダメ計 攻</button>'
+    +'<button data-dest="def">ダメ計 防</button>'
+    +'</div>':'';
+
   m.innerHTML='<button class="cl" onclick="closeModal()">&times;</button>'+img
     +'<div style="text-align:center;margin-bottom:.6rem"><div style="color:var(--muted);font-size:.72rem">#'+String(p.dex_id).padStart(4,'0')+'</div>'
     +'<div style="font-size:1.15rem;font-weight:700">'+p.name_en+' '+bd+'</div>'
     +'<div style="color:var(--muted)">'+p.name_ja+'</div>'
     +'<div class="tps" style="justify-content:center;margin-top:.3rem">'+tps+'</div></div>'
+    +actions
     +'<div class="ps">'+sts+'</div><div class="bst">BST <b>'+p.bst+'</b></div>'
     +'<div style="font-size:.68rem;color:var(--muted);padding:.3rem 0 .15rem">特性</div>'
     +'<div class="pa" style="padding-left:0">'+abs+'</div>'
@@ -340,6 +353,19 @@ function openModal(p,hlMoves){
       btn.classList.add('active');
     });
   });
+
+  // BOX/編成/ダメ計への追加ボタン: 親アプリへ種族名をpostMessage
+  if(EMB){
+    m.querySelectorAll('.dexadd button').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        window.parent.postMessage({type:'dex-add',name:p.name_en,dest:btn.dataset.dest},location.origin);
+        const dest=btn.dataset.dest;
+        if(dest==='atk'||dest==='def'){ closeModal(); return; } // ダメ計は親が図鑑を閉じる
+        const t=btn.textContent; btn.textContent='✓ 追加'; btn.disabled=true;
+        setTimeout(()=>{ btn.textContent=t; btn.disabled=false; },900);
+      });
+    });
+  }
 
   document.getElementById('overlay').classList.add('active');
 }

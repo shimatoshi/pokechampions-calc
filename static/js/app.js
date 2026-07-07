@@ -2,9 +2,9 @@
 // 依存は一方向: app → ページ(calc/sim/team/box/records) → ui/state/data → damage/poke-data/db
 import { DB } from './db.js';
 import { loadData } from './data.js';
-import { pageDirty, restoreCalcSession } from './state.js';
-import { switchPage } from './ui.js';
-import { initCalcPage } from './calc.js';
+import { pageDirty, restoreCalcSession, makePokemonState, generateUid, currentTeam, atkState, defState, markDirty } from './state.js';
+import { switchPage, showToast, restoreStateToUI } from './ui.js';
+import { initCalcPage, selectPokemon } from './calc.js';
 
 async function init() {
   if ('serviceWorker' in navigator) {
@@ -22,6 +22,7 @@ async function init() {
   await loadData();
   restoreCalcSession();
   initCalcPage(); // 起動時はダメ計ページだけ初期化
+  window.addEventListener('message', handleDexMessage); // 図鑑iframe→BOX/編成/ダメ計の追加導線
   const initialized = { calc: true, sim: false, team: false, records: false, box: false, search: false };
   document.querySelectorAll('nav button').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -44,6 +45,38 @@ async function init() {
       }
     });
   });
+}
+
+// 図鑑iframe(同一オリジン)からの「BOX/編成/ダメ計に追加」メッセージを受ける。
+// 種族名(name_en)だけ受け取り、技/持ち物/特性は空のまま本体エディタで埋める運用(スラッグ変換不要)。
+async function handleDexMessage(e) {
+  if (e.origin !== location.origin) return;
+  const d = e.data;
+  if (!d || d.type !== 'dex-add' || !d.name) return;
+  const name = d.name;
+  if (d.dest === 'box') {
+    const entry = makePokemonState();
+    entry.name = name; entry.uid = generateUid(); entry.savedCalcs = []; entry.notes = '';
+    await DB.add('box', entry);
+    markDirty('box');
+    showToast(`${name} をBOXに追加`);
+  } else if (d.dest === 'team') {
+    if (currentTeam.members.length >= 6) { showToast('チームは6匹まで'); return; }
+    const m = makePokemonState(); m.name = name; m.uid = generateUid();
+    currentTeam.members.push(m);
+    markDirty('team');
+    showToast(`${name} を編成に追加`);
+  } else if (d.dest === 'atk' || d.dest === 'def') {
+    const st = d.dest === 'atk' ? atkState : defState;
+    const fresh = makePokemonState(); fresh.name = name;
+    Object.assign(st, fresh);
+    document.getElementById('dex-overlay')?.remove(); // 図鑑を閉じてダメ計を見せる
+    switchPage('calc');
+    initCalcPage();
+    if (atkState.name) { selectPokemon('atk', atkState.name); restoreStateToUI('atk', atkState); }
+    if (defState.name) { selectPokemon('def', defState.name); restoreStateToUI('def', defState); }
+    showToast(`${name} をダメ計(${d.dest === 'atk' ? '攻' : '防'})に読込`);
+  }
 }
 
 // 図鑑 (static/dex/ の自己完結サイト) をアプリ内オーバーレイで開く
