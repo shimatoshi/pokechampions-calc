@@ -22,7 +22,7 @@ async function init() {
   await loadData();
   restoreCalcSession();
   initCalcPage(); // 起動時はダメ計ページだけ初期化
-  const initialized = { calc: true, sim: false, team: false, records: false, box: false };
+  const initialized = { calc: true, sim: false, team: false, records: false, box: false, search: false };
   document.querySelectorAll('nav button').forEach(btn => {
     btn.addEventListener('click', async () => {
       const page = btn.dataset.page;
@@ -33,6 +33,7 @@ async function init() {
         if (page === 'team')    (await import('./team.js')).initTeamPage();
         if (page === 'records') (await import('./records.js')).initRecordsPage();
         if (page === 'box')     (await import('./box.js')).renderBoxPage();
+        if (page === 'search')  (await import('./search.js')).initSearchPage();
         initialized[page] = true;
         pageDirty[page] = false;
       } else if (pageDirty[page]) {
