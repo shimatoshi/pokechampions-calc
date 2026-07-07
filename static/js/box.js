@@ -396,7 +396,7 @@ async function openServerBrowseModal() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     items = await res.json();
   } catch (err) {
-    list.innerHTML = `<p style="text-align:center;color:var(--danger,#e94560)">取得失敗: ${esc(err.message)}</p>`;
+    list.innerHTML = `<p style="text-align:center;color:var(--danger,#e5484d)">取得失敗: ${esc(err.message)}</p>`;
     return;
   }
 

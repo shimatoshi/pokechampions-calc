@@ -599,7 +599,7 @@ function renderPartyOverview() {
             const hpColor = pct > 50 ? 'var(--ok)' : pct > 25 ? 'var(--warn)' : 'var(--danger)';
             return `<div class="sim-ov-poke" data-side="${side}" data-pi="${i}" style="text-align:center;padding:3px 4px;border-radius:4px;min-width:48px;cursor:pointer;
               border:2px solid ${isActive ? 'var(--accent)' : inSel ? 'var(--accent2)' : 'var(--bg3)'};
-              background:${isActive ? 'rgba(233,69,96,.1)' : 'var(--bg)'};
+              background:${isActive ? 'rgba(226,59,46,.1)' : 'var(--bg)'};
               ${!alive ? 'opacity:.4' : ''}">
               ${spriteImg(p.name, 28)}
               <div style="font-size:.6rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px">${esc(ja('pokemon', p.name))}</div>
