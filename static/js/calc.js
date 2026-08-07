@@ -93,9 +93,9 @@ function buildSidePanel(side) {
 export function initCalcPage() {
   const page = document.getElementById('page-calc');
   page.innerHTML = `
-    <div class="row">
-      <div>${buildSidePanel('atk')}</div>
-      <div>${buildSidePanel('def')}</div>
+    <div class="row calc-layout">
+      <div class="calc-side">${buildSidePanel('atk')}</div>
+      <div class="calc-side">${buildSidePanel('def')}</div>
     </div>
     <div class="card">
       <h3>フィールド</h3>
