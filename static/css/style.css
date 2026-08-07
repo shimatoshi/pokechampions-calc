@@ -1,10 +1,10 @@
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   /* チャンピオンズ路線: 黒チャコール地＋スカーレット差し色＋ゴールド強調 */
-  --bg:#14151a;--bg2:#1e2025;--bg3:#2b2e36;
-  --fg:#ececee;--fg2:#9a9ea8;
-  --accent:#e23b2e;--accent2:#3b82c4;--gold:#e8b04b;
-  --line:#31343d;
+  --bg:#121212;--bg2:#1e1e1e;--bg3:#2c2c2e;
+  --fg:#f5f5f7;--fg2:#a1a1aa;
+  --accent:#e3350d;--accent2:#3182ce;--gold:#ffd700;
+  --line:#3a3a3c;
   --ok:#3fb768;--warn:#f0a63c;--danger:#e5484d;
   --radius:9px;--gap:8px;
 }
@@ -23,7 +23,7 @@ nav button:active{background:rgba(226,59,46,.14)}
 .page.show{display:block}
 
 /* ===== CARDS ===== */
-.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:11px;margin-bottom:var(--gap)}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:var(--gap)}
 .card h3{font-size:.8rem;font-weight:800;letter-spacing:.02em;color:var(--fg);margin-bottom:7px;padding-left:8px;border-left:3px solid var(--accent)}
 
 /* ===== FORMS ===== */
