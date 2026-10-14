@@ -1,0 +1,11 @@
+{
+  "id": "pokechampions-calc",
+  "type": "pwa",
+  "app": {
+    "name": "ポケチャン ダメ計",
+    "icon": "https://raw.githubusercontent.com/shimatoshi/app-store-releases/main/icons/pokechampions-calc.png",
+    "description": "ポケモンチャンピオンズ ダメージ計算機",
+    "category": "ゲーム",
+    "url": "https://pokechampions-calc.vercel.app"
+  }
+}
