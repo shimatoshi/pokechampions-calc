@@ -20,7 +20,8 @@
 // 配信戦略: アプリ本体(JS/CSS/HTML)はこのCACHEバージョンのスナップショットからのみ配信し、
 // SW更新時に一括差し替え(+クライアント側でcontrollerchangeリロード)。
 // 個別ファイルが裏でバラバラに更新されて新旧モジュールが混在する事故を根絶する。
-const CACHE = 'pokechamp-v48';
+// v49: 操作レイアウトとアプリ外観を刷新。既存の計算・保存・対戦ロジックは維持。
+const CACHE = 'pokechamp-v49';
 
 const APP_PRECACHE = [
   './',

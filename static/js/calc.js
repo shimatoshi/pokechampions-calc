@@ -19,8 +19,8 @@ function buildSidePanel(side) {
   const label = s === 'atk' ? '攻撃側' : '防御側';
 
   return `
-    <div class="card">
-      <h3>${label}</h3>
+    <div class="card pokemon-card">
+      <h3><span class="side-number">${s === 'atk' ? '01' : '02'}</span>${label}</h3>
       <div class="search-wrap">
         <input type="text" id="${s}-search" placeholder="ポケモン名 / 日本語..." autocomplete="off">
         <div class="search-list" id="${s}-list"></div>
@@ -93,12 +93,13 @@ function buildSidePanel(side) {
 export function initCalcPage() {
   const page = document.getElementById('page-calc');
   page.innerHTML = `
+    <div class="page-heading"><div><span class="eyebrow">DAMAGE CALCULATOR</span><h1>ダメージ計算</h1><p>個体と条件を設定して、ダメージ・確定数を確認。</p></div><a class="result-jump" href="#calc-results">結果を見る ↓</a></div>
     <div class="row calc-layout">
       <div class="calc-side">${buildSidePanel('atk')}</div>
       <div class="calc-side">${buildSidePanel('def')}</div>
     </div>
-    <div class="card">
-      <h3>フィールド</h3>
+    <div class="card field-card">
+      <h3>フィールド・計算条件</h3>
       <div class="col2">
         <div>
           <label>天候</label>
@@ -151,7 +152,9 @@ export function initCalcPage() {
       <button class="btn btn-sm" id="swap-sides" style="background:var(--accent2)">攻守入替</button>
       <button class="btn btn-sm" id="load-def-from" title="チーム/対策表から防御側に読込">防御側に読込</button>
     </div>
-    <button class="btn mt" style="width:100%" id="calc-btn">ダメージ計算</button>
+    <button class="btn mt" style="width:100%" id="calc-btn">ダメージを計算する →</button>
+    <div id="calc-results" aria-live="polite"></div>
+    <details class="card calc-save"><summary>個体・計算結果を保存</summary>
     <div class="row mt" style="gap:4px;flex-wrap:wrap">
       <button class="btn btn-outline btn-sm" id="add-atk-to-team">攻→チーム</button>
       <button class="btn btn-outline btn-sm" id="add-def-to-team">防→チーム</button>
@@ -163,7 +166,7 @@ export function initCalcPage() {
     <div class="row mt" style="gap:4px">
       <button class="btn btn-sm btn-outline" id="save-calc-result" style="width:100%;border-color:var(--accent2);color:var(--accent2)">ダメ計結果をBOXに保存</button>
     </div>
-    <div id="calc-results"></div>
+    </details>
     <div id="load-picker" class="hidden"></div>
   `;
 

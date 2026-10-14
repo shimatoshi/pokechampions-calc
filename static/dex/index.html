@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ポケモンチャンピオンズ 図鑑</title>
 <style>
-:root{--bg:#14151a;--card:#1e2025;--text:#ececee;--muted:#9a9ea8;--accent:#e23b2e;--gold:#e8b04b;--bdr:#31343d}
+:root{--bg:#101614;--card:#19211e;--text:#edf4ef;--muted:#afbeb4;--accent:#a8e6bb;--gold:#c8efb3;--bdr:#34433b}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.4;padding-bottom:2rem}
 .hd{background:linear-gradient(180deg,#1c1e24,#16171c);padding:1rem;text-align:center;border-bottom:1px solid var(--bdr);box-shadow:0 2px 8px rgba(0,0,0,.35);position:sticky;top:0;z-index:100}
@@ -89,6 +89,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .mth span:hover{color:var(--text)}
 
 @media(max-width:600px){.grid{grid-template-columns:1fr;padding:.4rem;gap:.4rem}.ci{width:56px;height:56px}.hd h1{font-size:1.1rem}}
+/* Shared v49 visual language; filtering and detail actions retain their markup. */
+.hd{background:#101614f5;box-shadow:none;padding:20px 16px}
+.ctrl input,.ctrl select{min-height:40px;border-radius:8px;padding:8px 10px}
+.grid{gap:14px;padding:20px;max-width:1120px}
+.card{border-radius:14px}.ct{padding:14px}.ci{border-radius:10px}
+.ctrl input:focus,.ctrl select:focus{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:600px){.grid{padding:12px;gap:10px}.ctrl{gap:7px}.msw{flex-wrap:wrap}}
 </style>
 </head>
 <body>

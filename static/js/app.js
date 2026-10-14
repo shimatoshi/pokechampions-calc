@@ -85,9 +85,9 @@ function toggleDexOverlay() {
   if (existing) { existing.remove(); return; }
   const ov = document.createElement('div');
   ov.id = 'dex-overlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:#14151a;display:flex;flex-direction:column';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;flex-direction:column';
   ov.innerHTML = `
-    <div style="display:flex;align-items:center;padding:4px 8px;gap:8px;background:#1e2025;border-bottom:1px solid #e23b2e">
+    <div style="display:flex;align-items:center;padding:4px 8px;gap:8px;background:var(--bg2);border-bottom:1px solid var(--line)">
       <strong style="flex:1;color:#e0e0e0;font-size:.9rem">ポケモンチャンピオンズ 図鑑</strong>
       <button id="dex-close" style="background:#444;color:#eee;border:none;border-radius:4px;padding:6px 14px;font-size:.8rem">閉じる</button>
     </div>
