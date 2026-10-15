@@ -349,8 +349,8 @@ button:disabled{opacity:.55;cursor:default}.type-badge{border-radius:4px}
  #page-calc[data-stage=atk] .calc-side:last-child,#page-calc[data-stage=def] .calc-side:first-child{display:none}
  #page-calc:not([data-stage=atk]):not([data-stage=def]) .calc-layout{display:none}
  #page-calc:not([data-stage=field]) .field-card{display:none}
- #page-calc:not([data-stage=result]) .calc-output{display:none}
- #page-calc[data-stage=field] .calc-load-actions,#page-calc[data-stage=result] .calc-load-actions{display:none}
+ #page-calc:not([data-stage=result]):not([data-stage=save]) .calc-output{display:none}
+ #page-calc[data-stage=field] .calc-load-actions,#page-calc[data-stage=result] .calc-load-actions,#page-calc[data-stage=save] .calc-load-actions{display:none}
  .pokemon-card:not([data-section=basic]) .side-basic,.pokemon-card:not([data-section=moves]) .side-moves,.pokemon-card:not([data-section=stats]):not([data-section=nature]) .side-stats,.pokemon-card:not([data-section=conditions]) [id$="-conditions"]{display:none}
  .pokemon-card .control-section{margin:0;padding:0;border:0}.pokemon-card .control-section>summary{display:none}
  .pokemon-card label{margin:6px 0 3px}.pokemon-card .search-wrap{margin-bottom:6px}
@@ -380,4 +380,12 @@ button:disabled{opacity:.55;cursor:default}.type-badge{border-radius:4px}
  .sp-pages button{min-height:44px;padding:5px 3px;border:1px solid var(--line);border-radius:6px;background:var(--bg2);color:var(--fg2);font-size:.72rem}
  .sp-pages [aria-pressed=true]{color:var(--accent);border-color:var(--accent);background:var(--soft)}
  .sp-inputs[data-stat-group=first] .sp-row:nth-child(n+4),.sp-inputs[data-stat-group=second] .sp-row:nth-child(-n+3){display:none}
+}
+
+@media(max-width:819px){
+ .calc-stages{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .field-card>summary{display:none}
+ #page-calc[data-stage=result] .calc-save{display:none}
+ #page-calc[data-stage=save] #calc-results,#page-calc[data-stage=save] .result-pages{display:none}
+ #page-calc[data-stage=save] .calc-save>summary{display:none}
 }

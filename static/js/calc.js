@@ -130,6 +130,7 @@ export function initCalcPage() {
       <button type="button" data-stage="def" aria-pressed="false">防御側</button>
       <button type="button" data-stage="field" aria-pressed="false">条件</button>
       <button type="button" data-stage="result" aria-pressed="false">結果</button>
+      <button type="button" data-stage="save" aria-pressed="false">保存</button>
     </div>
     <div class="row mt calc-load-actions" style="gap:4px;justify-content:center;flex-wrap:wrap">
       <button class="btn btn-sm" id="load-atk-from" title="チーム/対策表から攻撃側に読込">攻撃側を読み込む</button>
@@ -397,6 +398,7 @@ function setCalcStage(stage) {
   page.dataset.stage = stage;
   page.querySelectorAll('.calc-stages button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.stage === stage)));
   if (stage === 'field') document.getElementById('field-conditions').open = true;
+  if (stage === 'save') document.querySelector('.calc-save').open = true;
 }
 
 function updateConditionSummaries(reveal = false) {
