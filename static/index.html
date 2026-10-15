@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
   <meta name="theme-color" content="#ffffff">
   <title>ポケチャン ダメ計</title>
   <base id="base-tag">
@@ -19,17 +19,17 @@
 <body>
   <a class="skip-link" href="#page-calc">メイン画面へ</a>
   <header class="app-header">
-    <a class="app-brand" href="./" aria-label="ポケチャン ダメ計 ホーム"><span class="brand-mark" aria-hidden="true">◒</span><span>ポケチャン<span class="brand-sub">CHAMPIONS CALCULATOR</span></span></a>
-    <div class="header-actions"><span class="app-version">v50</span><button type="button" id="theme-toggle" class="btn btn-outline" aria-label="表示モードを切り替え">表示</button></div>
+    <a class="app-brand" href="./" aria-label="ポケチャン ダメ計 ホーム"><span class="brand-mark" aria-hidden="true">◒</span><span>ポケチャン</span></a>
+    <div class="header-actions"><span class="app-version">v51</span><button type="button" id="theme-toggle" class="btn btn-outline" aria-label="表示モードを切り替え">表示</button></div>
   </header>
   <nav aria-label="メインメニュー">
-    <button class="active" data-page="calc" aria-current="page">ダメージ計算</button>
-    <button data-page="sim">対戦シミュ</button>
-    <button data-page="box">BOX</button>
-    <button data-page="team">編成</button>
-    <button data-page="records">対戦記録</button>
-    <button data-page="search">検索</button>
-    <button data-page="dex">図鑑</button>
+    <button class="active" data-page="calc" aria-current="page"><span class="nav-label">ダメージ計算</span><span class="nav-short">計算</span></button>
+    <button data-page="sim"><span class="nav-label">対戦シミュ</span><span class="nav-short">対戦</span></button>
+    <button data-page="box"><span class="nav-label">BOX</span><span class="nav-short">BOX</span></button>
+    <button data-page="team"><span class="nav-label">編成</span><span class="nav-short">編成</span></button>
+    <button data-page="records"><span class="nav-label">対戦記録</span><span class="nav-short">記録</span></button>
+    <button data-page="search"><span class="nav-label">検索</span><span class="nav-short">検索</span></button>
+    <button data-page="dex"><span class="nav-label">図鑑</span><span class="nav-short">図鑑</span></button>
   </nav>
   <main tabindex="-1" class="page show" id="page-calc">データを読み込んでいます…</main>
   <main tabindex="-1" class="page" id="page-sim"></main>

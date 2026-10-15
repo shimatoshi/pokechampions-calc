@@ -291,15 +291,12 @@ button,input,select,textarea{font:inherit}button,summary{touch-action:manipulati
 .app-header{max-width:1000px;width:100%;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px}
 .app-brand{display:flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none;font-size:1.08rem;font-weight:750}
 .brand-mark{display:grid;place-items:center;width:36px;height:36px;background:var(--soft);border-radius:9px;color:var(--accent);font-size:28px;line-height:1}
-.brand-sub{display:block;font-size:.56rem;letter-spacing:.08em;color:var(--fg2)}
 .header-actions{display:flex;gap:10px;align-items:center}.app-version{font-size:.7rem;color:var(--fg2)}#theme-toggle{font-size:.75rem;padding:8px 10px}
 nav{justify-content:center;gap:0;padding:0 max(12px,calc((100% - 960px)/2));background:var(--bg2);border-bottom:1px solid var(--line);box-shadow:none;overflow-x:auto;scrollbar-width:thin;min-height:var(--nav-height)}
 nav button{flex:1 0 auto;min-height:52px;padding:12px 16px;border:0;border-bottom:3px solid transparent;border-radius:0;font-size:.84rem;white-space:nowrap;color:var(--fg2)}
 nav button.active{background:var(--bg2);color:var(--accent);border-bottom-color:var(--accent)}
 nav button.active::after{display:none}
 .page{width:100%;max-width:1000px;margin:auto;padding:24px 20px 40px;overflow:visible}
-.page-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.page-heading h1{font-size:1.4rem;line-height:1.4;margin-bottom:6px}.page-heading p{font-size:.82rem;color:var(--fg2)}
-.result-jump{flex-shrink:0;color:var(--accent);font-size:.8rem;text-decoration:none;min-height:44px;display:flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:7px}
 .card{padding:20px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;box-shadow:none}
 .card h3{font-size:1rem;margin-bottom:14px;border:0;padding:0;display:flex;align-items:center;gap:8px}
 .side-number{display:grid;place-items:center;width:26px;height:26px;border-radius:6px;background:var(--soft);color:var(--accent);font-size:.7rem}
@@ -327,7 +324,45 @@ html[data-theme=dark] .btn:not(.btn-outline):not(.btn-danger){color:#101114}
 .sim-actions{padding:10px 0 calc(10px + env(safe-area-inset-bottom));gap:8px}.sim-hp-btns button{min-height:44px}.sim-result,.sim-turn-log{padding:12px;border:1px solid var(--line)}.sim-result-line,.sim-turn-entry{font-size:.85rem}.team-sprites-bar{top:var(--nav-height);border:1px solid var(--line)}
 button:disabled{opacity:.55;cursor:default}.type-badge{border-radius:4px}
 @media(hover:hover){nav button:hover,.search-list .item:hover,.sp-btn:hover,.btn-outline:hover{background:var(--soft)}.btn:hover{filter:brightness(.95)}}
-@media(max-width:819px){.calc-layout{display:flex;flex-direction:column;gap:0}.pokemon-card{height:auto}.app-header{padding:12px 16px}.page{padding:18px 12px 32px}.card{padding:16px}.page-heading h1{font-size:1.25rem}.page-heading p{font-size:.78rem}.app-version{display:none}nav{justify-content:flex-start;padding:0 12px}nav button{flex:1 0 auto;padding:12px 14px}.calc-side .card h3{margin:0 0 14px;padding:0;background:none;border:0;font-size:1rem}.calc-side:first-child .card{border-top:3px solid var(--accent)}.calc-side:last-child .card{border-top:3px solid var(--accent2)}#calc-results .dmg-result:first-child{position:static;box-shadow:none}.sim-decide{gap:7px}.sim-decide-col{padding:8px}.sim-hud-name{font-size:.8rem}.sim-hud-sub{font-size:.65rem}}
-@media(max-width:359px){.sp-row{gap:3px}.sp-btn{width:36px}.sp-row input[type=number]{width:48px}.sp-row .sp-val{width:32px}.calc-load-actions .btn{padding:8px 5px;font-size:.7rem}.page-heading{flex-wrap:wrap}}
+@media(max-width:819px){.calc-layout{display:flex;flex-direction:column;gap:0}.pokemon-card{height:auto}.app-header{padding:12px 16px}.page{padding:18px 12px 32px}.card{padding:16px}.app-version{display:none}nav{justify-content:flex-start;padding:0 12px}nav button{flex:1 0 auto;padding:12px 14px}.calc-side .card h3{margin:0 0 14px;padding:0;background:none;border:0;font-size:1rem}.calc-side:first-child .card{border-top:3px solid var(--accent)}.calc-side:last-child .card{border-top:3px solid var(--accent2)}#calc-results .dmg-result:first-child{position:static;box-shadow:none}.sim-decide{gap:7px}.sim-decide-col{padding:8px}.sim-hud-name{font-size:.8rem}.sim-hud-sub{font-size:.65rem}}
+@media(max-width:359px){.sp-row{gap:3px}.sp-btn{width:36px}.sp-row input[type=number]{width:48px}.sp-row .sp-val{width:32px}.calc-load-actions .btn{padding:8px 5px;font-size:.7rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
 .data-tools{border-top:1px solid var(--line);margin-top:14px;padding-top:4px}.tool-actions{display:flex;flex-wrap:wrap;gap:8px}.tool-hint{font-size:.8rem;color:var(--fg2);margin:16px 0 8px}.def-moves{margin:8px 0}
+/* Mobile calculator: switch workspaces instead of scrolling between editors. */
+.nav-short,.calc-stages,.side-tabs,.result-pages{display:none}
+@media(max-width:819px){
+ html,body{height:100%;height:100dvh;min-height:0;overflow:hidden}
+ body{display:flex;flex-direction:column}
+ .app-header{flex:none;margin:0 auto;padding:4px 12px;min-height:44px}.brand-mark{width:28px;height:28px;font-size:24px}.app-brand{font-size:.95rem}#theme-toggle{min-height:36px;padding:5px 8px}
+ nav{position:static;flex:none;min-height:44px;overflow:visible;padding:0 4px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+ nav button{min-width:0;min-height:44px;padding:7px 1px;font-size:.76rem}.nav-label{display:none}.nav-short{display:inline}
+ .page{min-height:0;max-height:none;flex:1;margin:0 auto;overflow:auto;overscroll-behavior:contain;padding:8px}
+ #page-calc.show{display:flex;flex-direction:column;gap:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom));overflow:hidden}
+ .calc-stages,.side-tabs,.result-pages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;flex:none}
+ .calc-stages button,.side-tabs button,.result-pages button{min-height:44px;padding:7px 3px;border:1px solid var(--line);border-radius:6px;background:var(--bg2);font-size:.8rem;color:var(--fg2)}
+ .calc-stages [aria-pressed=true],.side-tabs [aria-pressed=true],.result-pages [aria-pressed=true]{background:var(--soft);color:var(--accent);border-color:var(--accent);font-weight:700}
+ .side-tabs{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:8px}
+ .calc-load-actions{flex:none;margin:0;gap:4px!important}.calc-load-actions .btn{min-height:36px;padding:6px;font-size:.74rem}
+ .calc-layout{flex:1;min-height:0;overflow:auto;display:block}
+ .calc-side{height:100%}.calc-side .pokemon-card{min-height:100%;height:auto;margin:0;padding:10px;border-width:1px}
+ .calc-side .pokemon-card h3{display:none}
+ #page-calc[data-stage=atk] .calc-side:last-child,#page-calc[data-stage=def] .calc-side:first-child{display:none}
+ #page-calc:not([data-stage=atk]):not([data-stage=def]) .calc-layout{display:none}
+ #page-calc:not([data-stage=field]) .field-card{display:none}
+ #page-calc:not([data-stage=result]) .calc-output{display:none}
+ #page-calc[data-stage=field] .calc-load-actions,#page-calc[data-stage=result] .calc-load-actions{display:none}
+ .pokemon-card:not([data-section=basic]) .side-basic,.pokemon-card:not([data-section=stats]) .side-stats,.pokemon-card:not([data-section=conditions]) [id$="-conditions"]{display:none}
+ .pokemon-card .control-section{margin:0;padding:0;border:0}.pokemon-card .control-section>summary{display:none}
+ .pokemon-card label{margin:6px 0 3px}.pokemon-card .search-wrap{margin-bottom:6px}
+ .move-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.move-inputs .search-wrap{min-width:0}.move-inputs .search-list{width:min(280px,calc(100vw - 48px));left:0;right:auto}.move-inputs .search-wrap:nth-child(even) .search-list{right:0;left:auto}
+ .poke-info{padding:0}.poke-info img{width:36px;height:36px}.field-hint{display:none}
+ .nature-grid{margin:0 0 6px}.nature-btn{padding:6px 9px;margin:2px;min-height:44px}.sp-row{margin:4px 0}.sp-row .sp-btn{height:44px}
+ .field-card{flex:1;min-height:0;overflow:auto;margin:0;padding:12px}.field-card>summary{font-size:.8rem;min-height:30px;padding:0}.field-card .section-content{padding-top:0}
+ .calc-output{flex:1;min-height:0;overflow:auto}.calc-empty{padding:20px 12px;color:var(--fg2);font-size:.85rem}
+ #calc-btn{order:100;flex:none;min-height:48px;margin:0;width:100%;font-size:.92rem}
+ .result-pages:empty{display:none}.result-pages button{font-size:.72rem;overflow-wrap:anywhere}
+ #calc-results .move-result:not(.current-result){display:none}
+ .dmg-result{padding:12px;margin:8px 0}.dmg-result .pct{font-size:1.65rem}.calc-save{margin:8px 0;padding:10px}
+ #load-picker:not(.hidden){position:fixed;inset:0;z-index:250;background:#0009;overflow:auto;padding:12px}
+ .sim-hud{top:0}.team-sprites-bar{top:0}.sim-actions{bottom:0}
+}

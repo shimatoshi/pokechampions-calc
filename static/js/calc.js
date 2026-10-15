@@ -19,8 +19,14 @@ function buildSidePanel(side) {
   const label = s === 'atk' ? '攻撃側' : '防御側';
 
   return `
-    <div class="card pokemon-card">
+    <div class="card pokemon-card" data-section="basic">
       <h3><span class="side-number">${s === 'atk' ? '01' : '02'}</span>${label}</h3>
+      <div class="side-tabs" role="group" aria-label="${label}の設定">
+        <button type="button" data-section="basic" aria-pressed="true">個体・技</button>
+        <button type="button" data-section="stats" aria-pressed="false">能力・SP</button>
+        <button type="button" data-section="conditions" aria-pressed="false">状態・補正</button>
+      </div>
+      <div class="side-basic">
       <div class="search-wrap">
         <label for="${s}-search">ポケモン</label>
         <input type="text" id="${s}-search" placeholder="名前を入力して選択" autocomplete="off">
@@ -29,12 +35,14 @@ function buildSidePanel(side) {
       <div id="${s}-info" class="poke-info"></div>
       ${s === 'atk' ? '<label>わざ <span class="field-hint">選択した技をまとめて計算</span></label>' : ''}
       ${s === 'def' ? '<details class="def-moves"><summary>防御側の技 <span class="section-state">保存・対戦用</span></summary>' : ''}
+      <div class="move-inputs">
       ${[0,1,2,3].map(i => `
         <div class="search-wrap" style="margin-bottom:4px">
           <input type="text" id="${s}-move-${i}" placeholder="わざ${i+1}..." autocomplete="off">
           <div class="search-list" id="${s}-movelist-${i}"></div>
         </div>
       `).join('')}
+      </div>
       ${s === 'def' ? '</details>' : ''}
       <label>もちもの</label>
       <div class="search-wrap">
@@ -46,7 +54,8 @@ function buildSidePanel(side) {
         <select id="${s}-ability"></select>
       </div>
 
-      <details class="control-section">
+      </div>
+      <details class="control-section side-stats">
         <summary>能力・SP配分 <span class="section-state" id="${s}-stats-summary"></span></summary>
         ${buildNatureUI(s)}
       <label>SP配分 <span id="${s}-sp-total" class="sp-total">0/66</span></label>
@@ -104,8 +113,15 @@ function buildSidePanel(side) {
 
 export function initCalcPage() {
   const page = document.getElementById('page-calc');
+  const initialStage = page.dataset.stage || 'atk';
+  page.dataset.stage = initialStage;
   page.innerHTML = `
-    <div class="page-heading"><div><h1>ダメージ計算</h1><p>攻撃側と防御側を選び、技ごとのダメージを比較。</p></div><a class="result-jump" href="#calc-btn">計算へ ↓</a></div>
+    <div class="calc-stages" role="group" aria-label="計算の操作画面">
+      <button type="button" data-stage="atk" aria-pressed="true">攻撃側</button>
+      <button type="button" data-stage="def" aria-pressed="false">防御側</button>
+      <button type="button" data-stage="field" aria-pressed="false">条件</button>
+      <button type="button" data-stage="result" aria-pressed="false">結果</button>
+    </div>
     <div class="row mt calc-load-actions" style="gap:4px;justify-content:center;flex-wrap:wrap">
       <button class="btn btn-sm" id="load-atk-from" title="チーム/対策表から攻撃側に読込">攻撃側を読み込む</button>
       <button class="btn btn-sm" id="swap-sides" style="background:var(--accent2)">攻守入替</button>
@@ -167,7 +183,9 @@ export function initCalcPage() {
       </div>
     </details>
     <button class="btn mt" style="width:100%" id="calc-btn">ダメージを計算する →</button>
-    <div id="calc-results" aria-live="polite"></div>
+    <section class="calc-output">
+    <div class="result-pages" id="result-pages" role="group" aria-label="表示する技の計算結果"></div>
+    <div id="calc-results" aria-live="polite"><p class="calc-empty">個体と技を選び、下の計算ボタンを押してください。</p></div>
     <details class="card calc-save"><summary>個体・計算結果を保存</summary>
     <div class="row mt" style="gap:4px;flex-wrap:wrap">
       <button class="btn btn-outline btn-sm" id="add-atk-to-team">攻撃側 → チーム</button>
@@ -181,8 +199,22 @@ export function initCalcPage() {
       <button class="btn btn-sm btn-outline" id="save-calc-result" style="width:100%;border-color:var(--accent2);color:var(--accent2)">ダメ計結果をBOXに保存</button>
     </div>
     </details>
+    </section>
     <div id="load-picker" class="hidden"></div>
   `;
+
+  page.querySelectorAll('.calc-stages button').forEach(button => {
+    button.addEventListener('click', () => setCalcStage(button.dataset.stage));
+  });
+  page.querySelectorAll('.side-tabs button').forEach(button => {
+    button.addEventListener('click', () => {
+      const card = button.closest('.pokemon-card');
+      card.dataset.section = button.dataset.section;
+      card.querySelectorAll('.side-tabs button').forEach(tab => tab.setAttribute('aria-pressed', String(tab === button)));
+      if (button.dataset.section === 'stats') card.querySelector('.side-stats').open = true;
+      if (button.dataset.section === 'conditions') card.querySelector('[id$="-conditions"]').open = true;
+    });
+  });
 
   page.oninput = updateConditionSummaries;
   page.onchange = updateConditionSummaries;
@@ -339,6 +371,14 @@ export function initCalcPage() {
     restoreStateToUI(side, state);
   }
   updateConditionSummaries(true);
+  setCalcStage(initialStage);
+}
+
+function setCalcStage(stage) {
+  const page = document.getElementById('page-calc');
+  page.dataset.stage = stage;
+  page.querySelectorAll('.calc-stages button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.stage === stage)));
+  if (stage === 'field') document.getElementById('field-conditions').open = true;
 }
 
 function updateConditionSummaries(reveal = false) {
@@ -347,6 +387,7 @@ function updateConditionSummaries(reveal = false) {
     const active = [...scope.querySelectorAll('select, input')].filter(el =>
       el.type === 'checkbox' ? el.checked : el.type === 'number' ? el.value !== '' : el.value !== '' && el.value !== '0');
     document.getElementById(`${side}-conditions-summary`).textContent = active.length ? `${active.length}項目を適用中` : '補正なし';
+    scope.closest('.pokemon-card').querySelector('[data-section=conditions]').textContent = active.length ? `状態・補正 (${active.length})` : '状態・補正';
     if (reveal === true && active.length) scope.open = true;
     const state = side === 'atk' ? atkState : defState;
     const total = Object.values(state.sp).reduce((a, b) => a + b, 0);
@@ -356,6 +397,7 @@ function updateConditionSummaries(reveal = false) {
   const active = [...scope.querySelectorAll('select, input')].filter(el =>
     el.type === 'checkbox' ? el.checked : el.value !== '' && el.value !== '0');
   document.getElementById('field-summary').textContent = active.length ? `${active.length}項目を適用中` : '標準設定';
+  document.querySelector('.calc-stages [data-stage=field]').textContent = active.length ? `条件 (${active.length})` : '条件';
   if (reveal === true && active.length) scope.open = true;
 }
 
@@ -491,10 +533,15 @@ function distTotal(dist) {
 function runCalc() {
   if (!atkState.name || !defState.name) {
     showToast('攻撃側と防御側のポケモンを選択してください');
+    setCalcStage(!atkState.name ? 'atk' : 'def');
+    const card = document.getElementById(!atkState.name ? 'atk-search' : 'def-search').closest('.pokemon-card');
+    card.querySelector('[data-section="basic"]').click();
     document.getElementById(!atkState.name ? 'atk-search' : 'def-search').focus();
     return;
   }
   updateConditionSummaries();
+  setCalcStage('result');
+  document.getElementById('result-pages').replaceChildren();
   const results = document.getElementById('calc-results');
   let html = '';
 
@@ -571,7 +618,7 @@ function runCalc() {
     }
 
     html += `
-      <div class="dmg-result">
+      <div class="dmg-result move-result" data-move="${esc(moveName)}">
         <div style="font-size:.8rem;margin-bottom:4px">
           ${typeBadge(r.moveType)}
           <strong>${jaMove}</strong> <span style="color:var(--fg2);font-size:.7rem">${moveName}</span> (威力${r.bp}${r.hits > 1 ? `×${r.hits}` : ''})
@@ -600,7 +647,23 @@ function runCalc() {
         </div>
       </div>`;
   }
+  const previousMove = results.querySelector('.current-result')?.dataset.move;
   results.innerHTML = html;
+  const cards = [...results.querySelectorAll('.move-result')];
+  const pages = document.getElementById('result-pages');
+  const currentIndex = Math.max(0, cards.findIndex(card => card.dataset.move === previousMove));
+  cards.forEach((card, index) => {
+    card.classList.toggle('current-result', index === currentIndex);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = ja('moves', card.dataset.move);
+    button.setAttribute('aria-pressed', String(index === currentIndex));
+    button.addEventListener('click', () => {
+      cards.forEach(c => c.classList.toggle('current-result', c === card));
+      pages.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+    });
+    pages.appendChild(button);
+  });
 
   // リセット: hpDist消去・currentHP満タンへ
   document.getElementById('chain-reset')?.addEventListener('click', () => {

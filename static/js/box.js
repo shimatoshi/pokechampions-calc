@@ -16,7 +16,6 @@ export async function renderBoxPage() {
   const view = localStorage.getItem(BOX_VIEW_KEY) || 'list';
   const page = document.getElementById('page-box');
   page.innerHTML = `
-    <div class="page-heading"><div><h1>BOX</h1><p>登録した個体を管理して、計算や編成に活用。</p></div></div>
     <div class="card">
       <div class="row" style="align-items:center;gap:4px;flex-wrap:wrap">
         <h3 style="flex:1;margin:0">BOX (${boxAll.length}匹)</h3>

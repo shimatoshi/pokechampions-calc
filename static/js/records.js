@@ -9,7 +9,6 @@ export async function renderRecordsPage() {
   records.sort((a, b) => (b.date || 0) - (a.date || 0));
   const page = document.getElementById('page-records');
   page.innerHTML = `
-    <div class="page-heading"><div><h1>対戦記録</h1><p>勝敗と振り返りをまとめて保存。</p></div></div>
     <button class="btn mb" style="width:100%" id="record-add">+ 対戦記録を追加</button>
     <div id="records-list">
       ${records.length === 0 ? '<p style="text-align:center;color:var(--fg2)">記録はまだありません</p>' : ''}
