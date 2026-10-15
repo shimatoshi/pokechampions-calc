@@ -22,9 +22,11 @@ function buildSidePanel(side) {
     <div class="card pokemon-card" data-section="basic">
       <h3><span class="side-number">${s === 'atk' ? '01' : '02'}</span>${label}</h3>
       <div class="side-tabs" role="group" aria-label="${label}の設定">
-        <button type="button" data-section="basic" aria-pressed="true">個体・技</button>
-        <button type="button" data-section="stats" aria-pressed="false">能力・SP</button>
-        <button type="button" data-section="conditions" aria-pressed="false">状態・補正</button>
+        <button type="button" data-section="basic" aria-pressed="true">個体</button>
+        <button type="button" data-section="moves" aria-pressed="false">技・持物</button>
+        <button type="button" data-section="nature" aria-pressed="false">性格</button>
+        <button type="button" data-section="stats" aria-pressed="false">SP</button>
+        <button type="button" data-section="conditions" aria-pressed="false">補正</button>
       </div>
       <div class="side-basic">
       <div class="search-wrap">
@@ -33,6 +35,12 @@ function buildSidePanel(side) {
         <div class="search-list" id="${s}-list"></div>
       </div>
       <div id="${s}-info" class="poke-info"></div>
+      <div id="${s}-ability-wrap" class="hidden">
+        <label>とくせい</label>
+        <select id="${s}-ability"></select>
+      </div>
+      </div>
+      <div class="side-moves">
       ${s === 'atk' ? '<label>わざ <span class="field-hint">選択した技をまとめて計算</span></label>' : ''}
       ${s === 'def' ? '<details class="def-moves"><summary>防御側の技 <span class="section-state">保存・対戦用</span></summary>' : ''}
       <div class="move-inputs">
@@ -49,17 +57,18 @@ function buildSidePanel(side) {
         <input type="text" id="${s}-item-search" placeholder="もちもの検索..." autocomplete="off">
         <div class="search-list" id="${s}-item-list"></div>
       </div>
-      <div id="${s}-ability-wrap" class="hidden">
-        <label>とくせい</label>
-        <select id="${s}-ability"></select>
-      </div>
+
 
       </div>
       <details class="control-section side-stats">
         <summary>能力・SP配分 <span class="section-state" id="${s}-stats-summary"></span></summary>
-        ${buildNatureUI(s)}
+        <div class="nature-panel">${buildNatureUI(s)}</div>
       <label>SP配分 <span id="${s}-sp-total" class="sp-total">0/66</span></label>
-      <div id="${s}-sp">
+      <div class="sp-pages" role="group" aria-label="表示するSP配分">
+        <button type="button" data-stat-group="first" aria-pressed="true">HP・攻撃・防御</button>
+        <button type="button" data-stat-group="second" aria-pressed="false">特攻・特防・素早さ</button>
+      </div>
+      <div id="${s}-sp" class="sp-inputs" data-stat-group="first">
         ${['hp','at','df','sa','sd','sp'].map(stat => `
           <div class="sp-row">
             <span class="sp-label">${STAT_SHORT[stat]}</span>
@@ -211,8 +220,17 @@ export function initCalcPage() {
       const card = button.closest('.pokemon-card');
       card.dataset.section = button.dataset.section;
       card.querySelectorAll('.side-tabs button').forEach(tab => tab.setAttribute('aria-pressed', String(tab === button)));
-      if (button.dataset.section === 'stats') card.querySelector('.side-stats').open = true;
+      if (['stats', 'nature'].includes(button.dataset.section)) card.querySelector('.side-stats').open = true;
+      if (button.dataset.section === 'moves' && card.querySelector('.def-moves')) card.querySelector('.def-moves').open = true;
       if (button.dataset.section === 'conditions') card.querySelector('[id$="-conditions"]').open = true;
+    });
+  });
+
+  page.querySelectorAll('.sp-pages button').forEach(button => {
+    button.addEventListener('click', () => {
+      const card = button.closest('.pokemon-card');
+      card.querySelector('.sp-inputs').dataset.statGroup = button.dataset.statGroup;
+      card.querySelectorAll('.sp-pages button').forEach(tab => tab.setAttribute('aria-pressed', String(tab === button)));
     });
   });
 
@@ -387,7 +405,7 @@ function updateConditionSummaries(reveal = false) {
     const active = [...scope.querySelectorAll('select, input')].filter(el =>
       el.type === 'checkbox' ? el.checked : el.type === 'number' ? el.value !== '' : el.value !== '' && el.value !== '0');
     document.getElementById(`${side}-conditions-summary`).textContent = active.length ? `${active.length}項目を適用中` : '補正なし';
-    scope.closest('.pokemon-card').querySelector('[data-section=conditions]').textContent = active.length ? `状態・補正 (${active.length})` : '状態・補正';
+    scope.closest('.pokemon-card').querySelector('[data-section=conditions]').textContent = active.length ? `補正(${active.length})` : '補正';
     if (reveal === true && active.length) scope.open = true;
     const state = side === 'atk' ? atkState : defState;
     const total = Object.values(state.sp).reduce((a, b) => a + b, 0);
