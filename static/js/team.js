@@ -20,6 +20,7 @@ async function renderTeamList() {
   const threats = await DB.getAll('threats');
   const page = document.getElementById('page-team');
   page.innerHTML = `
+    <div class="page-heading"><div><h1>チーム編成</h1><p>最大6匹のチームと仮想敵を管理。</p></div></div>
     <div class="card">
       <div class="row" style="align-items:center;gap:4px">
         <h3 style="flex:1;margin:0">チーム一覧</h3>

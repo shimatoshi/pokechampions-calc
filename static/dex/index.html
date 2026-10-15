@@ -96,7 +96,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .card{border-radius:14px}.ct{padding:14px}.ci{border-radius:10px}
 .ctrl input:focus,.ctrl select:focus{outline:2px solid var(--accent);outline-offset:2px}
 @media(max-width:600px){.grid{padding:12px;gap:10px}.ctrl{gap:7px}.msw{flex-wrap:wrap}}
+/* Match the calculator workspace without changing dex filters or actions. */
+:root{--bg:#f5f6f8;--card:#fff;--text:#20242c;--muted:#626975;--accent:#2563eb;--gold:#1d4ed8;--bdr:#dce1e8;color-scheme:light}
+:root[data-theme=dark]{--bg:#101114;--card:#17191d;--text:#e8eaed;--muted:#adb4bf;--accent:#93b7ff;--gold:#b2cbff;--bdr:#343941;color-scheme:dark}
+body{line-height:1.6}.hd{background:var(--card);box-shadow:none}.hd h1{color:var(--text)}
+.ctrl input,.ctrl select,.msw input{min-height:44px;font-size:16px}.grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:12px;padding:12px;max-width:1000px}
+.ct{padding:14px}.ne{font-size:1rem}.nj,.cnt,.hd .sub{font-size:.82rem}.mtog{min-height:44px;font-size:.82rem;padding:10px 14px}.dexadd button{min-height:44px;font-size:.8rem}.mo .cl{min-width:44px;min-height:44px}.msort button{min-height:36px;font-size:.75rem}.mr{min-height:36px;font-size:.8rem}.mr-pw,.mr-ac,.mr-cat{font-size:.75rem}.mr-tp{font-size:.65rem}.ab{background:var(--bg);font-size:.75rem}.pa{padding:0 14px 12px}.pb{background:var(--bg)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<script>
+(() => {
+  const media = matchMedia('(prefers-color-scheme: dark)');
+  const apply = () => {
+    let theme;
+    try { if (parent !== window) theme = parent.document.documentElement.dataset.theme; } catch {}
+    try { theme ||= localStorage.getItem('pokechamp-theme'); } catch {}
+    document.documentElement.dataset.theme = theme === 'dark' || theme === 'light' ? theme : media.matches ? 'dark' : 'light';
+  };
+  apply();
+  window.addEventListener('storage', apply);
+  media.addEventListener('change', apply);
+  try {
+    if (parent !== window) {
+      const observer = new MutationObserver(apply);
+      observer.observe(parent.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      window.addEventListener('pagehide', () => observer.disconnect(), { once: true });
+    }
+  } catch {}
+})();
+</script>
 </head>
 <body>
 

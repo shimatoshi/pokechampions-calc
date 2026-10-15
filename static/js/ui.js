@@ -8,9 +8,13 @@ import { DMG } from './damage.js';
 // ===== NAVIGATION =====
 export function switchPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => { b.classList.remove('active'); b.removeAttribute('aria-current'); });
   document.getElementById('page-' + page).classList.add('show');
-  document.querySelector(`nav button[data-page="${page}"]`).classList.add('active');
+  const button = document.querySelector(`nav button[data-page="${page}"]`);
+  button.classList.add('active');
+  button.setAttribute('aria-current', 'page');
+  button.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  document.querySelector('.skip-link').href = '#page-' + page;
 }
 
 // ===== TOAST =====
@@ -122,10 +126,10 @@ export function buildNatureUI(side) {
     <div class="nature-grid" id="${side}-nature-grid">
       <div style="font-size:.7rem;color:var(--fg2);margin-bottom:2px">性格補正（タップで+/-切替）</div>
       ${stats.map(s => `
-        <div class="nature-btn" data-stat="${s}" id="${side}-nbtn-${s}">
+        <button type="button" class="nature-btn" data-stat="${s}" id="${side}-nbtn-${s}">
           <span class="nature-mark" id="${side}-nmark-${s}"></span>
           <span>${STAT_JA[s]}</span>
-        </div>
+        </button>
       `).join('')}
       <div class="nature-name" id="${side}-nature-name" style="font-size:.7rem;color:var(--fg2);margin-top:2px"></div>
     </div>`;
@@ -161,6 +165,7 @@ export function updateNatureDisplay(side, state) {
   for (const s of stats) {
     const mark = document.getElementById(`${side}-nmark-${s}`);
     const btn = document.getElementById(`${side}-nbtn-${s}`);
+    btn.setAttribute('aria-label', `${STAT_JA[s]}の性格補正: ${state.natureMods.plus === s ? '上昇' : state.natureMods.minus === s ? '下降' : 'なし'}。押して切り替え`);
     if (state.natureMods.plus === s) {
       mark.textContent = '+'; mark.style.color = '#e74c3c';
       btn.classList.add('nature-plus'); btn.classList.remove('nature-minus');
@@ -324,6 +329,8 @@ export function updateStatDisplay(prefix, state) {
     }
     total += (state.sp[stat] || 0);
   }
+  const summary = document.getElementById(`${prefix}-stats-summary`);
+  if (summary) summary.textContent = `SP ${total}/66${state.natureMods?.plus || state.natureMods?.minus ? ' · 性格補正あり' : ''}`;
   const totalEl = document.getElementById(`${prefix}-sp-total`);
   if (totalEl) {
     totalEl.textContent = `${total}/66`;

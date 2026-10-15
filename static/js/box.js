@@ -16,20 +16,26 @@ export async function renderBoxPage() {
   const view = localStorage.getItem(BOX_VIEW_KEY) || 'list';
   const page = document.getElementById('page-box');
   page.innerHTML = `
+    <div class="page-heading"><div><h1>BOX</h1><p>登録した個体を管理して、計算や編成に活用。</p></div></div>
     <div class="card">
       <div class="row" style="align-items:center;gap:4px;flex-wrap:wrap">
         <h3 style="flex:1;margin:0">BOX (${boxAll.length}匹)</h3>
         <button class="btn btn-sm btn-outline" id="box-view-toggle">${view === 'grid' ? '📃 リスト' : '🗃 グリッド'}</button>
         <button class="btn btn-sm" id="box-add-new" style="background:var(--accent2)">＋追加</button>
-        <button class="btn btn-sm" id="box-export">エクスポート</button>
-        <button class="btn btn-sm btn-outline" id="box-import">インポート</button>
-        <input type="file" id="box-import-file" accept=".json" class="hidden">
       </div>
-      <div class="row" style="align-items:center;gap:4px;flex-wrap:wrap;margin-top:6px">
-        <span style="font-size:.65rem;color:var(--fg2);flex:1">🌐 みんなの共有データ</span>
-        <button class="btn btn-sm" id="box-publish" style="background:var(--accent)">📤 サーバーへ公開</button>
-        <button class="btn btn-sm btn-outline" id="box-fetch">📥 サーバーから取得</button>
-      </div>
+      <details class="data-tools">
+        <summary>データの共有・バックアップ</summary>
+        <div class="tool-actions">
+          <button class="btn btn-sm btn-outline" id="box-export">エクスポート</button>
+          <button class="btn btn-sm btn-outline" id="box-import">インポート</button>
+          <input type="file" id="box-import-file" accept=".json" class="hidden">
+        </div>
+        <p class="tool-hint">みんなの共有データ</p>
+        <div class="tool-actions">
+          <button class="btn btn-sm btn-outline" id="box-publish">📤 サーバーへ公開</button>
+          <button class="btn btn-sm btn-outline" id="box-fetch">📥 サーバーから取得</button>
+        </div>
+      </details>
     </div>
     <div id="box-list">
       ${boxAll.length === 0 ? '<div class="card"><p style="text-align:center;color:var(--fg2)">BOXは空です。上の「＋追加」からポケモンを登録できます</p></div>' : ''}

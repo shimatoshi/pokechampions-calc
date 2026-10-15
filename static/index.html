@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#101614">
+  <meta name="theme-color" content="#ffffff">
   <title>ポケチャン ダメ計</title>
   <base id="base-tag">
   <link rel="manifest" href="manifest.json">
+  <script src="js/shell.js"></script>
   <link rel="stylesheet" href="css/style.css">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <script>
@@ -16,25 +17,26 @@
   </script>
 </head>
 <body>
+  <a class="skip-link" href="#page-calc">メイン画面へ</a>
   <header class="app-header">
     <a class="app-brand" href="./" aria-label="ポケチャン ダメ計 ホーム"><span class="brand-mark" aria-hidden="true">◒</span><span>ポケチャン<span class="brand-sub">CHAMPIONS CALCULATOR</span></span></a>
-    <span class="app-version">v49</span>
+    <div class="header-actions"><span class="app-version">v50</span><button type="button" id="theme-toggle" class="btn btn-outline" aria-label="表示モードを切り替え">表示</button></div>
   </header>
   <nav aria-label="メインメニュー">
-    <button class="active" data-page="calc">ダメ計</button>
-    <button data-page="sim">対戦</button>
+    <button class="active" data-page="calc" aria-current="page">ダメージ計算</button>
+    <button data-page="sim">対戦シミュ</button>
     <button data-page="box">BOX</button>
     <button data-page="team">編成</button>
-    <button data-page="records">記録</button>
+    <button data-page="records">対戦記録</button>
     <button data-page="search">検索</button>
     <button data-page="dex">図鑑</button>
   </nav>
-  <div class="page show" id="page-calc">読み込み中...</div>
-  <div class="page" id="page-sim"></div>
-  <div class="page" id="page-box"></div>
-  <div class="page" id="page-team"></div>
-  <div class="page" id="page-records"></div>
-  <div class="page" id="page-search"></div>
+  <main tabindex="-1" class="page show" id="page-calc">データを読み込んでいます…</main>
+  <main tabindex="-1" class="page" id="page-sim"></main>
+  <main tabindex="-1" class="page" id="page-box"></main>
+  <main tabindex="-1" class="page" id="page-team"></main>
+  <main tabindex="-1" class="page" id="page-records"></main>
+  <main tabindex="-1" class="page" id="page-search"></main>
   <script type="module" src="js/app.js"></script>
   <script src="debug-note.js" data-app="pokechampions-calc"></script>
 </body>

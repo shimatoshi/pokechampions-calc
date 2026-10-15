@@ -280,84 +280,54 @@ hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
   .sim-move-btn,.sim-hp-btns button,.btn{min-height:42px}
 }
 
-/* v49 — Quiet, high-contrast workspace. Shared controls keep their existing IDs. */
-:root{--bg:#101614;--bg2:#19211e;--bg3:#26322c;--fg:#edf4ef;--fg2:#afbeb4;--accent:#a8e6bb;--accent2:#8abde3;--gold:#c8efb3;--line:#34433b;--ok:#86d4a4;--warn:#efc281;--danger:#ff9393;--radius:14px;--gap:14px;color-scheme:dark}
-html{font-size:15px;scroll-behavior:smooth;scroll-padding-top:90px}
-body{font-family:Inter,"Noto Sans JP",system-ui,sans-serif;line-height:1.5;background:radial-gradient(ellipse at top left,#1c2b22 0,transparent 45%),var(--bg)}
-.app-header{width:min(1120px,100%);margin:auto;display:flex;align-items:center;justify-content:space-between;padding:22px 24px 18px;gap:16px}
-.app-brand{display:flex;align-items:center;gap:12px;color:var(--fg);text-decoration:none;font-size:1.16rem;font-weight:800;letter-spacing:.04em}
-.brand-mark{display:grid;place-items:center;width:42px;height:42px;background:var(--accent);border-radius:13px;color:#14251a;font-size:32px;line-height:1}
-.brand-sub{display:block;font-size:.58rem;letter-spacing:.18em;color:var(--fg2);margin-top:1px}
-.app-version{color:var(--fg2);border:1px solid var(--line);border-radius:20px;padding:4px 11px;font-size:.7rem;font-variant-numeric:tabular-nums}
-nav{justify-content:center;gap:6px;padding:9px 20px;background:#101614f5;border-top:1px solid #28362e;border-bottom:1px solid var(--line);box-shadow:none;backdrop-filter:blur(14px)}
-nav button{flex:0 1 145px;min-height:44px;padding:9px 12px;border:1px solid transparent;border-radius:9px;font-size:.84rem;white-space:nowrap}
-nav button.active{background:var(--bg3);border:1px solid #597162;color:var(--accent)}
-nav button:hover{background:var(--bg3);color:var(--fg)}
-.page{width:100%;max-width:1120px;margin:0 auto;padding:26px 24px 48px;overflow:visible}
-.page-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
-.eyebrow{font-size:.64rem;font-weight:700;letter-spacing:.18em;color:var(--accent)}
-h1{font-size:1.7rem;letter-spacing:.02em;margin:5px 0}
-.page-heading p{font-size:.8rem;color:var(--fg2)}
-.result-jump{font-size:.78rem;color:var(--accent);text-decoration:none;padding:10px 14px;border:1px solid var(--line);border-radius:9px;white-space:nowrap}
-.card{padding:20px;border-radius:var(--radius);background:var(--bg2);margin-bottom:14px;box-shadow:0 5px 24px #00000012}
-.card h3{font-size:.94rem;margin-bottom:16px;border-left:0;padding:0;display:flex;align-items:center;gap:10px}
-.side-number{display:grid;place-items:center;width:27px;height:27px;background:#a8e6bb16;color:var(--accent);font-size:.7rem;border-radius:7px;font-variant-numeric:tabular-nums}
-.calc-side:last-child .side-number{background:#8abde31a;color:var(--accent2)}
-.calc-side:first-child .pokemon-card{border-top:3px solid var(--accent)}
-.calc-side:last-child .pokemon-card{border-top:3px solid var(--accent2)}
-.calc-layout{gap:18px;align-items:stretch}
-.pokemon-card{height:calc(100% - 14px)}
-label{font-size:.78rem;margin:12px 0 5px;color:var(--fg2)}
-select,input[type=number],input[type=text],textarea{font-family:inherit;min-height:42px;font-size:.88rem;background:#111a15;border:1px solid #3c4b42;border-radius:8px;padding:9px 10px;color:var(--fg)}
-select:hover,input:hover{border-color:#6b8273}
-select:focus,input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent)}
-button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-input[type=checkbox]{accent-color:#92d7a6;width:16px;height:16px;vertical-align:middle;margin-right:5px}
-.search-wrap{margin-bottom:10px}
-.search-list{border:1px solid #627969;border-radius:9px;box-shadow:0 10px 24px #0008;max-height:270px}
-.search-list .item{padding:11px 12px;font-size:.85rem;min-height:42px}
-.poke-info{padding:8px 0}
-.nature-btn{padding:7px 10px;border-radius:7px;font-size:.82rem}
-.sp-row{gap:6px;margin:7px 0}
-.sp-row .sp-label{width:22px;font-size:.8rem;font-weight:700;text-align:left}
-.sp-btn{width:36px;height:34px;line-height:34px;border:1px solid var(--line);border-radius:6px;font-size:.78rem}
-.sp-row input[type=number]{width:58px;min-height:36px;text-align:center;padding:5px}
-.sp-row .sp-val{margin-left:auto;width:44px;font-size:.9rem;font-weight:700;font-variant-numeric:tabular-nums}
-.boost-sel select{min-width:58px;flex:1}
-.btn{background:var(--accent);color:#122419;min-height:42px;padding:10px 16px;border-radius:9px;font-size:.85rem;box-shadow:none}
-.btn:hover{filter:brightness(1.08)}
-.btn-sm{min-height:36px;font-size:.78rem;padding:7px 11px}
-.btn-outline{background:transparent;color:var(--fg);border-color:#526659}
-.btn-danger{background:var(--danger);color:#311515}
-#swap-sides{color:#10212e}
-#calc-btn{min-height:54px;font-size:1rem;margin-top:16px;margin-bottom:16px}
-#calc-results{scroll-margin-top:80px}
-.dmg-result{background:#1b2d21;border:1px solid #52705b;text-align:left;padding:22px 24px;border-radius:14px;box-shadow:none;margin:14px 0}
-.dmg-result .pct{font-size:2rem;color:var(--gold);text-shadow:none;letter-spacing:-.03em}
-.dmg-result .range,.dmg-result .ko{font-size:.87rem;margin-top:7px}
-.calc-save{margin-top:20px;background:transparent}
-summary{cursor:pointer;color:var(--fg2);font-size:.85rem;font-weight:700;min-height:32px;padding:4px 0}
-.calc-save[open] summary{margin-bottom:12px;color:var(--fg)}
-.type-badge{border-radius:5px;padding:3px 8px;font-size:.7rem}
-.team-slot,.record,.team-detail,.sim-decide-col{border:1px solid var(--line);padding:13px;border-radius:12px}
-.sim-hud{top:64px;padding:10px 0;gap:8px;background:var(--bg)}
-.sim-hud-row{padding:10px;border:1px solid var(--line);border-radius:12px}
-.sim-hud-name{font-size:.95rem}.sim-hud-sub{font-size:.7rem}
-.sim-decide{gap:14px}.sim-moves-grid{gap:7px}
-.sim-move-btn{min-height:57px;border-radius:8px;padding:9px;font-size:.84rem}
-.sim-move-meta{font-size:.68rem}.sim-decide-label{font-size:.8rem;margin-bottom:8px}
-.sim-actions{padding:12px 0;gap:8px}
-.sim-result,.sim-turn-log{padding:14px;border:1px solid var(--line);border-radius:12px}
-.sim-result-line,.sim-turn-entry{font-size:.85rem}
-.team-sprites-bar{top:64px;border:1px solid var(--line)}
-@media(min-width:900px){#page-box,#page-team,#page-records,#page-search{max-width:920px}.field-card .col2{gap:14px}.sim-hud-row img{width:48px;height:48px}.sim-hud-hp{max-width:250px}}
-@media(max-width:599px){
- .app-header{padding:16px}.app-brand{font-size:1rem}.brand-mark{width:36px;height:36px;font-size:28px}
- nav{padding:7px 10px;gap:3px;justify-content:flex-start;overflow-x:auto}nav button{flex:1 0 auto;min-width:48px;min-height:42px;padding:8px 7px;font-size:.76rem}
- .page{padding:20px 12px 32px}.page-heading{margin-bottom:18px;gap:8px}h1{font-size:1.4rem}.page-heading p{font-size:.72rem}.result-jump{padding:8px;font-size:.72rem}
- .card{padding:16px}.calc-layout{gap:0}.pokemon-card{height:auto}.calc-side .card h3{margin:0 0 14px;padding:0;background:none;border-bottom:0;font-size:.94rem}
- .sp-row{gap:5px}.sp-btn{width:36px;height:36px;line-height:36px}.sp-row input[type=number]{width:56px}.sp-row .sp-val{width:38px}
- #calc-results .dmg-result:first-child{position:static;box-shadow:none}.dmg-result{padding:18px}.dmg-result .pct{font-size:1.75rem}
- .sim-hud{top:57px}.sim-decide{gap:7px}.sim-decide-col{padding:8px}.sim-move-btn{padding:7px 5px;min-height:52px;font-size:.74rem}.sim-move-meta{font-size:.6rem}.sim-hud-name{font-size:.8rem}.sim-hud-sub{font-size:.6rem}.sim-hud-row{padding:7px}.team-sprites-bar{top:57px}
-}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+/* v50: shared, quiet workspace with one clear primary action. */
+:root{--bg:#f5f6f8;--bg2:#fff;--bg3:#edf0f4;--fg:#20242c;--fg2:#626975;--accent:#2563eb;--accent2:#356c8e;--gold:#1d4ed8;--line:#dce1e8;--ok:#237747;--warn:#8d590c;--danger:#bd303b;--soft:#edf3ff;--radius:10px;--gap:12px;--nav-height:53px;color-scheme:light}
+html[data-theme=dark]{--bg:#101114;--bg2:#17191d;--bg3:#252930;--fg:#e8eaed;--fg2:#adb4bf;--accent:#93b7ff;--accent2:#94c6e7;--gold:#b2cbff;--line:#343941;--ok:#80d2a1;--warn:#efc281;--danger:#ff9393;--soft:#222f47;color-scheme:dark}
+html{font-size:16px;scroll-behavior:smooth;scroll-padding-top:75px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",Meiryo,system-ui,sans-serif;line-height:1.6;background:var(--bg)}
+button,input,select,textarea{font:inherit}button,summary{touch-action:manipulation}button{color:inherit}
+[hidden]{display:none!important}
+.skip-link{position:fixed;top:8px;left:8px;z-index:500;padding:10px 16px;background:var(--bg2);color:var(--accent);transform:translateY(-160%)}.skip-link:focus{transform:none}
+.app-header{max-width:1000px;width:100%;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px}
+.app-brand{display:flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none;font-size:1.08rem;font-weight:750}
+.brand-mark{display:grid;place-items:center;width:36px;height:36px;background:var(--soft);border-radius:9px;color:var(--accent);font-size:28px;line-height:1}
+.brand-sub{display:block;font-size:.56rem;letter-spacing:.08em;color:var(--fg2)}
+.header-actions{display:flex;gap:10px;align-items:center}.app-version{font-size:.7rem;color:var(--fg2)}#theme-toggle{font-size:.75rem;padding:8px 10px}
+nav{justify-content:center;gap:0;padding:0 max(12px,calc((100% - 960px)/2));background:var(--bg2);border-bottom:1px solid var(--line);box-shadow:none;overflow-x:auto;scrollbar-width:thin;min-height:var(--nav-height)}
+nav button{flex:1 0 auto;min-height:52px;padding:12px 16px;border:0;border-bottom:3px solid transparent;border-radius:0;font-size:.84rem;white-space:nowrap;color:var(--fg2)}
+nav button.active{background:var(--bg2);color:var(--accent);border-bottom-color:var(--accent)}
+nav button.active::after{display:none}
+.page{width:100%;max-width:1000px;margin:auto;padding:24px 20px 40px;overflow:visible}
+.page-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.page-heading h1{font-size:1.4rem;line-height:1.4;margin-bottom:6px}.page-heading p{font-size:.82rem;color:var(--fg2)}
+.result-jump{flex-shrink:0;color:var(--accent);font-size:.8rem;text-decoration:none;min-height:44px;display:flex;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:7px}
+.card{padding:20px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;box-shadow:none}
+.card h3{font-size:1rem;margin-bottom:14px;border:0;padding:0;display:flex;align-items:center;gap:8px}
+.side-number{display:grid;place-items:center;width:26px;height:26px;border-radius:6px;background:var(--soft);color:var(--accent);font-size:.7rem}
+.calc-side:last-child .side-number{color:var(--accent2);background:var(--bg3)}
+.calc-layout{gap:16px;align-items:stretch}.pokemon-card{height:calc(100% - 14px);border-top:3px solid var(--accent)}.calc-side:last-child .pokemon-card{border-top-color:var(--accent2)}
+label{font-size:.82rem;color:var(--fg2);margin:12px 0 5px}.field-hint{font-size:.72rem;font-weight:400;margin-left:5px}
+select,input[type=number],input[type=text],input[type=search],textarea{width:100%;min-height:44px;font-size:1rem;padding:9px 10px;background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:7px}
+input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px;margin-right:5px;vertical-align:middle}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}select:focus,input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent)}
+.search-wrap{margin-bottom:10px}.search-list{border-color:var(--line);border-radius:7px;max-height:280px;box-shadow:0 6px 16px #0002}.search-list .item{min-height:44px;padding:10px;font-size:.88rem;gap:4px;flex-wrap:wrap}.poke-info{padding:4px 0 8px}
+.nature-btn{min-height:44px;padding:8px 10px;border-radius:6px;font-size:.85rem;color:var(--fg)}
+.control-section{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}
+summary{cursor:pointer;min-height:44px;padding:10px 0;font-size:.85rem;font-weight:650;color:var(--fg)}.section-state{font-size:.72rem;font-weight:400;color:var(--fg2);margin-left:6px}.section-content{padding-top:8px}
+.sp-row{gap:6px;margin:8px 0}.sp-row .sp-label{width:24px;font-size:.8rem;font-weight:700;text-align:left;flex-shrink:0}.sp-btn{width:40px;height:44px;line-height:44px;flex-shrink:0;font-size:.82rem;border:1px solid var(--line);border-radius:6px}.sp-row input[type=number]{width:58px;min-height:44px;padding:5px;text-align:center}.sp-row .sp-val{margin-left:auto;width:44px;font-size:.9rem;font-weight:700;font-variant-numeric:tabular-nums}
+.boost-sel select{min-width:60px;flex:1}.field-card label:has(input[type=checkbox]){display:flex;align-items:center;min-height:44px;margin:0}.field-card .col2{gap:12px}
+.btn{min-height:44px;padding:10px 14px;background:var(--accent);color:var(--bg2);border-radius:7px;font-size:.85rem;font-weight:650;box-shadow:none;line-height:1.4}.btn-sm{min-height:44px;font-size:.8rem;padding:9px 12px}.btn-outline{background:var(--bg2);border:1px solid var(--line);color:var(--fg)}.btn-danger{background:var(--bg2);border:1px solid var(--danger);color:var(--danger)}
+html[data-theme=dark] .btn:not(.btn-outline):not(.btn-danger){color:#101114}
+.calc-load-actions{margin:0 0 14px;gap:8px!important}.calc-load-actions .btn{background:var(--bg2)!important;border:1px solid var(--line);color:var(--fg)!important;font-size:.78rem}
+#calc-btn{min-height:52px;font-size:1rem;margin:8px 0 16px}#calc-btn,#calc-results{scroll-margin-top:75px}
+.dmg-result{background:var(--bg2);border:1px solid var(--line);border-left:4px solid var(--accent);text-align:left;padding:20px;border-radius:9px;box-shadow:none;margin:14px 0}.dmg-result .pct{font-size:1.85rem;color:var(--gold);text-shadow:none}.dmg-result .range,.dmg-result .ko{font-size:.85rem;margin-top:6px}
+.calc-save{margin-top:20px}.calc-save .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}.calc-save .row:last-child{display:block}.calc-save summary{padding:0}
+.team-slot,.record,.team-detail,.sim-decide-col{border:1px solid var(--line);border-radius:9px;padding:12px}.team-slot .name{min-width:0;overflow-wrap:anywhere}.record-actions{gap:8px}.sd-text{font-size:.8rem}
+.sim-hud{top:var(--nav-height);padding:8px 0;background:var(--bg);gap:6px}.sim-hud-row{padding:8px;border:1px solid var(--line)}.sim-hud-name{font-size:.9rem}.sim-hud-sub{font-size:.7rem}
+.sim-decide{gap:12px}.sim-moves-grid{gap:6px}.sim-move-btn{min-height:56px;padding:9px 7px;font-size:.82rem;border-radius:7px}.sim-move-meta{font-size:.65rem}.sim-move-btn.selected{background:var(--soft);border:2px solid var(--accent)}.sim-decide-label{font-size:.8rem;margin-bottom:7px}.sim-move-skip{min-height:44px}
+.sim-actions{padding:10px 0 calc(10px + env(safe-area-inset-bottom));gap:8px}.sim-hp-btns button{min-height:44px}.sim-result,.sim-turn-log{padding:12px;border:1px solid var(--line)}.sim-result-line,.sim-turn-entry{font-size:.85rem}.team-sprites-bar{top:var(--nav-height);border:1px solid var(--line)}
+button:disabled{opacity:.55;cursor:default}.type-badge{border-radius:4px}
+@media(hover:hover){nav button:hover,.search-list .item:hover,.sp-btn:hover,.btn-outline:hover{background:var(--soft)}.btn:hover{filter:brightness(.95)}}
+@media(max-width:819px){.calc-layout{display:flex;flex-direction:column;gap:0}.pokemon-card{height:auto}.app-header{padding:12px 16px}.page{padding:18px 12px 32px}.card{padding:16px}.page-heading h1{font-size:1.25rem}.page-heading p{font-size:.78rem}.app-version{display:none}nav{justify-content:flex-start;padding:0 12px}nav button{flex:1 0 auto;padding:12px 14px}.calc-side .card h3{margin:0 0 14px;padding:0;background:none;border:0;font-size:1rem}.calc-side:first-child .card{border-top:3px solid var(--accent)}.calc-side:last-child .card{border-top:3px solid var(--accent2)}#calc-results .dmg-result:first-child{position:static;box-shadow:none}.sim-decide{gap:7px}.sim-decide-col{padding:8px}.sim-hud-name{font-size:.8rem}.sim-hud-sub{font-size:.65rem}}
+@media(max-width:359px){.sp-row{gap:3px}.sp-btn{width:36px}.sp-row input[type=number]{width:48px}.sp-row .sp-val{width:32px}.calc-load-actions .btn{padding:8px 5px;font-size:.7rem}.page-heading{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+.data-tools{border-top:1px solid var(--line);margin-top:14px;padding-top:4px}.tool-actions{display:flex;flex-wrap:wrap;gap:8px}.tool-hint{font-size:.8rem;color:var(--fg2);margin:16px 0 8px}.def-moves{margin:8px 0}

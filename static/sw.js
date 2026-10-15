@@ -21,14 +21,17 @@
 // SW更新時に一括差し替え(+クライアント側でcontrollerchangeリロード)。
 // 個別ファイルが裏でバラバラに更新されて新旧モジュールが混在する事故を根絶する。
 // v49: 操作レイアウトとアプリ外観を刷新。既存の計算・保存・対戦ロジックは維持。
-const CACHE = 'pokechamp-v49';
+// v50: 操作の優先順位・条件の折りたたみ・表示モード・タップ領域を改善。
+const CACHE = 'pokechamp-v50';
 
 const APP_PRECACHE = [
   './',
   './index.html',
+  './dex/index.html',
   './debug-note.js',
   './css/style.css',
   './js/app.js',
+  './js/shell.js',
   './js/data.js',
   './js/state.js',
   './js/calc.js',

@@ -88,10 +88,10 @@ function toggleDexOverlay() {
   ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;flex-direction:column';
   ov.innerHTML = `
     <div style="display:flex;align-items:center;padding:4px 8px;gap:8px;background:var(--bg2);border-bottom:1px solid var(--line)">
-      <strong style="flex:1;color:#e0e0e0;font-size:.9rem">ポケモンチャンピオンズ 図鑑</strong>
-      <button id="dex-close" style="background:#444;color:#eee;border:none;border-radius:4px;padding:6px 14px;font-size:.8rem">閉じる</button>
+      <strong style="flex:1;color:var(--fg);font-size:.9rem">ポケモンチャンピオンズ 図鑑</strong>
+      <button id="dex-close" class="btn btn-outline">閉じる</button>
     </div>
-    <iframe src="dex/index.html" style="flex:1;border:none;width:100%"></iframe>`;
+    <iframe title="ポケモン図鑑" src="dex/index.html" style="flex:1;border:none;width:100%"></iframe>`;
   document.body.appendChild(ov);
   ov.querySelector('#dex-close').addEventListener('click', () => ov.remove());
 }

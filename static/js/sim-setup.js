@@ -17,6 +17,7 @@ const loadedTeam = { a: null, b: null }; // { id, name } | null
 export function renderSetup() {
   const page = document.getElementById('page-sim');
   page.innerHTML = `
+    <div class="page-heading"><div><h1>対戦シミュレーション</h1><p>パーティを準備 → 最大3匹を選出 → 対戦。</p></div></div>
     ${renderPartySection('a')}
     ${renderPartySection('b')}
     <div class="card" style="margin-top:6px">

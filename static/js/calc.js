@@ -22,11 +22,20 @@ function buildSidePanel(side) {
     <div class="card pokemon-card">
       <h3><span class="side-number">${s === 'atk' ? '01' : '02'}</span>${label}</h3>
       <div class="search-wrap">
-        <input type="text" id="${s}-search" placeholder="ポケモン名 / 日本語..." autocomplete="off">
+        <label for="${s}-search">ポケモン</label>
+        <input type="text" id="${s}-search" placeholder="名前を入力して選択" autocomplete="off">
         <div class="search-list" id="${s}-list"></div>
       </div>
       <div id="${s}-info" class="poke-info"></div>
-      ${buildNatureUI(s)}
+      ${s === 'atk' ? '<label>わざ <span class="field-hint">選択した技をまとめて計算</span></label>' : ''}
+      ${s === 'def' ? '<details class="def-moves"><summary>防御側の技 <span class="section-state">保存・対戦用</span></summary>' : ''}
+      ${[0,1,2,3].map(i => `
+        <div class="search-wrap" style="margin-bottom:4px">
+          <input type="text" id="${s}-move-${i}" placeholder="わざ${i+1}..." autocomplete="off">
+          <div class="search-list" id="${s}-movelist-${i}"></div>
+        </div>
+      `).join('')}
+      ${s === 'def' ? '</details>' : ''}
       <label>もちもの</label>
       <div class="search-wrap">
         <input type="text" id="${s}-item-search" placeholder="もちもの検索..." autocomplete="off">
@@ -36,6 +45,28 @@ function buildSidePanel(side) {
         <label>とくせい</label>
         <select id="${s}-ability"></select>
       </div>
+
+      <details class="control-section">
+        <summary>能力・SP配分 <span class="section-state" id="${s}-stats-summary"></span></summary>
+        ${buildNatureUI(s)}
+      <label>SP配分 <span id="${s}-sp-total" class="sp-total">0/66</span></label>
+      <div id="${s}-sp">
+        ${['hp','at','df','sa','sd','sp'].map(stat => `
+          <div class="sp-row">
+            <span class="sp-label">${STAT_SHORT[stat]}</span>
+            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="0">0</button>
+            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="-">-</button>
+            <input type="number" id="${s}-sp-${stat}" min="0" max="32" value="0" data-stat="${stat}">
+            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="+">+</button>
+            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="32">32</button>
+            <span class="sp-val" id="${s}-val-${stat}">-</span>
+          </div>
+        `).join('')}
+      </div>
+
+      </details>
+      <details class="control-section" id="${s}-conditions">
+        <summary>状態・ランク・HP <span class="section-state" id="${s}-conditions-summary">補正なし</span></summary>
       <label>状態異常</label>
       <select id="${s}-status">
         <option value="">なし</option>
@@ -55,51 +86,38 @@ function buildSidePanel(side) {
         <input type="checkbox" id="def-disguise"> ばけのかわ/こおりのすがた 生存
       </label>
       ` : ''}
-      <label>SP配分 <span id="${s}-sp-total" class="sp-total">0/66</span></label>
-      <div id="${s}-sp">
-        ${['hp','at','df','sa','sd','sp'].map(stat => `
-          <div class="sp-row">
-            <span class="sp-label">${STAT_SHORT[stat]}</span>
-            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="0">0</button>
-            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="-">-</button>
-            <input type="number" id="${s}-sp-${stat}" min="0" max="32" value="0" data-stat="${stat}">
-            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="+">+</button>
-            <button class="sp-btn" data-side="${s}" data-stat="${stat}" data-act="32">32</button>
-            <span class="sp-val" id="${s}-val-${stat}">-</span>
-          </div>
-        `).join('')}
-      </div>
       <label>ランク補正</label>
       <div class="col3">
         ${(s === 'atk' ? ['at','sa','sp'] : ['df','sd','sp']).map(stat => `
           <div class="boost-sel">
             <span style="font-size:.7rem">${STAT_SHORT[stat]}</span>
-            <select id="${s}-boost-${stat}" style="width:50px">
+            <select id="${s}-boost-${stat}" aria-label="${label}の${STAT_JA[stat]}ランク補正" style="width:50px">
               ${[-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6].map(v => `<option value="${v}"${v===0?' selected':''}>${v>=0?'+':''}${v}</option>`).join('')}
             </select>
           </div>
         `).join('')}
       </div>
-      <label>わざ</label>
-      ${[0,1,2,3].map(i => `
-        <div class="search-wrap" style="margin-bottom:4px">
-          <input type="text" id="${s}-move-${i}" placeholder="わざ${i+1}..." autocomplete="off">
-          <div class="search-list" id="${s}-movelist-${i}"></div>
-        </div>
-      `).join('')}
+
+      </details>
     </div>`;
 }
 
 export function initCalcPage() {
   const page = document.getElementById('page-calc');
   page.innerHTML = `
-    <div class="page-heading"><div><span class="eyebrow">DAMAGE CALCULATOR</span><h1>ダメージ計算</h1><p>個体と条件を設定して、ダメージ・確定数を確認。</p></div><a class="result-jump" href="#calc-results">結果を見る ↓</a></div>
+    <div class="page-heading"><div><h1>ダメージ計算</h1><p>攻撃側と防御側を選び、技ごとのダメージを比較。</p></div><a class="result-jump" href="#calc-btn">計算へ ↓</a></div>
+    <div class="row mt calc-load-actions" style="gap:4px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-sm" id="load-atk-from" title="チーム/対策表から攻撃側に読込">攻撃側を読み込む</button>
+      <button class="btn btn-sm" id="swap-sides" style="background:var(--accent2)">攻守入替</button>
+      <button class="btn btn-sm" id="load-def-from" title="チーム/対策表から防御側に読込">防御側を読み込む</button>
+    </div>
     <div class="row calc-layout">
       <div class="calc-side">${buildSidePanel('atk')}</div>
       <div class="calc-side">${buildSidePanel('def')}</div>
     </div>
-    <div class="card field-card">
-      <h3>フィールド・計算条件</h3>
+    <details class="card field-card" id="field-conditions">
+      <summary>フィールド・計算条件 <span class="section-state" id="field-summary">標準設定</span></summary>
+      <div class="section-content">
       <div class="col2">
         <div>
           <label>天候</label>
@@ -146,22 +164,18 @@ export function initCalcPage() {
           </select>
         </div>
       </div>
-    </div>
-    <div class="row mt" style="gap:4px;justify-content:center;flex-wrap:wrap">
-      <button class="btn btn-sm" id="load-atk-from" title="チーム/対策表から攻撃側に読込">攻撃側に読込</button>
-      <button class="btn btn-sm" id="swap-sides" style="background:var(--accent2)">攻守入替</button>
-      <button class="btn btn-sm" id="load-def-from" title="チーム/対策表から防御側に読込">防御側に読込</button>
-    </div>
+      </div>
+    </details>
     <button class="btn mt" style="width:100%" id="calc-btn">ダメージを計算する →</button>
     <div id="calc-results" aria-live="polite"></div>
     <details class="card calc-save"><summary>個体・計算結果を保存</summary>
     <div class="row mt" style="gap:4px;flex-wrap:wrap">
-      <button class="btn btn-outline btn-sm" id="add-atk-to-team">攻→チーム</button>
-      <button class="btn btn-outline btn-sm" id="add-def-to-team">防→チーム</button>
-      <button class="btn btn-outline btn-sm" id="add-atk-to-box">攻→BOX</button>
-      <button class="btn btn-outline btn-sm" id="add-def-to-box">防→BOX</button>
-      <button class="btn btn-outline btn-sm" style="border-color:var(--warn);color:var(--warn)" id="add-atk-to-threat">攻→仮想敵</button>
-      <button class="btn btn-outline btn-sm" style="border-color:var(--warn);color:var(--warn)" id="add-def-to-threat">防→仮想敵</button>
+      <button class="btn btn-outline btn-sm" id="add-atk-to-team">攻撃側 → チーム</button>
+      <button class="btn btn-outline btn-sm" id="add-def-to-team">防御側 → チーム</button>
+      <button class="btn btn-outline btn-sm" id="add-atk-to-box">攻撃側 → BOX</button>
+      <button class="btn btn-outline btn-sm" id="add-def-to-box">防御側 → BOX</button>
+      <button class="btn btn-outline btn-sm" style="border-color:var(--warn);color:var(--warn)" id="add-atk-to-threat">攻撃側 → 仮想敵</button>
+      <button class="btn btn-outline btn-sm" style="border-color:var(--warn);color:var(--warn)" id="add-def-to-threat">防御側 → 仮想敵</button>
     </div>
     <div class="row mt" style="gap:4px">
       <button class="btn btn-sm btn-outline" id="save-calc-result" style="width:100%;border-color:var(--accent2);color:var(--accent2)">ダメ計結果をBOXに保存</button>
@@ -169,6 +183,9 @@ export function initCalcPage() {
     </details>
     <div id="load-picker" class="hidden"></div>
   `;
+
+  page.oninput = updateConditionSummaries;
+  page.onchange = updateConditionSummaries;
 
   // Pokemon search
   setupSearch(document.getElementById('atk-search'), document.getElementById('atk-list'), pokemonNames, n => selectPokemon('atk', n));
@@ -235,6 +252,7 @@ export function initCalcPage() {
     defState.chainHits = 0;
     if (hpInput) hpInput.value = '';
     updateHpDisplay();
+    updateConditionSummaries();
   });
   // ばけのかわ生存チェック
   document.getElementById('def-disguise')?.addEventListener('change', e => {
@@ -242,7 +260,7 @@ export function initCalcPage() {
   });
 
   // SP +/- /0/32 buttons
-  page.addEventListener('click', e => {
+  page.onclick = e => {
     const btn = e.target.closest('.sp-btn');
     if (!btn) return;
     const { side, stat, act } = btn.dataset;
@@ -256,8 +274,9 @@ export function initCalcPage() {
     state.sp[stat] = val;
     input.value = val;
     updateStatDisplay(side, state);
+    updateConditionSummaries();
     scheduleSessionSave();
-  });
+  };
 
   // Add to team buttons
   document.getElementById('add-atk-to-team').addEventListener('click', () => addCalcToTeam('atk'));
@@ -305,9 +324,12 @@ export function initCalcPage() {
   document.getElementById('field-spikes').value = fieldState.spikes;
   document.getElementById('field-fainted').value = fieldState.faintedCount || 0;
 
-  // Restore atk/def UI from persisted session
+  // Restore all controls, including defaults before a species is selected.
   for (const side of ['atk', 'def']) {
     const state = side === 'atk' ? atkState : defState;
+    document.getElementById(`${side}-status`).value = state.status || '';
+    const boostStats = side === 'atk' ? ['at','sa','sp'] : ['df','sd','sp'];
+    for (const stat of boostStats) document.getElementById(`${side}-boost-${stat}`).value = String(state.boosts[stat] || 0);
     if (!state.name) continue;
     const searchEl = document.getElementById(`${side}-search`);
     const jaName = ja('pokemon', state.name);
@@ -315,14 +337,26 @@ export function initCalcPage() {
     searchEl.dataset.key = state.name;
     selectPokemon(side, state.name);
     restoreStateToUI(side, state);
-    const statusEl = document.getElementById(`${side}-status`);
-    if (statusEl) statusEl.value = state.status || '';
-    const boostStats = side === 'atk' ? ['at','sa','sp'] : ['df','sd','sp'];
-    for (const stat of boostStats) {
-      const el = document.getElementById(`${side}-boost-${stat}`);
-      if (el) el.value = state.boosts[stat] || 0;
-    }
   }
+  updateConditionSummaries(true);
+}
+
+function updateConditionSummaries(reveal = false) {
+  for (const side of ['atk', 'def']) {
+    const scope = document.getElementById(`${side}-conditions`);
+    const active = [...scope.querySelectorAll('select, input')].filter(el =>
+      el.type === 'checkbox' ? el.checked : el.type === 'number' ? el.value !== '' : el.value !== '' && el.value !== '0');
+    document.getElementById(`${side}-conditions-summary`).textContent = active.length ? `${active.length}項目を適用中` : '補正なし';
+    if (reveal === true && active.length) scope.open = true;
+    const state = side === 'atk' ? atkState : defState;
+    const total = Object.values(state.sp).reduce((a, b) => a + b, 0);
+    document.getElementById(`${side}-stats-summary`).textContent = `SP ${total}/66${state.natureMods.plus || state.natureMods.minus ? ' · 性格補正あり' : ''}`;
+  }
+  const scope = document.getElementById('field-conditions');
+  const active = [...scope.querySelectorAll('select, input')].filter(el =>
+    el.type === 'checkbox' ? el.checked : el.value !== '' && el.value !== '0');
+  document.getElementById('field-summary').textContent = active.length ? `${active.length}項目を適用中` : '標準設定';
+  if (reveal === true && active.length) scope.open = true;
 }
 
 export function selectPokemon(side, name) {
@@ -455,7 +489,12 @@ function distTotal(dist) {
 }
 
 function runCalc() {
-  if (!atkState.name || !defState.name) return;
+  if (!atkState.name || !defState.name) {
+    showToast('攻撃側と防御側のポケモンを選択してください');
+    document.getElementById(!atkState.name ? 'atk-search' : 'def-search').focus();
+    return;
+  }
+  updateConditionSummaries();
   const results = document.getElementById('calc-results');
   let html = '';
 
@@ -571,6 +610,7 @@ function runCalc() {
     const hpInput = document.getElementById('def-current-hp');
     if (hpInput) hpInput.value = '';
     updateHpDisplay();
+    updateConditionSummaries();
     runCalc();
   });
 
