@@ -22,8 +22,9 @@ async function init() {
   await loadData();
   restoreCalcSession();
   initCalcPage(); // 起動時はダメ計ページだけ初期化
+  (await import('./sim.js')).initSimPage(); // 起動画面は対戦シミュ(前回のパーティを復元)
   window.addEventListener('message', handleDexMessage); // 図鑑iframe→BOX/編成/ダメ計の追加導線
-  const initialized = { calc: true, sim: false, team: false, records: false, box: false, search: false };
+  const initialized = { calc: true, sim: true, team: false, records: false, box: false, search: false };
   document.querySelectorAll('nav button').forEach(btn => {
     btn.addEventListener('click', async () => {
       const page = btn.dataset.page;
