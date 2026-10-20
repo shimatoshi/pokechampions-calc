@@ -26,7 +26,7 @@
 // v52: 短い画面も個体・技・性格・SP・補正を切替。SPは高さに応じて3項目ずつ。
 // v53: 保存を独立タブへ。短い画面の結果・条件もスクロール不要に調整。
 // v54: 全体点検の不具合修正 — てんねんの下降ランク無視/ばけのかわが無効タイプで剥がれる/記録編集でバトルログ消失/技を空欄にしても保存時に復活/BOXメモが編集で巻き戻る/_moveEntriesがJSONに混入/分類技リスト補完/インポート記録の重複/引き分けログが勝ち扱い。
-const CACHE = 'pokechamp-v56';
+const CACHE = 'pokechamp-v57';
 
 const APP_PRECACHE = [
   './',
@@ -43,6 +43,7 @@ const APP_PRECACHE = [
   './js/db.js',
   './js/team.js',
   './js/box.js',
+  './js/box-sync.js',
   './js/records.js',
   './js/search.js',
   './js/poke-data.js',

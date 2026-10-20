@@ -3,6 +3,7 @@ import {
   DATA, ja, esc, spriteImg, typeBadge,
 } from './data.js';
 import { makePokemonState, generateUid, currentTeam, markDirty } from './state.js';
+import { syncMembersToBox } from './box-sync.js';
 import { DB } from './db.js';
 import { parties, selection, field } from './battle-engine.js';
 import { startBattle } from './sim.js';
@@ -203,8 +204,10 @@ async function savePartyAsTeam(side) {
   const cleanMembers = () => parties[side].map(p => { const c = JSON.parse(JSON.stringify(p)); delete c._moveEntries; if (!c.uid) c.uid = generateUid(); return c; });
 
   const saveNew = async () => {
+    const members = cleanMembers();
+    await syncMembersToBox(members);
     const teamName = `SIM_${side === 'a' ? '自分' : '相手'}_${new Date().toLocaleDateString('ja')}`;
-    await DB.add('teams', { name: teamName, members: cleanMembers(), notes: '', updatedAt: Date.now() });
+    await DB.add('teams', { name: teamName, members, notes: '', updatedAt: Date.now() });
     markDirty('team');
     showToast(`「${teamName}」をチームに保存`);
   };
@@ -226,6 +229,7 @@ async function savePartyAsTeam(side) {
     </div>`;
   inner.querySelector('#psv-update').addEventListener('click', async () => {
     srcTeam.members = cleanMembers();
+    await syncMembersToBox(srcTeam.members);
     srcTeam.updatedAt = Date.now();
     await DB.put('teams', srcTeam);
     markDirty('team');

@@ -3,6 +3,7 @@ import {
   DATA, ja, esc, spriteImg, typeBadge, showdownHTML,
 } from './data.js';
 import { atkState, currentTeam, makePokemonState, generateUid, markDirty } from './state.js';
+import { teamsUsingUid } from './box-sync.js';
 import { DB } from './db.js';
 import { DMG } from './damage.js';
 import { selectPokemon, initCalcPage } from './calc.js';
@@ -108,6 +109,9 @@ export async function renderBoxPage() {
     });
     entry.querySelector('.box-del')?.addEventListener('click', async e => {
       e.stopPropagation();
+      const target = await DB.get('box', id);
+      const used = await teamsUsingUid(target?.uid);
+      if (used.length) { showToast(`編成「${used[0]}」${used.length > 1 ? `ほか${used.length - 1}件` : ''}で使用中のため削除できません`, 'error'); return; }
       await DB.del('box', id);
       renderBoxPage();
     });
