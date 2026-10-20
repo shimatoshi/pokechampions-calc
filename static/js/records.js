@@ -1,5 +1,5 @@
 // Pokemon Champions Calculator - Records Page
-import { esc } from './data.js';
+import { esc, ja, spriteImg } from './data.js';
 import { DB } from './db.js';
 
 let filter = null; // { kind: 'my' | 'opp', name } | null
@@ -20,6 +20,38 @@ function summarize(records, kind) {
     map.set(name, e);
   }
   return [...map.values()].sort((a, b) => b.n - a.n);
+}
+
+// 個体別: 自分側は 持込/選出/先発 と選出時の勝率、相手側は 当たった回数 と自分の勝率
+function individualStats(records) {
+  const my = new Map(), opp = new Map();
+  const get = (m, n) => { if (!m.has(n)) m.set(n, { name: n, party: 0, sel: 0, w: 0, lead: 0, leadW: 0 }); return m.get(n); };
+  for (const r of records) {
+    if (r.source !== 'sim') continue;
+    const win = r.result === 'win';
+    for (const n of new Set(r.myParty || [])) get(my, n).party++;
+    (r.mySel || []).forEach((n, i) => {
+      const e = get(my, n); e.sel++; if (win) e.w++;
+      if (i === 0) { e.lead++; if (win) e.leadW++; }
+    });
+    for (const n of new Set(r.oppSel || [])) { const e = get(opp, n); e.sel++; if (win) e.w++; }
+  }
+  const sort = m => [...m.values()].filter(e => e.sel > 0).sort((a, b) => b.sel - a.sel);
+  return { my: sort(my), opp: sort(opp) };
+}
+
+function renderIndividuals(records) {
+  const { my, opp } = individualStats(records);
+  if (!my.length && !opp.length) return '';
+  const row = (e, extra) => `<div class="stat-row static">${spriteImg(e.name, 28)}<span class="stat-name">${esc(ja('pokemon', e.name))}</span>
+      <span class="stat-n">${extra}</span><strong class="stat-rate">${rate(e.w, e.sel)}</strong></div>`;
+  return `<details class="card"${filter ? ' open' : ''}>
+    <summary>個体別の成績${filter ? ` <span class="section-state">${esc(filter.name)}で絞り込み中</span>` : ''}</summary>
+    <div class="u-hint u-my4" style="margin-top:8px">自分の個体 (選出した試合の勝率 / 選出回数・先発回数 / 持ち込み中の選出率)</div>
+    ${my.map(e => row(e, `${e.sel}回選出・先発${e.lead}・選出率${rate(e.sel, e.party)}`)).join('') || '<p class="empty-state">データなし</p>'}
+    <div class="u-hint u-my4" style="margin-top:12px">相手の個体 (出てきた試合での自分の勝率。低いほど苦手)</div>
+    ${[...opp].sort((a, b) => (a.w / a.sel) - (b.w / b.sel) || b.sel - a.sel).map(e => row(e, `${e.sel}戦 ${e.w}勝${e.sel - e.w}敗`)).join('') || '<p class="empty-state">データなし</p>'}
+  </details>`;
 }
 
 function renderSummary(records) {
@@ -48,6 +80,7 @@ export async function renderRecordsPage() {
   const page = document.getElementById('page-records');
   page.innerHTML = `
     ${renderSummary(records)}
+    ${renderIndividuals(shown)}
     <button class="btn mb u-w100" id="record-add">+ 対戦記録を追加</button>
     <div id="records-list">
       ${records.length === 0 ? '<p class="empty-state">対戦シミュで決着がつくと、ここに自動で記録されます</p>' : ''}

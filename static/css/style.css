@@ -419,3 +419,5 @@ button:disabled{opacity:.55;cursor:default}.type-badge{border-radius:var(--r-sm)
 .stat-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stat-n{font-size:.8rem;color:var(--fg2)}
 .stat-rate{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
+.stat-row.static{cursor:default}.stat-row.static .stat-n{font-size:.72rem}
+.stat-row img{flex:none}
