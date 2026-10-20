@@ -5,17 +5,58 @@ import {
 import { makePokemonState, generateUid, currentTeam, markDirty } from './state.js';
 import { syncMembersToBox } from './box-sync.js';
 import { DB } from './db.js';
-import { parties, selection, field } from './battle-engine.js';
+import { parties, selection, field, restorePreBattleParties } from './battle-engine.js';
+import { openShowdownImport } from './showdown-import.js';
 import { startBattle } from './sim.js';
-import { showToast, buildMiniEditor, openEditorModal, showPokemonDetailModal } from './ui.js';
+import { showToast, buildMiniEditor, openEditorModal, showPokemonDetailModal, switchPage } from './ui.js';
 
 // 読込元チームの記憶: パーティ保存時に「更新 or 新規」を選べるようにする
 const loadedTeam = { a: null, b: null }; // { id, name } | null
+
+// 前回のパーティを再起動後も復元する (回すたびに組み直さない)
+const PARTY_KEY = 'pokechamp_sim_parties';
+let partiesRestored = false;
+function restoreParties() {
+  if (partiesRestored) return;
+  partiesRestored = true;
+  if (parties.a.length || parties.b.length) return;
+  try {
+    const saved = JSON.parse(localStorage.getItem(PARTY_KEY) || 'null');
+    if (!saved) return;
+    for (const side of ['a', 'b']) {
+      (saved.parties?.[side] || []).slice(0, 6).forEach(p => parties[side].push(p));
+      loadedTeam[side] = saved.loaded?.[side] || null;
+    }
+  } catch (_) {}
+}
+function persistParties() {
+  try {
+    const clean = side => parties[side].map(p => { const c = { ...p }; delete c._moveEntries; return c; });
+    localStorage.setItem(PARTY_KEY, JSON.stringify({ parties: { a: clean('a'), b: clean('b') }, loaded: loadedTeam }));
+  } catch (_) {}
+}
+
+// 編成画面から「このチームで回す」: チームを指定サイドに丸ごとセットして構築画面へ
+export function loadTeamToSim(side, team) {
+  restorePreBattleParties(); // 進行中の対戦があれば開始前の状態へ戻す
+  partiesRestored = true;
+  parties[side].length = 0;
+  (team.members || []).slice(0, 6).forEach(m => {
+    const c = JSON.parse(JSON.stringify(m)); delete c._moveEntries; delete c.id;
+    parties[side].push(c);
+  });
+  loadedTeam[side] = team.id ? { id: team.id, name: team.name } : null;
+  switchPage('sim');
+  renderSetup();
+  showToast(`${side === 'a' ? '自分' : '相手'}に「${team.name}」をセット`);
+}
 
 // ============================================================
 // PHASE 1: SETUP
 // ============================================================
 export function renderSetup() {
+  restoreParties();
+  persistParties();
   const page = document.getElementById('page-sim');
   page.innerHTML = `
     ${renderPartySection('a')}
@@ -43,6 +84,10 @@ export function renderSetup() {
 
   for (const side of ['a','b']) {
     document.getElementById(`sim-party-add-${side}`).addEventListener('click', () => openEditor(side, -1));
+    document.getElementById(`sim-party-text-${side}`).addEventListener('click', () => openShowdownImport(page0(), imported => {
+      imported.forEach(m => { if (parties[side].length < 6) parties[side].push(m); });
+      renderSetup();
+    }, `${side === 'a' ? '自分' : '相手'}のパーティに取り込み`));
     document.getElementById(`sim-party-load-${side}`).addEventListener('click', () => openPartyLoadPicker(side));
     document.getElementById(`sim-party-save-${side}`).addEventListener('click', () => savePartyAsTeam(side));
     document.querySelectorAll(`.sim-party-slot[data-side="${side}"]`).forEach(slot => {
@@ -53,6 +98,8 @@ export function renderSetup() {
   }
 }
 
+const page0 = () => document.getElementById('page-sim');
+
 function renderPartySection(side) {
   const label = side === 'a' ? '自分' : '相手';
   const party = parties[side];
@@ -62,6 +109,7 @@ function renderPartySection(side) {
       <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap">
         <button class="btn btn-sm" id="sim-party-load-${side}">読込</button>
         <button class="btn btn-sm btn-outline" id="sim-party-add-${side}" ${party.length >= 6 ? 'disabled' : ''}>+追加</button>
+        <button class="btn btn-sm btn-outline" id="sim-party-text-${side}" ${party.length >= 6 ? 'disabled' : ''}>テキスト取込</button>
         <button class="btn btn-sm btn-outline" id="sim-party-save-${side}" style="border-color:var(--ok);color:var(--ok)" ${party.length === 0 ? 'disabled' : ''}>チームに保存</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:4px">
@@ -103,13 +151,12 @@ function openEditor(side, idx) {
       label: 'BOXに保存',
       style: 'border-color:var(--accent2);color:var(--accent2)',
       handler: async (s) => {
+        // 編成保存と同じルール: 同一構成ならBOXの既存個体に紐付け、違えば新規個体として追加
         const entry = JSON.parse(JSON.stringify(s));
         delete entry._moveEntries; delete entry.id;
-        if (!entry.uid) entry.uid = generateUid();
-        entry.savedCalcs = []; entry.notes = '';
-        await DB.add('box', entry);
-        markDirty('box');
-        showToast(`${ja('pokemon', s.name)} をBOXに追加`);
+        const { added } = await syncMembersToBox([entry]);
+        s.uid = entry.uid;
+        showToast(added ? `${ja('pokemon', s.name)} をBOXに追加` : `${ja('pokemon', s.name)} は既にBOXにいます`);
       },
     }],
   });
@@ -136,9 +183,9 @@ async function openPartyLoadPicker(side) {
           <div class="name u-bold">現在のチーム (${members.length}匹)</div>
           <div style="display:flex;gap:2px">${members.map(m => spriteImg(m.name, 24)).join('')}</div>
         </div>` : ''}
-      ${teams.map(t => `
+      ${[...teams].sort((x, y) => (x.kind === 'opponent') === (y.kind === 'opponent') ? 0 : ((x.kind === 'opponent') === (side === 'b') ? -1 : 1)).map(t => `
         <div class="team-slot pick-team" data-src="team" data-id="${t.id}">
-          <div class="name u-bold">${esc(t.name)} (${t.members?.length || 0}匹)</div>
+          <div class="name u-bold">${t.kind === 'opponent' ? '<span class="u-hint">[相手]</span> ' : ''}${esc(t.name)} (${t.members?.length || 0}匹)</div>
           <div style="display:flex;gap:2px">${(t.members||[]).map(m => spriteImg(m.name, 24)).join('')}</div>
         </div>`).join('')}
       <hr>
@@ -180,7 +227,7 @@ async function openPartyLoadPicker(side) {
         loadedTeam[side] = t ? { id: t.id, name: t.name } : null;
       }
       parties[side].length = 0;
-      teamMembers.forEach(m => parties[side].push(JSON.parse(JSON.stringify(m))));
+      teamMembers.forEach(m => { const c = JSON.parse(JSON.stringify(m)); delete c.id; parties[side].push(c); });
       picker.remove(); renderSetup();
       showToast(`パーティ読込 (${parties[side].length}匹)`);
     });
@@ -192,7 +239,8 @@ async function openPartyLoadPicker(side) {
       if (el.dataset.src === 'threat') src = threats.find(t => t.id === parseInt(el.dataset.id));
       else src = boxAll.find(b => b.id === parseInt(el.dataset.id));
       if (!src) return;
-      parties[side].push(JSON.parse(JSON.stringify(src)));
+      const one = JSON.parse(JSON.stringify(src)); delete one.id; delete one.savedCalcs; delete one.notes;
+      parties[side].push(one);
       picker.remove(); renderSetup();
       showToast(`${ja('pokemon', src.name)} を追加`);
     });
@@ -207,7 +255,7 @@ async function savePartyAsTeam(side) {
     const members = cleanMembers();
     await syncMembersToBox(members);
     const teamName = `SIM_${side === 'a' ? '自分' : '相手'}_${new Date().toLocaleDateString('ja')}`;
-    await DB.add('teams', { name: teamName, members, notes: '', updatedAt: Date.now() });
+    await DB.add('teams', { name: teamName, kind: side === 'b' ? 'opponent' : 'mine', members, notes: '', updatedAt: Date.now() });
     markDirty('team');
     showToast(`「${teamName}」をチームに保存`);
   };

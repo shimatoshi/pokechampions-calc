@@ -9,6 +9,7 @@ import {
 } from './state.js';
 import { DB } from './db.js';
 import { buildKey, syncMembersToBox } from './box-sync.js';
+import { openShowdownImport } from './showdown-import.js';
 import { selectPokemon, initCalcPage } from './calc.js';
 import { restoreStateToUI, showToast, switchPage, buildMiniEditor } from './ui.js';
 let teamView = 'list';
@@ -24,7 +25,8 @@ async function renderTeamList() {
     <div class="card">
       <div class="row" style="align-items:center;gap:4px">
         <h3 style="flex:1;margin:0">チーム一覧</h3>
-        <button class="btn btn-sm" id="tl-new">+ 新規</button>
+        <button class="btn btn-sm" id="tl-new">+ 自分</button>
+        <button class="btn btn-sm" id="tl-new-opp">+ 相手</button>
         <button class="btn btn-sm btn-outline" id="tl-random">🎲 抽選</button>
         <button class="btn btn-sm btn-outline" id="tl-import">インポート</button>
         <button class="btn btn-sm btn-outline" id="tl-sync" title="保存済みの全チームのポケモンをBOXに登録・紐付けします">BOX同期</button>
@@ -32,8 +34,9 @@ async function renderTeamList() {
       </div>
     </div>
     <div id="team-rows">
-      ${teams.length === 0 ? '<div class="card"><p class="empty-state">チームがありません</p></div>' : ''}
-      ${[...teams].reverse().map(t => renderTeamRow(t)).join('')}
+      ${teams.length === 0 ? '<div class="card"><p class="empty-state">チームがありません。「+ 自分」「+ 相手」で作成できます</p></div>' : ''}
+      ${renderTeamGroup('自分のチーム', [...teams].reverse().filter(t => t.kind !== 'opponent'))}
+      ${renderTeamGroup('相手チーム', [...teams].reverse().filter(t => t.kind === 'opponent'))}
     </div>
     <div class="card mt">
       <h3>対策表（仮想敵）</h3>
@@ -48,7 +51,11 @@ async function renderTeamList() {
   `;
 
   document.getElementById('tl-new').addEventListener('click', () => {
-    setCurrentTeam({ id: null, name: '新チーム', members: [], notes: '' });
+    setCurrentTeam({ id: null, name: '新チーム', kind: 'mine', members: [], notes: '' });
+    renderTeamDetail();
+  });
+  document.getElementById('tl-new-opp').addEventListener('click', () => {
+    setCurrentTeam({ id: null, name: '相手チーム', kind: 'opponent', members: [], notes: '' });
     renderTeamDetail();
   });
   document.getElementById('tl-random').addEventListener('click', () => {
@@ -103,7 +110,7 @@ async function renderTeamList() {
     });
     row.addEventListener('click', async () => {
       const team = await DB.get('teams', id);
-      setCurrentTeam({ id: team.id, name: team.name, members: team.members, notes: team.notes || '' });
+      setCurrentTeam({ id: team.id, name: team.name, kind: team.kind || 'mine', members: team.members, notes: team.notes || '' });
       renderTeamDetail();
     });
   });
@@ -169,6 +176,11 @@ function generateRandomTeam() {
   return { id: null, name: 'ランダムチーム', members, notes: '' };
 }
 
+function renderTeamGroup(label, list) {
+  if (!list.length) return '';
+  return `<div class="u-hint u-my4" style="margin-top:10px">${label} (${list.length})</div>${list.map(t => renderTeamRow(t)).join('')}`;
+}
+
 function renderTeamRow(team) {
   const sprites = [];
   for (let i = 0; i < 6; i++) {
@@ -194,9 +206,19 @@ async function renderTeamDetail() {
     <div class="card">
       <div class="row" style="align-items:center;gap:4px">
         <button class="btn btn-sm btn-outline" id="td-back">← 一覧</button>
-        <input type="text" id="team-name" value="${esc(currentTeam.name)}" style="font-weight:700;font-size:1rem;flex:1">
+        <input type="text" id="team-name" value="${esc(currentTeam.name)}" style="font-weight:700;font-size:1rem;flex:1" aria-label="チーム名">
         <button class="btn btn-sm" id="team-save">保存</button>
         ${currentTeam.id ? '<button class="btn btn-sm btn-outline" id="team-save-copy" title="現在の内容を別チームとして保存">複製保存</button>' : ''}
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="align-items:center;gap:8px">
+        <select id="team-kind" aria-label="チームの種別" class="u-flex1">
+          <option value="mine" ${currentTeam.kind !== 'opponent' ? 'selected' : ''}>自分のチーム</option>
+          <option value="opponent" ${currentTeam.kind === 'opponent' ? 'selected' : ''}>相手チーム</option>
+        </select>
+        <button class="btn btn-sm" id="team-run-a" ${currentTeam.members.length ? '' : 'disabled'}>自分側で回す</button>
+        <button class="btn btn-sm btn-outline" id="team-run-b" ${currentTeam.members.length ? '' : 'disabled'}>相手側にセット</button>
       </div>
     </div>
     <div class="team-sprites-bar">
@@ -214,6 +236,7 @@ async function renderTeamDetail() {
     <div class="row mt" style="gap:4px">
       <button class="btn btn-outline u-flex1" id="team-add">+ 新規追加</button>
       <button class="btn btn-outline u-flex1" id="team-add-from-box">+ BOXから追加</button>
+      <button class="btn btn-outline u-flex1" id="team-add-text">テキスト取込</button>
     </div>` : ''}
     <div class="card mt">
       <div class="row" style="align-items:center;gap:4px">
@@ -232,6 +255,17 @@ async function renderTeamDetail() {
 
   document.getElementById('td-back').addEventListener('click', renderTeamList);
   document.getElementById('team-name').addEventListener('change', e => currentTeam.name = e.target.value);
+  document.getElementById('team-kind').addEventListener('change', e => { currentTeam.kind = e.target.value; });
+  const runInSim = async side => {
+    const { loadTeamToSim } = await import('./sim-setup.js');
+    loadTeamToSim(side, { id: currentTeam.id, name: currentTeam.name, members: currentTeam.members });
+  };
+  document.getElementById('team-run-a').addEventListener('click', () => runInSim('a'));
+  document.getElementById('team-run-b').addEventListener('click', () => runInSim('b'));
+  document.getElementById('team-add-text')?.addEventListener('click', () => openShowdownImport(page, imported => {
+    imported.forEach(m => { if (currentTeam.members.length < 6) currentTeam.members.push(m); });
+    renderTeamDetail();
+  }, 'チームに取り込み'));
   document.getElementById('team-notes').addEventListener('input', e => currentTeam.notes = e.target.value);
   document.getElementById('team-save')?.addEventListener('click', saveTeam);
   document.getElementById('team-save-copy')?.addEventListener('click', saveTeamAsCopy);
@@ -439,7 +473,7 @@ function openTeamEditor(idx) {
 
 async function saveTeam() {
   const { added } = await syncMembersToBox(currentTeam.members);
-  const team = { name: currentTeam.name, members: currentTeam.members, notes: currentTeam.notes || '', updatedAt: Date.now() };
+  const team = { name: currentTeam.name, kind: currentTeam.kind || 'mine', members: currentTeam.members, notes: currentTeam.notes || '', updatedAt: Date.now() };
   if (currentTeam.id) team.id = currentTeam.id;
   const id = await DB.put('teams', team);
   if (!currentTeam.id) currentTeam.id = id;
@@ -453,13 +487,14 @@ async function saveTeamAsCopy() {
   const name = `${currentTeam.name} (複製)`;
   const team = {
     name,
+    kind: currentTeam.kind || 'mine',
     members: JSON.parse(JSON.stringify(currentTeam.members)),
     notes: currentTeam.notes || '',
     updatedAt: Date.now(),
   };
   const id = await DB.add('teams', team);
   // 以後の編集は複製側を触る (元チームは保存時点のまま残る)
-  setCurrentTeam({ id, name, members: team.members, notes: team.notes });
+  setCurrentTeam({ id, name, kind: team.kind, members: team.members, notes: team.notes });
   renderTeamDetail();
   showToast(`「${name}」として保存 (元チームは保持)`);
 }
