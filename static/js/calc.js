@@ -94,13 +94,13 @@ function buildSidePanel(side) {
         <option value="par">まひ</option>
       </select>
       ${s === 'def' ? `
-      <label>現在HP <span style="font-size:.7rem;color:var(--fg2)">(連続攻撃シミュ用、空欄=満タン)</span></label>
+      <label>現在HP <span class="u-hint">(連続攻撃シミュ用、空欄=満タン)</span></label>
       <div class="row" style="gap:4px;align-items:center">
-        <input type="number" id="def-current-hp" min="0" placeholder="満タン" style="flex:1">
+        <input class="u-flex1" type="number" id="def-current-hp" min="0" placeholder="満タン">
         <span id="def-hp-max-display" style="font-size:.85rem;color:var(--fg2);white-space:nowrap">/-</span>
         <button class="btn btn-sm btn-outline" id="def-hp-reset" style="font-size:.7rem;padding:2px 8px">満タン</button>
       </div>
-      <label id="def-disguise-wrap" class="hidden" style="margin-top:4px">
+      <label id="def-disguise-wrap" class="hidden u-mt4">
         <input type="checkbox" id="def-disguise"> ばけのかわ/こおりのすがた 生存
       </label>
       ` : ''}
@@ -108,7 +108,7 @@ function buildSidePanel(side) {
       <div class="col3">
         ${(s === 'atk' ? ['at','sa','sp'] : ['df','sd','sp']).map(stat => `
           <div class="boost-sel">
-            <span style="font-size:.7rem">${STAT_SHORT[stat]}</span>
+            <span class="u-small">${STAT_SHORT[stat]}</span>
             <select id="${s}-boost-${stat}" aria-label="${label}の${STAT_JA[stat]}ランク補正" style="width:50px">
               ${[-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6].map(v => `<option value="${v}"${v===0?' selected':''}>${v>=0?'+':''}${v}</option>`).join('')}
             </select>
@@ -173,7 +173,7 @@ export function initCalcPage() {
       <div class="col2 mt">
         <label><input type="checkbox" id="field-pinch"> HP1/3以下</label>
         <div style="display:flex;align-items:center;gap:3px">
-          <label style="white-space:nowrap">倒れた味方</label>
+          <label class="u-nowrap">倒れた味方</label>
           <select id="field-fainted" style="width:50px">
             <option value="0">0</option><option value="1">1</option><option value="2">2</option>
             <option value="3">3</option><option value="4">4</option><option value="5">5</option>
@@ -192,7 +192,7 @@ export function initCalcPage() {
       </div>
       </div>
     </details>
-    <button class="btn mt" style="width:100%" id="calc-btn">ダメージを計算する →</button>
+    <button class="btn mt u-w100" id="calc-btn">ダメージを計算する →</button>
     <section class="calc-output">
     <div class="result-pages" id="result-pages" role="group" aria-label="表示する技の計算結果"></div>
     <div id="calc-results" aria-live="polite"><p class="calc-empty">個体と技を選び、下の計算ボタンを押してください。</p></div>
@@ -442,8 +442,8 @@ export function selectPokemon(side, name) {
     <div style="display:flex;align-items:center;gap:6px;margin:4px 0">
       ${spriteImg(name, 48)}
       <div>
-        <div style="font-weight:700">${esc(jaName)}</div>
-        <div style="font-size:.7rem;color:var(--fg2)">${esc(name)}</div>
+        <div class="u-bold">${esc(jaName)}</div>
+        <div class="u-hint">${esc(name)}</div>
         <div>${data.types.map(t => typeBadge(t)).join(' ')}</div>
       </div>
     </div>`;
@@ -593,7 +593,7 @@ function runCalc() {
     html += `
       <div class="dmg-result" style="background:var(--bg3);text-align:left;font-size:.8rem;padding:8px">
         <div><strong>🔗 ${defState.chainHits}撃目までの累積</strong> <button class="btn btn-sm btn-outline" id="chain-reset" style="float:right;font-size:.7rem;padding:1px 8px">リセット</button></div>
-        <div style="margin-top:4px">残HP: ${minHp}〜${maxHpInDist} / ${maxHp} (全${total}通り)</div>
+        <div class="u-mt4">残HP: ${minHp}〜${maxHpInDist} / ${maxHp} (全${total}通り)</div>
         ${koCombos > 0 ? `<div style="color:var(--danger)">累積KO: ${koPct}% (${koCombos}/${total})</div>` : ''}
       </div>`;
   }
@@ -643,7 +643,7 @@ function runCalc() {
       <div class="dmg-result move-result" data-move="${esc(moveName)}">
         <div style="font-size:.8rem;margin-bottom:4px">
           ${typeBadge(r.moveType)}
-          <strong>${jaMove}</strong> <span style="color:var(--fg2);font-size:.7rem">${moveName}</span> (威力${r.bp}${r.hits > 1 ? `×${r.hits}` : ''})
+          <strong>${jaMove}</strong> <span class="u-hint">${moveName}</span> (威力${r.bp}${r.hits > 1 ? `×${r.hits}` : ''})
           ${r.isSTAB ? '<span style="color:var(--warn);font-size:.7rem">STAB</span>' : ''}
           ${r.hitsLabel ? `<span style="font-size:.7rem;color:var(--accent2);margin-left:4px">${esc(r.hitsLabel)}</span>` : ''}
         </div>
@@ -755,7 +755,7 @@ async function openLoadPicker(side) {
     <div class="card" style="border:2px solid var(--accent);max-height:60vh;overflow-y:auto">
       <h3>${side === 'atk' ? '攻撃側' : '防御側'}に読込</h3>
       ${members.length > 0 ? `
-        <div style="font-size:.75rem;color:var(--fg2);margin:4px 0">チーム: ${esc(currentTeam.name)}</div>
+        <div class="u-hint u-my4">チーム: ${esc(currentTeam.name)}</div>
         ${members.map((m, i) => `
           <div class="team-slot pick-slot" data-src="team" data-idx="${i}">
             ${spriteImg(m.name, 28)}
@@ -764,13 +764,13 @@ async function openLoadPicker(side) {
           </div>`).join('')}
       ` : '<div style="font-size:.8rem;color:var(--fg2);margin:4px 0">チームなし</div>'}
       <hr>
-      <div style="font-size:.75rem;color:var(--fg2);margin:4px 0">対策表</div>
+      <div class="u-hint u-my4">対策表</div>
       ${threats.length > 0 ? threats.map(t => `
         <div class="team-slot pick-slot" data-src="threat" data-idx="${t.id}">
           ${spriteImg(t.name, 28)}
           <div class="name">${esc(ja('pokemon', t.name))}</div>
           ${DATA.pokemon[t.name]?.types.map(tp => typeBadge(tp)).join('')||''}
-          ${t.item ? `<span style="font-size:.72rem;color:var(--fg2)">${esc(ja('items',t.item))}</span>` : ''}
+          ${t.item ? `<span class="u-hint">${esc(ja('items',t.item))}</span>` : ''}
         </div>`).join('') : '<div style="font-size:.8rem;color:var(--fg2)">対策表が空です（編成タブで追加）</div>'}
       <button class="btn btn-outline mt" id="pick-close">閉じる</button>
     </div>`;

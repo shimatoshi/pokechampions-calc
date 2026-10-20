@@ -32,7 +32,7 @@ export function renderSetup() {
         </select></div>
       </div>
     </div>
-    <button class="btn mt" style="width:100%" id="sim-to-select">選出へ進む →</button>
+    <button class="btn mt u-w100" id="sim-to-select">選出へ進む →</button>
   `;
   document.getElementById('sim-weather').value = field.weather;
   document.getElementById('sim-terrain').value = field.terrain;
@@ -69,7 +69,7 @@ function renderPartySection(side) {
             ${spriteImg(p.name, 32)}
             <div style="min-width:0;flex:1">
               <div style="font-size:.75rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ja('pokemon', p.name))}</div>
-              <div style="font-size:.72rem;color:var(--fg2)">${p.item ? esc(ja('items', p.item)) : ''}</div>
+              <div class="u-hint">${p.item ? esc(ja('items', p.item)) : ''}</div>
             </div>
             <button class="btn btn-sm btn-outline sim-slot-edit" style="padding:2px 5px;font-size:.72rem">編集</button>
             <button class="btn btn-sm sim-slot-del" style="padding:2px 5px;font-size:.72rem;background:var(--danger)">×</button>
@@ -132,16 +132,16 @@ async function openPartyLoadPicker(side) {
       <div style="font-size:.75rem;color:var(--fg2);margin-bottom:4px">チームを選ぶと全員読込、個体を選ぶと1匹追加</div>
       ${members.length > 0 ? `
         <div class="team-slot pick-team" data-src="current" style="border:2px solid var(--accent)">
-          <div class="name" style="font-weight:700">現在のチーム (${members.length}匹)</div>
+          <div class="name u-bold">現在のチーム (${members.length}匹)</div>
           <div style="display:flex;gap:2px">${members.map(m => spriteImg(m.name, 24)).join('')}</div>
         </div>` : ''}
       ${teams.map(t => `
         <div class="team-slot pick-team" data-src="team" data-id="${t.id}">
-          <div class="name" style="font-weight:700">${esc(t.name)} (${t.members?.length || 0}匹)</div>
+          <div class="name u-bold">${esc(t.name)} (${t.members?.length || 0}匹)</div>
           <div style="display:flex;gap:2px">${(t.members||[]).map(m => spriteImg(m.name, 24)).join('')}</div>
         </div>`).join('')}
       <hr>
-      <div style="font-size:.75rem;color:var(--fg2);margin:4px 0">個体追加</div>
+      <div class="u-hint u-my4">個体追加</div>
       <input type="text" id="sim-pick-search" placeholder="ポケモン名で検索..." autocomplete="off" style="margin-bottom:6px">
       <div id="sim-pick-individuals">
       ${threats.map(t => `
@@ -255,7 +255,7 @@ export function renderSelect() {
       ${renderSelectSide('b')}
     </div>
     <div style="display:flex;gap:6px;margin-top:8px">
-      <button class="btn btn-outline" id="sim-back-setup" style="flex:1">← 構築に戻る</button>
+      <button class="btn btn-outline u-flex1" id="sim-back-setup">← 構築に戻る</button>
       <button class="btn" id="sim-start-battle" style="flex:2;background:var(--ok)">バトル開始 !</button>
     </div>
   `;

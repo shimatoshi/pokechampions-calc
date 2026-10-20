@@ -10,7 +10,7 @@ export function initSearchPage() {
   page.innerHTML = `
     <div class="card">
       <div class="row" style="align-items:center;gap:6px">
-        <input type="search" id="search-q" placeholder="構築・トレンドを調べる" style="flex:1" enterkeyhint="search" autocomplete="off">
+        <input class="u-flex1" type="search" id="search-q" placeholder="構築・トレンドを調べる" enterkeyhint="search" autocomplete="off">
         <button class="btn" id="search-go">検索</button>
       </div>
       <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:.78rem;color:var(--fg2)">

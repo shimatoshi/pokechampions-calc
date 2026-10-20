@@ -9,9 +9,9 @@ export async function renderRecordsPage() {
   records.sort((a, b) => (b.date || 0) - (a.date || 0));
   const page = document.getElementById('page-records');
   page.innerHTML = `
-    <button class="btn mb" style="width:100%" id="record-add">+ 対戦記録を追加</button>
+    <button class="btn mb u-w100" id="record-add">+ 対戦記録を追加</button>
     <div id="records-list">
-      ${records.length === 0 ? '<p style="text-align:center;color:var(--fg2)">記録はまだありません</p>' : ''}
+      ${records.length === 0 ? '<p class="u-center-muted">記録はまだありません</p>' : ''}
       ${records.map(r => renderRecord(r)).join('')}
     </div>
     <div id="record-editor" class="hidden"></div>
@@ -38,7 +38,7 @@ function renderRecord(r) {
       ${r.oppTeam ? `<div style="font-size:.75rem;color:var(--fg2)">相手: ${esc(r.oppTeam)}</div>` : ''}
       ${r.notes ? `<div class="notes">${esc(r.notes)}</div>` : ''}
       ${r.log ? `
-      <details style="margin-top:4px">
+      <details class="u-mt4">
         <summary style="font-size:.7rem;color:var(--fg2);cursor:pointer">バトルログ (${r.log.split('\n').length}行)</summary>
         <pre style="font-size:.72rem;line-height:1.5;white-space:pre-wrap;max-height:300px;overflow-y:auto;background:var(--bg);border-radius:4px;padding:6px;margin-top:4px">${esc(r.log)}</pre>
       </details>` : ''}

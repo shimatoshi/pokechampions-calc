@@ -30,7 +30,7 @@ async function renderTeamList() {
       </div>
     </div>
     <div id="team-rows">
-      ${teams.length === 0 ? '<div class="card"><p style="text-align:center;color:var(--fg2)">チームがありません</p></div>' : ''}
+      ${teams.length === 0 ? '<div class="card"><p class="u-center-muted">チームがありません</p></div>' : ''}
       ${[...teams].reverse().map(t => renderTeamRow(t)).join('')}
     </div>
     <div class="card mt">
@@ -39,7 +39,7 @@ async function renderTeamList() {
         ${threats.length === 0 ? '<div style="font-size:.8rem;color:var(--fg2)">仮想敵が未登録です</div>' : ''}
         ${threats.map(t => renderThreatSlot(t)).join('')}
       </div>
-      <button class="btn btn-outline mt" style="width:100%" id="threat-add">+ 仮想敵を追加</button>
+      <button class="btn btn-outline mt u-w100" id="threat-add">+ 仮想敵を追加</button>
       <div id="threat-editor" class="hidden"></div>
     </div>
     <div id="team-load-modal" class="hidden"></div>
@@ -165,9 +165,9 @@ function renderTeamRow(team) {
   return `
     <div class="team-row card" data-id="${team.id}" style="cursor:pointer">
       <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
-        <strong style="flex:1">${esc(team.name)}</strong>
-        <button class="btn btn-sm btn-outline tr-export" style="font-size:.72rem;padding:2px 6px">出力</button>
-        <button class="btn btn-sm btn-danger tr-del" style="font-size:.72rem;padding:2px 6px">×</button>
+        <strong class="u-flex1">${esc(team.name)}</strong>
+        <button class="btn btn-sm btn-outline tr-export u-chip">出力</button>
+        <button class="btn btn-sm btn-danger tr-del u-chip">×</button>
       </div>
       <div class="team-sprites">${sprites.join('')}</div>
     </div>`;
@@ -198,8 +198,8 @@ async function renderTeamDetail() {
     </div>
     ${currentTeam.members.length < 6 ? `
     <div class="row mt" style="gap:4px">
-      <button class="btn btn-outline" style="flex:1" id="team-add">+ 新規追加</button>
-      <button class="btn btn-outline" style="flex:1" id="team-add-from-box">+ BOXから追加</button>
+      <button class="btn btn-outline u-flex1" id="team-add">+ 新規追加</button>
+      <button class="btn btn-outline u-flex1" id="team-add-from-box">+ BOXから追加</button>
     </div>` : ''}
     <div class="card mt">
       <div class="row" style="align-items:center;gap:4px">
@@ -286,10 +286,10 @@ function renderTeamSlot(member, idx) {
     <div class="team-detail" data-idx="${idx}">
       <div class="team-slot" data-idx="${idx}">
         ${spriteImg(member.name, 40)}
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:700">${esc(ja('pokemon', member.name))} ${types}</div>
+        <div class="u-flex1 u-minw0">
+          <div class="u-bold">${esc(ja('pokemon', member.name))} ${types}</div>
         </div>
-        <button class="btn btn-sm to-calc-btn" style="font-size:.72rem;padding:2px 6px">ダメ計</button>
+        <button class="btn btn-sm to-calc-btn u-chip">ダメ計</button>
         <button class="btn btn-sm btn-outline to-box-btn" style="font-size:.72rem;padding:2px 6px;border-color:var(--accent2);color:var(--accent2)">BOX</button>
         <button class="btn btn-sm btn-outline edit-btn">編集</button>
         <button class="btn btn-sm btn-danger del-btn">×</button>
@@ -307,9 +307,9 @@ function renderThreatSlot(t) {
     <div class="threat-slot" data-id="${t.id}" style="cursor:pointer">
       <div class="team-slot">
         ${spriteImg(t.name, 32)}
-        <div style="flex:1;min-width:0">
+        <div class="u-flex1 u-minw0">
           <div style="font-weight:700;font-size:.85rem">${esc(ja('pokemon', t.name))} ${types}</div>
-          <div style="font-size:.72rem;color:var(--fg2)">${esc([itemStr, moves].filter(Boolean).join(' | '))}</div>
+          <div class="u-hint">${esc([itemStr, moves].filter(Boolean).join(' | '))}</div>
         </div>
         <button class="btn btn-sm btn-outline threat-edit">編集</button>
         <button class="btn btn-sm btn-danger threat-del">×</button>

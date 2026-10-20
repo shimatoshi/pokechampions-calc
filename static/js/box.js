@@ -38,7 +38,7 @@ export async function renderBoxPage() {
       </details>
     </div>
     <div id="box-list">
-      ${boxAll.length === 0 ? '<div class="card"><p style="text-align:center;color:var(--fg2)">BOXは空です。上の「＋追加」からポケモンを登録できます</p></div>' : ''}
+      ${boxAll.length === 0 ? '<div class="card"><p class="u-center-muted">BOXは空です。上の「＋追加」からポケモンを登録できます</p></div>' : ''}
       ${view === 'grid' ? renderBoxGrid(boxAll) : boxAll.map(b => renderBoxSlot(b)).join('')}
     </div>
   `;
@@ -94,7 +94,7 @@ export async function renderBoxPage() {
         const st = DMG.getStats({ ...b, name: tab.dataset.forme }) || {};
         const L = [['hp','H'],['at','A'],['df','B'],['sa','C'],['sd','D'],['sp','S']];
         const line = entry.querySelector('.box-forme-stats');
-        if (line) line.innerHTML = L.map(([k, l]) => `<span style="white-space:nowrap"><span style="color:var(--fg2)">${l}</span>${st[k] ?? '-'}</span>`).join(' ');
+        if (line) line.innerHTML = L.map(([k, l]) => `<span class="u-nowrap"><span class="u-muted">${l}</span>${st[k] ?? '-'}</span>`).join(' ');
         entry.querySelectorAll('.box-forme-tab').forEach(t => { t.style.background = 'var(--bg)'; t.style.color = 'var(--fg2)'; });
         tab.style.background = 'var(--accent2)';
         tab.style.color = '#fff';
@@ -184,7 +184,7 @@ function renderStatLine(b) {
   const STAT_LABELS = [['hp','H'],['at','A'],['df','B'],['sa','C'],['sd','D'],['sp','S']];
   const row = name => {
     const st = statsFor(name);
-    return STAT_LABELS.map(([k, l]) => `<span style="white-space:nowrap"><span style="color:var(--fg2)">${l}</span>${st[k] ?? '-'}</span>`).join(' ');
+    return STAT_LABELS.map(([k, l]) => `<span class="u-nowrap"><span class="u-muted">${l}</span>${st[k] ?? '-'}</span>`).join(' ');
   };
   if (formes.length === 1) {
     return `<div class="box-statline" style="font-size:.7rem;font-family:monospace;margin-top:2px">${row(b.name)}</div>`;
@@ -207,22 +207,22 @@ function renderBoxSlot(b) {
     <div class="box-entry card" data-id="${b.id}" style="padding:6px">
       <div style="display:flex;align-items:flex-start;gap:6px">
         ${spriteImg(b.name, 40)}
-        <div style="flex:1;min-width:0">
+        <div class="u-flex1 u-minw0">
           ${b.nickname ? `<div style="font-size:.95rem;font-weight:700;color:var(--accent);line-height:1.2">${esc(b.nickname)}</div>` : ''}
           ${b.uid ? `<div style="font-size:.72rem;color:var(--fg2);font-family:monospace">ID: ${esc(b.uid.slice(0,8))}</div>` : ''}
           ${showdownHTML(b)}
           ${renderStatLine(b)}
         </div>
         <div style="display:flex;flex-direction:column;gap:2px">
-          <button class="btn btn-sm box-to-calc" style="font-size:.72rem;padding:2px 6px">ダメ計</button>
-          <button class="btn btn-sm btn-outline box-edit" style="font-size:.72rem;padding:2px 6px">編集</button>
-          <button class="btn btn-sm btn-outline box-to-team" style="font-size:.72rem;padding:2px 6px">チーム</button>
+          <button class="btn btn-sm box-to-calc u-chip">ダメ計</button>
+          <button class="btn btn-sm btn-outline box-edit u-chip">編集</button>
+          <button class="btn btn-sm btn-outline box-to-team u-chip">チーム</button>
         </div>
       </div>
       ${calcs.length > 0 ? `
-        <div style="margin-top:4px">
+        <div class="u-mt4">
           <button class="btn btn-sm btn-outline box-detail-toggle" style="font-size:.72rem;width:100%;padding:2px">ダメ計結果 (${calcs.length}件)</button>
-          <div class="box-detail hidden" style="margin-top:4px">
+          <div class="box-detail hidden u-mt4">
             ${calcs.map((c, ci) => {
               const icon = c.dir === 'def' ? '🛡' : '⚔';
               const label = c.dir === 'def'
@@ -230,18 +230,18 @@ function renderBoxSlot(b) {
                 : `自分の${ja('moves', c.move)}→${ja('pokemon', c.vs)}`;
               return `
               <div style="font-size:.7rem;padding:2px 0;display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--bg3)">
-                <span style="flex:1">${icon} ${esc(label)} ${esc(c.range)} <strong>${esc(c.ko)}</strong> ${esc(c.detail)}</span>
+                <span class="u-flex1">${icon} ${esc(label)} ${esc(c.range)} <strong>${esc(c.ko)}</strong> ${esc(c.detail)}</span>
                 <button class="btn btn-sm btn-danger calc-del" data-ci="${ci}" style="font-size:.72rem;padding:1px 4px">×</button>
               </div>`;
             }).join('')}
           </div>
         </div>` : ''}
-      <div style="margin-top:4px">
+      <div class="u-mt4">
         <label style="display:block;font-size:.72rem;color:var(--fg2);margin-bottom:2px">📝 メモ（調整意図・立ち回り・対面の判断など）</label>
         <textarea class="box-notes" data-id="${b.id}" rows="5" placeholder="例: HB特化で○○の△△確定耐え。先発から起点作り。○○には引く。" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:8px;font-size:.85rem;line-height:1.5;resize:vertical;min-height:5em">${esc(b.notes||'')}</textarea>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-top:2px">
-        <button class="btn btn-sm btn-danger box-del" style="font-size:.72rem;padding:2px 6px">削除</button>
+        <button class="btn btn-sm btn-danger box-del u-chip">削除</button>
       </div>
     </div>`;
 }
@@ -393,7 +393,7 @@ async function openServerBrowseModal() {
         <h3 style="flex:1;margin:0">📥 サーバーから取得</h3>
         <button class="btn btn-sm btn-outline" id="brw-close">閉じる</button>
       </div>
-      <div id="brw-list"><p style="text-align:center;color:var(--fg2)">読み込み中...</p></div>
+      <div id="brw-list"><p class="u-center-muted">読み込み中...</p></div>
     </div>`;
   inner.querySelector('#brw-close').addEventListener('click', () => modal.remove());
   const list = inner.querySelector('#brw-list');
@@ -411,7 +411,7 @@ async function openServerBrowseModal() {
   }
 
   if (!Array.isArray(items) || items.length === 0) {
-    list.innerHTML = '<p style="text-align:center;color:var(--fg2)">まだ公開データがありません</p>';
+    list.innerHTML = '<p class="u-center-muted">まだ公開データがありません</p>';
     return;
   }
 

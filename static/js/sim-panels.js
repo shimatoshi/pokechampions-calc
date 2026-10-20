@@ -12,10 +12,10 @@ export function renderFieldPanel() {
   return `<div style="margin-top:6px;padding:6px;background:var(--bg);border:1px solid var(--bg3);border-radius:4px">
     <div style="font-size:.7rem;font-weight:700;margin-bottom:4px">フィールド効果（発動で5T計測 / 対応アイテムで8T、発動ターンも消費）</div>
     <div class="col2">
-      <div><label style="font-size:.72rem">天候${tag(wT)}</label><select id="sim-weather-b" style="font-size:.75rem">
+      <div><label class="u-small">天候${tag(wT)}</label><select id="sim-weather-b" style="font-size:.75rem">
         <option value="">なし</option><option value="Sun">はれ</option><option value="Rain">あめ</option><option value="Sand">すなあらし</option><option value="Snow">ゆき</option>
       </select></div>
-      <div><label style="font-size:.72rem">フィールド${tag(tT)}</label><select id="sim-terrain-b" style="font-size:.75rem">
+      <div><label class="u-small">フィールド${tag(tT)}</label><select id="sim-terrain-b" style="font-size:.75rem">
         <option value="">なし</option><option value="Electric">エレキ</option><option value="Grassy">グラス</option><option value="Psychic">サイコ</option><option value="Misty">ミスト</option>
       </select></div>
     </div>
