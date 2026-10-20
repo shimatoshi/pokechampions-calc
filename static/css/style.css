@@ -61,12 +61,9 @@ label:first-child{margin-top:0}
 .sp-total.over{color:var(--danger)}
 
 /* ===== BUTTONS ===== */
-.btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:.85rem;font-weight:700;letter-spacing:.01em;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:.15s}
+.btn{border:none;font-weight:700;letter-spacing:.01em;cursor:pointer;transition:.15s}
 .btn:active{transform:scale(.97);filter:brightness(1.1)}
-.btn-sm{padding:5px 11px;font-size:.75rem}
-.btn-outline{background:none;border:1px solid var(--line);color:var(--fg);box-shadow:none}
 .btn-outline:active{border-color:var(--accent);color:var(--accent)}
-.btn-danger{background:var(--danger)}
 
 /* ===== BOOST SELECT ===== */
 .boost-sel{display:flex;align-items:center;gap:4px}
@@ -375,3 +372,14 @@ button:disabled{opacity:.55;cursor:default}.type-badge{border-radius:4px}
  #page-calc[data-stage=save] #calc-results,#page-calc[data-stage=save] .result-pages{display:none}
  #page-calc[data-stage=save] .calc-save>summary{display:none}
 }
+
+/* v54: mobile primary navigation lives at the thumb zone (bottom); desktop keeps the top bar. */
+@media(max-width:819px){
+ nav{order:99;border-top:1px solid var(--line);border-bottom:0;padding:0 4px env(safe-area-inset-bottom);min-height:calc(52px + env(safe-area-inset-bottom));background:var(--bg2)}
+ nav button{min-height:52px;border-bottom:0;border-top:3px solid transparent;font-size:.8rem}
+ nav button.active{border-top-color:var(--accent)}
+ .sim-actions{bottom:0}
+}
+/* Button tiers: primary (.btn) / secondary (.btn-outline) / destructive (.btn-danger, outlined so it never competes with primary). */
+.btn-outline:active{background:var(--soft)}
+.btn-danger:active{background:var(--danger);color:var(--bg2)}
