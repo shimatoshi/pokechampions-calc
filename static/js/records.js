@@ -40,7 +40,7 @@ function renderRecord(r) {
       ${r.log ? `
       <details style="margin-top:4px">
         <summary style="font-size:.7rem;color:var(--fg2);cursor:pointer">バトルログ (${r.log.split('\n').length}行)</summary>
-        <pre style="font-size:.65rem;line-height:1.5;white-space:pre-wrap;max-height:300px;overflow-y:auto;background:var(--bg);border-radius:4px;padding:6px;margin-top:4px">${esc(r.log)}</pre>
+        <pre style="font-size:.72rem;line-height:1.5;white-space:pre-wrap;max-height:300px;overflow-y:auto;background:var(--bg);border-radius:4px;padding:6px;margin-top:4px">${esc(r.log)}</pre>
       </details>` : ''}
       <div class="record-actions">
         <button class="btn btn-sm btn-outline" data-action="edit" data-id="${r.id}">編集</button>

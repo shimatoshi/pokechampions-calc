@@ -166,8 +166,8 @@ function renderTeamRow(team) {
     <div class="team-row card" data-id="${team.id}" style="cursor:pointer">
       <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
         <strong style="flex:1">${esc(team.name)}</strong>
-        <button class="btn btn-sm btn-outline tr-export" style="font-size:.6rem;padding:2px 6px">出力</button>
-        <button class="btn btn-sm btn-danger tr-del" style="font-size:.6rem;padding:2px 6px">×</button>
+        <button class="btn btn-sm btn-outline tr-export" style="font-size:.72rem;padding:2px 6px">出力</button>
+        <button class="btn btn-sm btn-danger tr-del" style="font-size:.72rem;padding:2px 6px">×</button>
       </div>
       <div class="team-sprites">${sprites.join('')}</div>
     </div>`;
@@ -289,8 +289,8 @@ function renderTeamSlot(member, idx) {
         <div style="flex:1;min-width:0">
           <div style="font-weight:700">${esc(ja('pokemon', member.name))} ${types}</div>
         </div>
-        <button class="btn btn-sm to-calc-btn" style="font-size:.6rem;padding:2px 6px">ダメ計</button>
-        <button class="btn btn-sm btn-outline to-box-btn" style="font-size:.6rem;padding:2px 6px;border-color:var(--accent2);color:var(--accent2)">BOX</button>
+        <button class="btn btn-sm to-calc-btn" style="font-size:.72rem;padding:2px 6px">ダメ計</button>
+        <button class="btn btn-sm btn-outline to-box-btn" style="font-size:.72rem;padding:2px 6px;border-color:var(--accent2);color:var(--accent2)">BOX</button>
         <button class="btn btn-sm btn-outline edit-btn">編集</button>
         <button class="btn btn-sm btn-danger del-btn">×</button>
       </div>
@@ -309,7 +309,7 @@ function renderThreatSlot(t) {
         ${spriteImg(t.name, 32)}
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:.85rem">${esc(ja('pokemon', t.name))} ${types}</div>
-          <div style="font-size:.65rem;color:var(--fg2)">${esc([itemStr, moves].filter(Boolean).join(' | '))}</div>
+          <div style="font-size:.72rem;color:var(--fg2)">${esc([itemStr, moves].filter(Boolean).join(' | '))}</div>
         </div>
         <button class="btn btn-sm btn-outline threat-edit">編集</button>
         <button class="btn btn-sm btn-danger threat-del">×</button>

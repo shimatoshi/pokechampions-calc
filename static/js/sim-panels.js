@@ -12,10 +12,10 @@ export function renderFieldPanel() {
   return `<div style="margin-top:6px;padding:6px;background:var(--bg);border:1px solid var(--bg3);border-radius:4px">
     <div style="font-size:.7rem;font-weight:700;margin-bottom:4px">フィールド効果（発動で5T計測 / 対応アイテムで8T、発動ターンも消費）</div>
     <div class="col2">
-      <div><label style="font-size:.65rem">天候${tag(wT)}</label><select id="sim-weather-b" style="font-size:.75rem">
+      <div><label style="font-size:.72rem">天候${tag(wT)}</label><select id="sim-weather-b" style="font-size:.75rem">
         <option value="">なし</option><option value="Sun">はれ</option><option value="Rain">あめ</option><option value="Sand">すなあらし</option><option value="Snow">ゆき</option>
       </select></div>
-      <div><label style="font-size:.65rem">フィールド${tag(tT)}</label><select id="sim-terrain-b" style="font-size:.75rem">
+      <div><label style="font-size:.72rem">フィールド${tag(tT)}</label><select id="sim-terrain-b" style="font-size:.75rem">
         <option value="">なし</option><option value="Electric">エレキ</option><option value="Grassy">グラス</option><option value="Psychic">サイコ</option><option value="Misty">ミスト</option>
       </select></div>
     </div>
@@ -28,7 +28,7 @@ export function renderFieldPanel() {
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
       ${[['reflect','リフレク'],['lightScreen','ひかりのかべ'],['auroraVeil','ベール']].map(([k, name]) =>
         ['a','b'].map(s =>
-          `<button class="btn btn-sm sim-field-toggle ${fieldTurns[k][s]>0?'':'btn-outline'}" data-fx="${k}-${s}" style="font-size:.65rem">${name}${s==='a'?'自':'相'}${fieldTurns[k][s]>0?` ${fieldTurns[k][s]}T`:''}</button>`
+          `<button class="btn btn-sm sim-field-toggle ${fieldTurns[k][s]>0?'':'btn-outline'}" data-fx="${k}-${s}" style="font-size:.72rem">${name}${s==='a'?'自':'相'}${fieldTurns[k][s]>0?` ${fieldTurns[k][s]}T`:''}</button>`
         ).join('')).join('')}
     </div>
     <div style="display:flex;gap:10px;margin-top:4px;font-size:.7rem">
@@ -81,7 +81,7 @@ export function renderHazardPanel() {
     const h = hazards[side];
     const label = side === 'a' ? '自分側' : '相手側';
     return `<div>
-      <div style="font-size:.65rem;font-weight:700">${label}（${label}の交代着地で発動）</div>
+      <div style="font-size:.72rem;font-weight:700">${label}（${label}の交代着地で発動）</div>
       <label style="font-size:.7rem;display:block"><input type="checkbox" class="sim-hz" data-side="${side}" data-kind="sr" ${h.sr?'checked':''}> ステルスロック</label>
       <label style="font-size:.7rem;display:flex;align-items:center;gap:3px">まきびし
         <select class="sim-hz-num" data-side="${side}" data-kind="spikes" style="font-size:.7rem">

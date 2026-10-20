@@ -770,7 +770,7 @@ async function openLoadPicker(side) {
           ${spriteImg(t.name, 28)}
           <div class="name">${esc(ja('pokemon', t.name))}</div>
           ${DATA.pokemon[t.name]?.types.map(tp => typeBadge(tp)).join('')||''}
-          ${t.item ? `<span style="font-size:.65rem;color:var(--fg2)">${esc(ja('items',t.item))}</span>` : ''}
+          ${t.item ? `<span style="font-size:.72rem;color:var(--fg2)">${esc(ja('items',t.item))}</span>` : ''}
         </div>`).join('') : '<div style="font-size:.8rem;color:var(--fg2)">対策表が空です（編成タブで追加）</div>'}
       <button class="btn btn-outline mt" id="pick-close">閉じる</button>
     </div>`;

@@ -168,7 +168,7 @@ function renderBoxGrid(boxAll) {
         ${chunk.map(b => `
           <div class="box-grid-cell" data-id="${b.id}" style="text-align:center;background:var(--bg);border:1px solid var(--bg3);border-radius:6px;padding:3px 1px;cursor:pointer">
             ${spriteImg(b.name, 40)}
-            <div style="font-size:.5rem;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.nickname || ja('pokemon', b.name))}</div>
+            <div style="font-size:.72rem;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.nickname || ja('pokemon', b.name))}</div>
           </div>`).join('')}
         ${Array.from({ length: 30 - chunk.length }, () => '<div style="background:var(--bg);border:1px dashed var(--bg3);border-radius:6px;min-height:52px;opacity:.4"></div>').join('')}
       </div>
@@ -192,7 +192,7 @@ function renderStatLine(b) {
   return `
     <div class="box-statline" style="margin-top:2px" data-id="${b.id}">
       <div style="display:flex;gap:2px;margin-bottom:1px">
-        ${formes.map((f, i) => `<button class="box-forme-tab" data-forme="${esc(f)}" style="font-size:.55rem;padding:1px 6px;border-radius:3px;border:1px solid var(--bg3);background:${i === 0 ? 'var(--accent2)' : 'var(--bg)'};color:${i === 0 ? '#fff' : 'var(--fg2)'}">${esc(ja('pokemon', f))}</button>`).join('')}
+        ${formes.map((f, i) => `<button class="box-forme-tab" data-forme="${esc(f)}" style="font-size:.72rem;padding:1px 6px;border-radius:3px;border:1px solid var(--bg3);background:${i === 0 ? 'var(--accent2)' : 'var(--bg)'};color:${i === 0 ? '#fff' : 'var(--fg2)'}">${esc(ja('pokemon', f))}</button>`).join('')}
       </div>
       <div class="box-forme-stats" style="font-size:.7rem;font-family:monospace">${row(formes[0])}</div>
     </div>`;
@@ -209,19 +209,19 @@ function renderBoxSlot(b) {
         ${spriteImg(b.name, 40)}
         <div style="flex:1;min-width:0">
           ${b.nickname ? `<div style="font-size:.95rem;font-weight:700;color:var(--accent);line-height:1.2">${esc(b.nickname)}</div>` : ''}
-          ${b.uid ? `<div style="font-size:.55rem;color:var(--fg2);font-family:monospace">ID: ${esc(b.uid.slice(0,8))}</div>` : ''}
+          ${b.uid ? `<div style="font-size:.72rem;color:var(--fg2);font-family:monospace">ID: ${esc(b.uid.slice(0,8))}</div>` : ''}
           ${showdownHTML(b)}
           ${renderStatLine(b)}
         </div>
         <div style="display:flex;flex-direction:column;gap:2px">
-          <button class="btn btn-sm box-to-calc" style="font-size:.6rem;padding:2px 6px">ダメ計</button>
-          <button class="btn btn-sm btn-outline box-edit" style="font-size:.6rem;padding:2px 6px">編集</button>
-          <button class="btn btn-sm btn-outline box-to-team" style="font-size:.6rem;padding:2px 6px">チーム</button>
+          <button class="btn btn-sm box-to-calc" style="font-size:.72rem;padding:2px 6px">ダメ計</button>
+          <button class="btn btn-sm btn-outline box-edit" style="font-size:.72rem;padding:2px 6px">編集</button>
+          <button class="btn btn-sm btn-outline box-to-team" style="font-size:.72rem;padding:2px 6px">チーム</button>
         </div>
       </div>
       ${calcs.length > 0 ? `
         <div style="margin-top:4px">
-          <button class="btn btn-sm btn-outline box-detail-toggle" style="font-size:.65rem;width:100%;padding:2px">ダメ計結果 (${calcs.length}件)</button>
+          <button class="btn btn-sm btn-outline box-detail-toggle" style="font-size:.72rem;width:100%;padding:2px">ダメ計結果 (${calcs.length}件)</button>
           <div class="box-detail hidden" style="margin-top:4px">
             ${calcs.map((c, ci) => {
               const icon = c.dir === 'def' ? '🛡' : '⚔';
@@ -231,17 +231,17 @@ function renderBoxSlot(b) {
               return `
               <div style="font-size:.7rem;padding:2px 0;display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--bg3)">
                 <span style="flex:1">${icon} ${esc(label)} ${esc(c.range)} <strong>${esc(c.ko)}</strong> ${esc(c.detail)}</span>
-                <button class="btn btn-sm btn-danger calc-del" data-ci="${ci}" style="font-size:.55rem;padding:1px 4px">×</button>
+                <button class="btn btn-sm btn-danger calc-del" data-ci="${ci}" style="font-size:.72rem;padding:1px 4px">×</button>
               </div>`;
             }).join('')}
           </div>
         </div>` : ''}
       <div style="margin-top:4px">
-        <label style="display:block;font-size:.65rem;color:var(--fg2);margin-bottom:2px">📝 メモ（調整意図・立ち回り・対面の判断など）</label>
+        <label style="display:block;font-size:.72rem;color:var(--fg2);margin-bottom:2px">📝 メモ（調整意図・立ち回り・対面の判断など）</label>
         <textarea class="box-notes" data-id="${b.id}" rows="5" placeholder="例: HB特化で○○の△△確定耐え。先発から起点作り。○○には引く。" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--bg3);border-radius:4px;padding:8px;font-size:.85rem;line-height:1.5;resize:vertical;min-height:5em">${esc(b.notes||'')}</textarea>
       </div>
       <div style="display:flex;justify-content:flex-end;margin-top:2px">
-        <button class="btn btn-sm btn-danger box-del" style="font-size:.6rem;padding:2px 6px">削除</button>
+        <button class="btn btn-sm btn-danger box-del" style="font-size:.72rem;padding:2px 6px">削除</button>
       </div>
     </div>`;
 }
@@ -422,7 +422,7 @@ async function openServerBrowseModal() {
     return `
       <div class="card" data-i="${i}" style="padding:8px;margin-bottom:6px">
         <div style="font-weight:700;font-size:.9rem">${esc(it.title || '(無題)')}</div>
-        <div style="font-size:.65rem;color:var(--fg2);margin:2px 0">${esc(date)}　${esc(summary)}</div>
+        <div style="font-size:.72rem;color:var(--fg2);margin:2px 0">${esc(date)}　${esc(summary)}</div>
         ${it.description ? `<div style="font-size:.7rem;color:var(--fg2);white-space:pre-wrap;margin-bottom:4px">${esc(it.description)}</div>` : ''}
         <div style="display:flex;justify-content:flex-end">
           <button class="btn btn-sm brw-import" data-i="${i}" style="font-size:.7rem">取り込む</button>

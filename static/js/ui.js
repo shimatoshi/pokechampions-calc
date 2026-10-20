@@ -47,7 +47,7 @@ export function setupSearch(inputEl, listEl, entries, onSelect, onClear) {
       const jaName = typeof e === 'string' ? (JA.pokemon[name] || JA.moves[name] || '') : (e.ja || '');
       const p = DATA.pokemon[name];
       const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
-      const moveInfo = DATA.moves[name] ? `<span class="type-badge type-${DATA.moves[name].type}">${DATA.moves[name].type}</span>${DATA.moves[name].cat === 'Status' ? '<span style="font-size:.6rem;color:var(--fg2);margin-left:2px">変化</span>' : ''}` : '';
+      const moveInfo = DATA.moves[name] ? `<span class="type-badge type-${DATA.moves[name].type}">${DATA.moves[name].type}</span>${DATA.moves[name].cat === 'Status' ? '<span style="font-size:.72rem;color:var(--fg2);margin-left:2px">変化</span>' : ''}` : '';
       const display = jaName ? `${jaName} <span style="color:var(--fg2);font-size:.7rem">${name}</span>` : name;
       return `<div class="item" data-name="${name}">${p ? spriteImg(name, 28) : ''}<span>${display}</span>${types}${moveInfo}</div>`;
     }).join('');
@@ -249,10 +249,10 @@ export function renderPokemonDetailCard(poke, rt = null) {
     const isPlus = nm.plus === s, isMinus = nm.minus === s;
     const col = isPlus ? '#e74c3c' : isMinus ? '#3498db' : '';
     const rank = (rt && s !== 'hp') ? (rt.boosts?.[s] || 0) : 0;
-    const rankTag = rank ? `<span style="color:${rank>0?'var(--ok)':'var(--danger)'};font-size:.6rem;margin-left:2px">${rank>0?'+':''}${rank}</span>` : '';
-    const spv = sp[s] ? `<span style="font-size:.55rem;color:var(--fg2)">SP${sp[s]}</span>` : '';
+    const rankTag = rank ? `<span style="color:${rank>0?'var(--ok)':'var(--danger)'};font-size:.72rem;margin-left:2px">${rank>0?'+':''}${rank}</span>` : '';
+    const spv = sp[s] ? `<span style="font-size:.72rem;color:var(--fg2)">SP${sp[s]}</span>` : '';
     return `<div style="display:flex;flex-direction:column;align-items:center;min-width:38px">
-      <span style="font-size:.6rem;color:var(--fg2)">${STAT_JA[s]}</span>
+      <span style="font-size:.72rem;color:var(--fg2)">${STAT_JA[s]}</span>
       <span style="font-weight:700;color:${col}">${base}${rankTag}</span>
       ${spv}
     </div>`;
@@ -264,7 +264,7 @@ export function renderPokemonDetailCard(poke, rt = null) {
     const t = md ? `<span class="type-badge type-${md.type}">${md.type}</span>` : '';
     const cat = md?.cat === 'Status' ? '変化' : md ? `威${md.bp||'-'}` : '';
     return `<div style="display:flex;align-items:center;gap:3px;font-size:.7rem;background:var(--bg);border-radius:4px;padding:2px 5px">
-      ${t}<span>${esc(ja('moves', m) || m)}</span><span style="color:var(--fg2);font-size:.6rem">${cat}</span>
+      ${t}<span>${esc(ja('moves', m) || m)}</span><span style="color:var(--fg2);font-size:.72rem">${cat}</span>
     </div>`;
   }).join('') : '<span style="font-size:.7rem;color:var(--fg2)">技未設定</span>';
 
@@ -283,7 +283,7 @@ export function renderPokemonDetailCard(poke, rt = null) {
       <div style="flex:1;min-width:0">
         <div style="font-weight:700">${esc(ja('pokemon', poke.name))}${poke.item ? `<span style="font-size:.7rem;color:var(--fg2)"> @ ${esc(ja('items', poke.item))}</span>` : ''}</div>
         <div>${data.types.map(t => typeBadge(t)).join(' ')}</div>
-        <div style="font-size:.65rem;color:var(--fg2)">
+        <div style="font-size:.72rem;color:var(--fg2)">
           ${poke.ability ? `特性: ${esc(ja('abilities', poke.ability) || poke.ability)}` : ''}
           ${natureEn ? ` ／ ${esc(ja('natures', natureEn) || natureEn)} (+${STAT_JA[nm.plus]}-${STAT_JA[nm.minus]})` : ''}
         </div>

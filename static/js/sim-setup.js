@@ -69,10 +69,10 @@ function renderPartySection(side) {
             ${spriteImg(p.name, 32)}
             <div style="min-width:0;flex:1">
               <div style="font-size:.75rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ja('pokemon', p.name))}</div>
-              <div style="font-size:.6rem;color:var(--fg2)">${p.item ? esc(ja('items', p.item)) : ''}</div>
+              <div style="font-size:.72rem;color:var(--fg2)">${p.item ? esc(ja('items', p.item)) : ''}</div>
             </div>
-            <button class="btn btn-sm btn-outline sim-slot-edit" style="padding:2px 5px;font-size:.6rem">編集</button>
-            <button class="btn btn-sm sim-slot-del" style="padding:2px 5px;font-size:.6rem;background:var(--danger)">×</button>
+            <button class="btn btn-sm btn-outline sim-slot-edit" style="padding:2px 5px;font-size:.72rem">編集</button>
+            <button class="btn btn-sm sim-slot-del" style="padding:2px 5px;font-size:.72rem;background:var(--danger)">×</button>
           </div>
         `).join('')}
         ${party.length === 0 ? '<div style="font-size:.8rem;color:var(--fg2)">ポケモンを追加してください</div>' : ''}
@@ -294,7 +294,7 @@ function renderSelectSide(side) {
                 style="position:absolute;top:1px;right:1px;width:18px;height:18px;padding:0;border-radius:50%;border:none;background:var(--bg3);color:var(--fg);font-size:.7rem;font-weight:700;line-height:1;cursor:pointer">i</button>
               ${spriteImg(p.name, 44)}
               <div style="font-size:.7rem;font-weight:700">${esc(ja('pokemon', p.name))}</div>
-              ${sel ? `<div style="font-size:.65rem;color:var(--accent)">${order === 1 ? '先発' : order + '番手'}</div>` : ''}
+              ${sel ? `<div style="font-size:.72rem;color:var(--accent)">${order === 1 ? '先発' : order + '番手'}</div>` : ''}
             </div>`;
         }).join('')}
       </div>

@@ -407,7 +407,7 @@ function renderPivotPrompt() {
           <button class="sim-pivot-btn btn btn-sm btn-outline" data-to="${i}" style="display:flex;align-items:center;gap:3px">
             ${spriteImg(poke.name, 22)}
             <span style="font-size:.7rem">${esc(ja('pokemon', poke.name))}</span>
-            <span style="font-size:.6rem;color:var(--fg2)">${rt.hp}/${rt.maxHp}</span>
+            <span style="font-size:.72rem;color:var(--fg2)">${rt.hp}/${rt.maxHp}</span>
           </button>`).join('')}
         <button class="sim-pivot-btn btn btn-sm btn-outline" data-to="-1" style="color:var(--fg2)">交代しない</button>
       </div>
@@ -476,7 +476,7 @@ function renderSideMoves(side) {
         </button>`;
       }).join('')}
       <button class="sim-act-btn sim-move-btn sim-move-skip${battle.actions[side]?.type === 'skip' ? ' selected' : ''}" data-side="${side}" data-type="skip">
-        — 行動なし <span style="font-size:.55rem">(怯み/外し等)</span>
+        — 行動なし <span style="font-size:.72rem">(怯み/外し等)</span>
       </button>
     </div>
     ${renderBench(side)}
@@ -532,24 +532,24 @@ function renderModPanel(side, poke) {
   const maxHits = moveData?.hits ? (Array.isArray(moveData.hits) ? moveData.hits[1] : moveData.hits) : 1;
   const minHits = moveData?.hits ? (Array.isArray(moveData.hits) ? moveData.hits[0] : moveData.hits) : 1;
 
-  return `<div style="margin-top:4px;padding:4px;background:var(--bg);border:1px solid var(--bg3);border-radius:4px;font-size:.65rem">
+  return `<div style="margin-top:4px;padding:4px;background:var(--bg);border:1px solid var(--bg3);border-radius:4px;font-size:.72rem">
     <div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap">
       <span style="color:var(--fg2)">威力</span>
       <input type="number" class="sim-mod-bp" data-side="${side}" value="${curBP}" min="0" max="999" style="width:45px;font-size:.7rem;padding:1px 3px">
-      <button class="sim-mod-mul btn btn-sm btn-outline" data-side="${side}" data-mul="1.3" style="padding:1px 4px;font-size:.6rem">×1.3</button>
-      <button class="sim-mod-mul btn btn-sm btn-outline" data-side="${side}" data-mul="1.5" style="padding:1px 4px;font-size:.6rem">×1.5</button>
-      <button class="sim-mod-mul btn btn-sm btn-outline" data-side="${side}" data-mul="2" style="padding:1px 4px;font-size:.6rem">×2</button>
-      <button class="sim-mod-reset btn btn-sm btn-outline" data-side="${side}" style="padding:1px 4px;font-size:.6rem;color:var(--fg2)">↺</button>
+      <button class="sim-mod-mul btn btn-sm btn-outline" data-side="${side}" data-mul="1.3" style="padding:1px 4px;font-size:.72rem">×1.3</button>
+      <button class="sim-mod-mul btn btn-sm btn-outline" data-side="${side}" data-mul="1.5" style="padding:1px 4px;font-size:.72rem">×1.5</button>
+      <button class="sim-mod-mul btn btn-sm btn-outline" data-side="${side}" data-mul="2" style="padding:1px 4px;font-size:.72rem">×2</button>
+      <button class="sim-mod-reset btn btn-sm btn-outline" data-side="${side}" style="padding:1px 4px;font-size:.72rem;color:var(--fg2)">↺</button>
     </div>
     <div style="display:flex;align-items:center;gap:3px;margin-top:3px;flex-wrap:wrap">
       <label style="display:flex;align-items:center;gap:2px;white-space:nowrap"><input type="checkbox" class="sim-mod-stab2x" data-side="${side}" ${mod.stab2x ? 'checked' : ''}> 一致2倍</label>
       <span style="color:var(--fg2)">タイプ</span>
-      <select class="sim-mod-type" data-side="${side}" style="font-size:.65rem;padding:0 2px">
+      <select class="sim-mod-type" data-side="${side}" style="font-size:.72rem;padding:0 2px">
         <option value="">自動</option>
         ${ALL_TYPES.map(t => `<option value="${t}"${mod.moveType===t?' selected':''}>${TYPE_JA[t]}</option>`).join('')}
       </select>
       ${isMultiHit ? `<span style="color:var(--fg2)">連続</span>
-      <select class="sim-mod-hits" data-side="${side}" style="font-size:.65rem;padding:0 2px;width:40px">
+      <select class="sim-mod-hits" data-side="${side}" style="font-size:.72rem;padding:0 2px;width:40px">
         ${Array.from({length: maxHits - minHits + 1}, (_, i) => minHits + i).map(h =>
           `<option value="${h}"${mod.hits===h?' selected':''}>${h}発</option>`).join('')}
       </select>` : ''}
@@ -564,7 +564,7 @@ function renderBench(side) {
   if (benched.length === 0) return '';
 
   return `
-    <div style="font-size:.65rem;color:var(--fg2);margin:2px 0">控え(交代):</div>
+    <div style="font-size:.72rem;color:var(--fg2);margin:2px 0">控え(交代):</div>
     <div style="display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap">
       ${benched.map(({ poke, rt, i }) => {
         const alive = rt.hp > 0;
@@ -574,7 +574,7 @@ function renderBench(side) {
             style="display:flex;align-items:center;gap:3px;${!alive ? 'opacity:.4;pointer-events:none' : ''};${sel ? 'background:var(--accent2)' : ''}" ${!alive ? 'disabled' : ''}>
             ${spriteImg(poke.name, 22)}
             <span style="font-size:.7rem">${esc(ja('pokemon', poke.name))}</span>
-            <span class="sim-bench-hp" data-side="${side}" data-idx="${i}" style="font-size:.6rem;color:var(--fg2)">${rt.hp}/${rt.maxHp}</span>
+            <span class="sim-bench-hp" data-side="${side}" data-idx="${i}" style="font-size:.72rem;color:var(--fg2)">${rt.hp}/${rt.maxHp}</span>
           </button>`;
       }).join('')}
     </div>`;
@@ -602,9 +602,9 @@ function renderPartyOverview() {
               background:${isActive ? 'rgba(226,59,46,.1)' : 'var(--bg)'};
               ${!alive ? 'opacity:.4' : ''}">
               ${spriteImg(p.name, 28)}
-              <div style="font-size:.6rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px">${esc(ja('pokemon', p.name))}</div>
+              <div style="font-size:.72rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px">${esc(ja('pokemon', p.name))}</div>
               ${rt ? `<div style="height:3px;background:var(--bg3);border-radius:2px;margin-top:1px"><div style="width:${pct}%;height:100%;background:${hpColor};border-radius:2px"></div></div>
-              <div style="font-size:.5rem;color:var(--fg2)">${hpText}</div>` : `<div style="font-size:.5rem;color:var(--fg2)">未選出</div>`}
+              <div style="font-size:.72rem;color:var(--fg2)">${hpText}</div>` : `<div style="font-size:.72rem;color:var(--fg2)">未選出</div>`}
             </div>`;
           }).join('')}
         </div>
@@ -620,16 +620,16 @@ function renderBoostUI(side) {
   const rt = getActiveRt(side);
   const label = side === 'a' ? '自分' : '相手';
   return `<div>
-    <label style="font-size:.65rem">${label}ランク</label>
+    <label style="font-size:.72rem">${label}ランク</label>
     <div style="display:flex;gap:4px;flex-wrap:wrap">
       ${['at','df','sa','sd','sp'].map(stat => {
         const v = rt.boosts[stat] || 0;
         const col = v > 0 ? 'var(--ok)' : v < 0 ? 'var(--danger)' : '';
         return `<div style="display:flex;flex-direction:column;align-items:center">
-          <span style="font-size:.55rem;color:var(--fg2)">${STAT_SHORT[stat]}</span>
+          <span style="font-size:.72rem;color:var(--fg2)">${STAT_SHORT[stat]}</span>
           <div style="display:flex;align-items:center;gap:1px">
             <button class="sim-bst-btn" data-side="${side}" data-stat="${stat}" data-dir="-1" style="width:18px;height:18px;padding:0;font-size:.8rem;line-height:1">−</button>
-            <span class="sim-bst-val" id="sim-bst-${side}-${stat}" style="min-width:20px;text-align:center;font-size:.65rem;font-weight:700;color:${col}">${v>0?'+':''}${v}</span>
+            <span class="sim-bst-val" id="sim-bst-${side}-${stat}" style="min-width:20px;text-align:center;font-size:.72rem;font-weight:700;color:${col}">${v>0?'+':''}${v}</span>
             <button class="sim-bst-btn" data-side="${side}" data-stat="${stat}" data-dir="1" style="width:18px;height:18px;padding:0;font-size:.8rem;line-height:1">＋</button>
           </div>
         </div>`;
