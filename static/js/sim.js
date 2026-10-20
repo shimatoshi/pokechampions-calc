@@ -338,11 +338,11 @@ async function saveBattleLog() {
   const aliveA = battle.rt.a.filter(r => r.hp > 0).length;
   const aliveB = battle.rt.b.filter(r => r.hp > 0).length;
   await DB.add('records', {
-    result: aliveA >= aliveB ? 'win' : 'lose',
+    result: aliveA > aliveB ? 'win' : 'lose', // 同数(引き分け/途中)を勝ち扱いにしない
     opponent: 'シミュレーション',
     myTeam: teamStr('a'),
     oppTeam: teamStr('b'),
-    notes: `残数 自分${aliveA} - 相手${aliveB}`,
+    notes: `残数 自分${aliveA} - 相手${aliveB}${aliveA === aliveB ? ' (同数/未決着)' : ''}`,
     log: battle.log.map(e => e.text).join('\n'),
     date: Date.now(),
   });

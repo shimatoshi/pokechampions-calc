@@ -246,9 +246,10 @@ export function initCalcPage() {
   const allMoveNames = Object.keys(DATA.moves).sort();
   for (const side of ['atk', 'def']) {
     const state = side === 'atk' ? atkState : defState;
-    state._moveEntries = [...allMoveNames];
+    // 非列挙にしてJSON保存(セッション/BOX/編成)や Object.assign に混入させない
+    Object.defineProperty(state, '_moveEntries', { value: [...allMoveNames], writable: true, enumerable: false, configurable: true });
     for (let i = 0; i < 4; i++) {
-      setupSearch(document.getElementById(`${side}-move-${i}`), document.getElementById(`${side}-movelist-${i}`), state._moveEntries, name => { state.moves[i] = name; scheduleSessionSave(); });
+      setupSearch(document.getElementById(`${side}-move-${i}`), document.getElementById(`${side}-movelist-${i}`), state._moveEntries, name => { state.moves[i] = name; scheduleSessionSave(); }, () => { state.moves[i] = ''; scheduleSessionSave(); });
     }
   }
 
@@ -308,6 +309,7 @@ export function initCalcPage() {
   // ばけのかわ生存チェック
   document.getElementById('def-disguise')?.addEventListener('change', e => {
     defState.disguiseIntact = e.target.checked;
+    scheduleSessionSave();
   });
 
   // SP +/- /0/32 buttons
@@ -734,7 +736,8 @@ function swapSides() {
   atkState.hpDist = null;
   defState.chainHits = 0;
   atkState.chainHits = 0;
-  defState.disguiseIntact = false;
+  // 入替後の防御側がばけのかわ持ちなら生存状態から始める
+  defState.disguiseIntact = ['Disguise', 'Ice Face'].includes(defState.ability);
   atkState.disguiseIntact = false;
   initCalcPage();
   if (atkState.name) { selectPokemon('atk', atkState.name); restoreStateToUI('atk', atkState); }

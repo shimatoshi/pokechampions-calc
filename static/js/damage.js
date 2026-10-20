@@ -124,12 +124,10 @@ export const DMG = (() => {
     }
 
     // Unaware
-    atk = dAbil === 'Unaware'
-      ? applyBoost(atk, Math.min(0, atkBoost))
-      : applyBoost(atk, atkBoost);
-    def = aAbil === 'Unaware'
-      ? applyBoost(def, Math.min(0, defBoost))
-      : applyBoost(def, defBoost);
+    // てんねん: 相手のランク補正を上昇・下降とも無視する(防御側のてんねんは攻撃側のみ、
+    // 攻撃側のてんねんは防御側のランクのみ)。自分自身の補正は残る
+    atk = applyBoost(atk, dAbil === 'Unaware' && atkSrc === attacker ? 0 : atkBoost);
+    def = applyBoost(def, aAbil === 'Unaware' ? 0 : defBoost);
 
     return { atk, def, isPhysical };
   }
@@ -517,7 +515,8 @@ export const DMG = (() => {
     }
 
     // Disguise / Ice Face check
-    const disguiseHit = defender.disguiseIntact && (
+    // タイプ相性で無効の技(ゴーストへのノーマル等)は身代わりを消費せず「効果なし」
+    const disguiseHit = defender.disguiseIntact && typeEff !== 0 && (
       dAbil === 'Disguise' || (dAbil === 'Ice Face' && isPhysical)
     );
     if (disguiseHit) {

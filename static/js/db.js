@@ -91,11 +91,17 @@ export const DB = (() => {
           stats.added++;
         }
       }
-      // Records: always add (no natural dedup key)
+      // Records: 自然キーが無いので全内容(id除く)が同一なら重複とみなす(再インポートで倍増しない)
       if (data.records) {
+        const sig = r => { const { id, ...rest } = r; return JSON.stringify(rest); };
+        const existing = await this.getAll('records');
+        const sigSet = new Set(existing.map(sig));
         for (const item of data.records) {
           const entry = { ...item }; delete entry.id;
+          const key = sig(entry);
+          if (sigSet.has(key)) { stats.skipped++; continue; }
           await this.add('records', entry);
+          sigSet.add(key);
           stats.added++;
         }
       }

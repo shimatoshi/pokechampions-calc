@@ -129,7 +129,7 @@ async function openPartyLoadPicker(side) {
   picker.innerHTML = `
     <div class="card" style="max-width:400px;margin:0 auto;max-height:80vh;overflow-y:auto">
       <h3>${side === 'a' ? '自分' : '相手'}のパーティに読込</h3>
-      <div style="font-size:.75rem;color:var(--fg2);margin-bottom:4px">チームを選ぶ���全員読込、個体を選ぶと1匹追加</div>
+      <div style="font-size:.75rem;color:var(--fg2);margin-bottom:4px">チームを選ぶと全員読込、個体を選ぶと1匹追加</div>
       ${members.length > 0 ? `
         <div class="team-slot pick-team" data-src="current" style="border:2px solid var(--accent)">
           <div class="name" style="font-weight:700">現在のチーム (${members.length}匹)</div>

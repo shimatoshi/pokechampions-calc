@@ -398,5 +398,28 @@ simOptions.autoCritRate = false;
   assert(fieldTurns.tailwind.a === 0, 'tick: おいかぜが切れる');
 }
 
+// てんねん: 相手のランク上昇・下降を両方無視する
+{
+  const { DMG } = await import('../static/js/damage.js');
+  const calc = (aBoost, dBoost, dAbil, aAbil = '') => DMG.calculate(
+    mon('Garchomp', ['Earthquake'], { boosts: { at: aBoost }, ability: aAbil }),
+    mon('Clefable', [], { boosts: { df: dBoost }, ability: dAbil }), 'Earthquake', {}).maxDmg;
+  const base = calc(0, 0, '');
+  assert(calc(-2, 0, 'Unaware') === base, 'unaware: 攻撃ダウンも無視される');
+  assert(calc(2, 0, 'Unaware') === base, 'unaware: 攻撃アップも無視される');
+  assert(calc(0, 2, '', 'Unaware') === base, 'unaware(攻撃側): 防御アップを無視');
+  assert(calc(0, -2, '', 'Unaware') === base, 'unaware(攻撃側): 防御ダウンも無視');
+}
+
+// ばけのかわ: タイプ無効の技(ゴーストへのノーマル)では剥がれず「効果なし」
+{
+  const { DMG } = await import('../static/js/damage.js');
+  const def = { ...mon('Mimikyu', [], { ability: 'Disguise' }), disguiseIntact: true };
+  const r0 = DMG.calculate(mon('Garchomp', ['Double-Edge']), def, 'Double-Edge', {});
+  assert(r0.typeEff === 0 && !r0.disguiseConsumed, 'disguise: 無効タイプでは消費されない');
+  const r1 = DMG.calculate(mon('Garchomp', ['Earthquake']), def, 'Earthquake', {});
+  assert(r1.disguiseConsumed === true, 'disguise: 通常技では1発吸収');
+}
+
 console.log(failed ? `\n${failed} test(s) FAILED` : '\nall engine tests passed');
 process.exit(failed ? 1 : 0);

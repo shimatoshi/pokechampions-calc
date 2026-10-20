@@ -355,6 +355,7 @@ async function openAddFromBox() {
       const b = boxAll.find(x => x.id === parseInt(slot.dataset.id));
       if (!b) return;
       if (currentTeam.members.length >= 6) { showToast('6匹まで'); return; }
+      if (b.uid && currentTeam.members.some(m => m.uid === b.uid)) { showToast('同じ個体が既にチームにいます'); return; }
       currentTeam.members.push(JSON.parse(JSON.stringify(b)));
       modal.classList.add('hidden');
       renderTeamPage();

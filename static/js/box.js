@@ -13,7 +13,8 @@ const BOX_VIEW_KEY = 'pokechamp_box_view';
 
 export async function renderBoxPage() {
   const boxAll = await DB.getAll('box');
-  const view = localStorage.getItem(BOX_VIEW_KEY) || 'list';
+  let view = 'list';
+  try { view = localStorage.getItem(BOX_VIEW_KEY) || 'list'; } catch (_) {}
   const page = document.getElementById('page-box');
   page.innerHTML = `
     <div class="card">
@@ -43,7 +44,7 @@ export async function renderBoxPage() {
   `;
 
   document.getElementById('box-view-toggle').addEventListener('click', () => {
-    localStorage.setItem(BOX_VIEW_KEY, view === 'grid' ? 'list' : 'grid');
+    try { localStorage.setItem(BOX_VIEW_KEY, view === 'grid' ? 'list' : 'grid'); } catch (_) {}
     renderBoxPage();
   });
   document.getElementById('box-add-new').addEventListener('click', () => openBoxEditor());
@@ -99,9 +100,10 @@ export async function renderBoxPage() {
         tab.style.color = '#fff';
       });
     });
-    entry.querySelector('.box-edit')?.addEventListener('click', e => {
+    entry.querySelector('.box-edit')?.addEventListener('click', async e => {
       e.stopPropagation();
-      const b = boxAll.find(x => x.id === id);
+      // 描画後に入力したメモ等が反映済みの最新データで編集する(古いboxAllだと保存時にメモが巻き戻る)
+      const b = await DB.get('box', id) || boxAll.find(x => x.id === id);
       if (b) openBoxEditor(b);
     });
     entry.querySelector('.box-del')?.addEventListener('click', async e => {
@@ -114,6 +116,7 @@ export async function renderBoxPage() {
       const b = boxAll.find(x => x.id === id);
       if (!b) return;
       if (currentTeam.members.length >= 6) { showToast('チームは6匹まで'); return; }
+      if (b.uid && currentTeam.members.some(m => m.uid === b.uid)) { showToast('同じ個体が既にチームにいます'); return; }
       currentTeam.members.push(JSON.parse(JSON.stringify(b)));
       markDirty('team');
       showToast(`${ja('pokemon', b.name)} をチームに追加`);
@@ -132,7 +135,7 @@ export async function renderBoxPage() {
       btn.addEventListener('click', async e => {
         e.stopPropagation();
         const ci = parseInt(btn.dataset.ci);
-        const b = boxAll.find(x => x.id === id);
+        const b = await DB.get('box', id);
         if (!b || !b.savedCalcs) return;
         b.savedCalcs.splice(ci, 1);
         await DB.put('box', b);
@@ -373,6 +376,7 @@ function openPublishModal() {
         btn.disabled = false; btn.textContent = '公開する';
       }
     } catch (err) {
+      _shareBase = null; // トンネルURLが変わった場合に備え次回は再解決
       showToast('公開失敗: ' + err.message);
       btn.disabled = false; btn.textContent = '公開する';
     }
@@ -401,6 +405,7 @@ async function openServerBrowseModal() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     items = await res.json();
   } catch (err) {
+    _shareBase = null;
     list.innerHTML = `<p style="text-align:center;color:var(--danger,#e5484d)">取得失敗: ${esc(err.message)}</p>`;
     return;
   }

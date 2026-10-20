@@ -75,7 +75,9 @@ function openRecordEditor(existing) {
       </div>
     </div>`;
   document.getElementById('re-save').addEventListener('click', async () => {
+    // 既存レコードのフィールド(バトルログ等、この画面で編集しないもの)を保持する
     const record = {
+      ...(existing || {}),
       result: document.getElementById('re-result').value,
       opponent: document.getElementById('re-opponent').value,
       myTeam: document.getElementById('re-myteam').value,

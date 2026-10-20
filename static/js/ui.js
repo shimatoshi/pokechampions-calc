@@ -28,9 +28,11 @@ export function showToast(msg) {
 }
 
 // ===== AUTOCOMPLETE SEARCH =====
-export function setupSearch(inputEl, listEl, entries, onSelect) {
+export function setupSearch(inputEl, listEl, entries, onSelect, onClear) {
   let _searchTimer = null;
   inputEl.addEventListener('input', () => {
+    // 入力を全消ししたら選択済みキーも破棄(消した技が保存時に復活するのを防ぐ)
+    if (!inputEl.value.trim() && inputEl.dataset.key) { inputEl.dataset.key = ''; onClear?.(); }
     clearTimeout(_searchTimer);
     _searchTimer = setTimeout(() => {
     const q = inputEl.value.toLowerCase();
@@ -455,7 +457,7 @@ export function buildMiniEditor(containerEl, state, prefix, { title, saveLabel =
   for (let i = 0; i < 4; i++) {
     const inp = document.getElementById(`${prefix}-move-${i}`);
     inp.dataset.key = state.moves[i] || '';
-    setupSearch(inp, document.getElementById(`${prefix}-movelist-${i}`), moveEntries, name => { state.moves[i] = name; });
+    setupSearch(inp, document.getElementById(`${prefix}-movelist-${i}`), moveEntries, name => { state.moves[i] = name; }, () => { state.moves[i] = ''; });
   }
 
   // Ability (pre-existing)
