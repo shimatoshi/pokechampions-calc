@@ -18,13 +18,14 @@ export function switchPage(page) {
 }
 
 // ===== TOAST =====
-export function showToast(msg) {
+export function showToast(msg, type = 'info') {
   const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:8px 20px;border-radius:20px;font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s';
+  t.className = 'toast' + (type === 'error' ? ' toast-error' : '');
+  t.setAttribute('role', type === 'error' ? 'alert' : 'status');
   t.textContent = msg;
   document.body.appendChild(t);
-  requestAnimationFrame(() => t.style.opacity = '1');
-  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2000);
+  requestAnimationFrame(() => t.classList.add('toast-show'));
+  setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 2400);
 }
 
 // ===== AUTOCOMPLETE SEARCH =====

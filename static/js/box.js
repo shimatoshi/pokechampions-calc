@@ -38,7 +38,7 @@ export async function renderBoxPage() {
       </details>
     </div>
     <div id="box-list">
-      ${boxAll.length === 0 ? '<div class="card"><p class="u-center-muted">BOXは空です。上の「＋追加」からポケモンを登録できます</p></div>' : ''}
+      ${boxAll.length === 0 ? '<div class="card"><p class="empty-state">BOXは空です。上の「＋追加」からポケモンを登録できます</p></div>' : ''}
       ${view === 'grid' ? renderBoxGrid(boxAll) : boxAll.map(b => renderBoxSlot(b)).join('')}
     </div>
   `;
@@ -393,7 +393,7 @@ async function openServerBrowseModal() {
         <h3 style="flex:1;margin:0">📥 サーバーから取得</h3>
         <button class="btn btn-sm btn-outline" id="brw-close">閉じる</button>
       </div>
-      <div id="brw-list"><p class="u-center-muted">読み込み中...</p></div>
+      <div id="brw-list"><p class="empty-state">読み込み中...</p></div>
     </div>`;
   inner.querySelector('#brw-close').addEventListener('click', () => modal.remove());
   const list = inner.querySelector('#brw-list');
@@ -411,7 +411,7 @@ async function openServerBrowseModal() {
   }
 
   if (!Array.isArray(items) || items.length === 0) {
-    list.innerHTML = '<p class="u-center-muted">まだ公開データがありません</p>';
+    list.innerHTML = '<p class="empty-state">まだ公開データがありません</p>';
     return;
   }
 

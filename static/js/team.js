@@ -30,7 +30,7 @@ async function renderTeamList() {
       </div>
     </div>
     <div id="team-rows">
-      ${teams.length === 0 ? '<div class="card"><p class="u-center-muted">チームがありません</p></div>' : ''}
+      ${teams.length === 0 ? '<div class="card"><p class="empty-state">チームがありません</p></div>' : ''}
       ${[...teams].reverse().map(t => renderTeamRow(t)).join('')}
     </div>
     <div class="card mt">

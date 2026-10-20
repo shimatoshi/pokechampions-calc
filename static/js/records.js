@@ -11,7 +11,7 @@ export async function renderRecordsPage() {
   page.innerHTML = `
     <button class="btn mb u-w100" id="record-add">+ 対戦記録を追加</button>
     <div id="records-list">
-      ${records.length === 0 ? '<p class="u-center-muted">記録はまだありません</p>' : ''}
+      ${records.length === 0 ? '<p class="empty-state">記録はまだありません</p>' : ''}
       ${records.map(r => renderRecord(r)).join('')}
     </div>
     <div id="record-editor" class="hidden"></div>
