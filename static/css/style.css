@@ -149,8 +149,8 @@ hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
 /* --- 対面HUD (上部固定): 両者の状態を常時表示 --- */
 .sim-hud{position:sticky;top:0;z-index:15;background:var(--bg);display:flex;flex-direction:column;gap:4px;padding:4px 0;margin-bottom:6px;border-bottom:1px solid var(--bg3)}
 .sim-hud-row{display:flex;align-items:center;gap:6px;background:var(--bg2);border-radius:var(--radius);padding:4px 6px}
-.sim-hud-a{border-left:3px solid var(--accent)}
-.sim-hud-b{border-left:3px solid var(--accent2)}
+.sim-hud-a{border-left:3px solid var(--atk)}
+.sim-hud-b{border-left:3px solid var(--def)}
 .sim-hud-row img{width:36px;height:36px;flex:none}
 .sim-hud-side{font-size:.72rem;font-weight:700;color:var(--fg2);flex:none;text-align:center}
 .sim-hud-info{flex:1;min-width:0}
@@ -251,8 +251,8 @@ hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
   .page{padding:8px;padding-bottom:28px}
   .calc-layout{display:flex;flex-direction:column;gap:0}
   .calc-side .card{margin-bottom:10px}
-  .calc-side:first-child .card{border-top:2px solid var(--accent)}
-  .calc-side:last-child .card{border-top:2px solid var(--accent2)}
+  .calc-side:first-child .card{border-top:2px solid var(--atk)}
+  .calc-side:last-child .card{border-top:2px solid var(--def)}
   .calc-side .card h3{font-size:.9rem;padding:9px 10px;margin:-11px -11px 9px;border-left:0;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
   .sp-btn{width:34px;height:34px;line-height:34px}
   .sp-row{gap:4px;margin:4px 0}
@@ -265,8 +265,8 @@ hr{border:none;border-top:1px solid var(--bg3);margin:8px 0}
 }
 
 /* v50: shared, quiet workspace with one clear primary action. */
-:root{--bg:#f5f6f8;--bg2:#fff;--bg3:#edf0f4;--fg:#20242c;--fg2:#626975;--accent:#2563eb;--accent2:#c2410c;--gold:#1d4ed8;--line:#dce1e8;--ok:#237747;--warn:#8d590c;--danger:#bd303b;--soft:#edf3ff;--radius:10px;--gap:12px;--r-sm:4px;--r-md:8px;--r-lg:12px;--s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:24px;--nav-height:53px;color-scheme:light}
-html[data-theme=dark]{--bg:#101114;--bg2:#17191d;--bg3:#252930;--fg:#e8eaed;--fg2:#adb4bf;--accent:#93b7ff;--accent2:#f0a46c;--gold:#b2cbff;--line:#343941;--ok:#80d2a1;--warn:#efc281;--danger:#ff9393;--soft:#222f47;color-scheme:dark}
+:root{--bg:#f5f6f8;--bg2:#fff;--bg3:#edf0f4;--fg:#20242c;--fg2:#626975;--accent:#2563eb;--accent2:#356c8e;--atk:#d6362b;--def:#2563eb;--gold:#1d4ed8;--line:#dce1e8;--ok:#237747;--warn:#8d590c;--danger:#bd303b;--soft:#edf3ff;--radius:10px;--gap:12px;--r-sm:4px;--r-md:8px;--r-lg:12px;--s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:24px;--nav-height:53px;color-scheme:light}
+html[data-theme=dark]{--bg:#101114;--bg2:#17191d;--bg3:#252930;--fg:#e8eaed;--fg2:#adb4bf;--accent:#93b7ff;--accent2:#94c6e7;--atk:#ff8f85;--def:#8fb4ff;--gold:#b2cbff;--line:#343941;--ok:#80d2a1;--warn:#efc281;--danger:#ff9393;--soft:#222f47;color-scheme:dark}
 html{font-size:16px;scroll-behavior:smooth;scroll-padding-top:75px}
 body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",Meiryo,system-ui,sans-serif;line-height:1.6;background:var(--bg)}
 button,input,select,textarea{font:inherit}button,summary{touch-action:manipulation}button{color:inherit}
@@ -283,8 +283,8 @@ nav button.active{background:var(--bg2);color:var(--accent);border-bottom-color:
 .card{padding:20px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;box-shadow:none}
 .card h3{font-size:1rem;margin-bottom:14px;border:0;padding:0;display:flex;align-items:center;gap:8px}
 .side-number{display:grid;place-items:center;width:26px;height:26px;border-radius:var(--r-md);background:var(--soft);color:var(--accent);font-size:.7rem}
-.calc-side:last-child .side-number{color:var(--accent2);background:var(--bg3)}
-.calc-layout{gap:16px;align-items:stretch}.pokemon-card{height:calc(100% - 14px);border-top:3px solid var(--accent)}.calc-side:last-child .pokemon-card{border-top-color:var(--accent2)}
+.calc-side:first-child .side-number{color:var(--atk);background:color-mix(in srgb,var(--atk) 14%,var(--bg2))}.calc-side:last-child .side-number{color:var(--def);background:color-mix(in srgb,var(--def) 14%,var(--bg2))}
+.calc-layout{gap:16px;align-items:stretch}.pokemon-card{height:calc(100% - 14px);border-top:3px solid var(--atk)}.calc-side:last-child .pokemon-card{border-top-color:var(--def)}
 label{font-size:.82rem;color:var(--fg2);margin:12px 0 5px}.field-hint{font-size:.72rem;font-weight:400;margin-left:5px}
 select,input[type=number],input[type=text],input[type=search],textarea{width:100%;min-height:44px;font-size:1rem;padding:9px 10px;background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:var(--r-md)}
 input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px;margin-right:5px;vertical-align:middle}
@@ -393,3 +393,6 @@ button:disabled{opacity:.55;cursor:default}.type-badge{border-radius:var(--r-sm)
 .u-small{font-size:.72rem!important}.u-w100{width:100%!important}
 .u-center-muted{text-align:center!important;color:var(--fg2)!important}
 .u-nowrap{white-space:nowrap!important}
+/* Attacker = red, defender = blue (matches the competitive-calc convention). */
+.calc-stages [data-stage=atk][aria-pressed=true]{color:var(--atk);border-color:var(--atk);background:color-mix(in srgb,var(--atk) 12%,var(--bg2))}
+.calc-stages [data-stage=def][aria-pressed=true]{color:var(--def);border-color:var(--def);background:color-mix(in srgb,var(--def) 12%,var(--bg2))}
