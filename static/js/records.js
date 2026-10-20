@@ -2,21 +2,66 @@
 import { esc } from './data.js';
 import { DB } from './db.js';
 
+let filter = null; // { kind: 'my' | 'opp', name } | null
+
 export function initRecordsPage() { renderRecordsPage(); }
+
+const rate = (w, n) => n ? `${Math.round(w / n * 100)}%` : '-';
+
+// 対戦シミュで蓄積した記録をチーム別に集計 (自分チーム別 / 相手チーム別の勝率)
+function summarize(records, kind) {
+  const key = kind === 'my' ? 'myTeamName' : 'oppTeamName';
+  const map = new Map();
+  for (const r of records) {
+    if (r.source !== 'sim') continue;
+    const name = r[key] || '(未保存のパーティ)';
+    const e = map.get(name) || { name, n: 0, w: 0 };
+    e.n++; if (r.result === 'win') e.w++;
+    map.set(name, e);
+  }
+  return [...map.values()].sort((a, b) => b.n - a.n);
+}
+
+function renderSummary(records) {
+  const sim = records.filter(r => r.source === 'sim');
+  if (!sim.length) return '';
+  const wins = sim.filter(r => r.result === 'win').length;
+  const rows = (kind, label) => {
+    const list = summarize(records, kind);
+    return `<div class="u-hint u-my4" style="margin-top:8px">${label}</div>` + list.map(e => {
+      const on = filter && filter.kind === kind && filter.name === e.name;
+      return `<button type="button" class="stat-row${on ? ' on' : ''}" data-kind="${kind}" data-name="${esc(e.name)}" aria-pressed="${on}">
+        <span class="stat-name">${esc(e.name)}</span><span class="stat-n">${e.w}勝${e.n - e.w}敗</span><strong class="stat-rate">${rate(e.w, e.n)}</strong></button>`;
+    }).join('');
+  };
+  return `<div class="card">
+    <h3>対戦シミュの成績 <span class="section-state">${sim.length}戦 ${wins}勝 / 勝率${rate(wins, sim.length)}</span></h3>
+    ${rows('my', '自分のチーム別')}${rows('opp', '相手チーム別')}
+    ${filter ? `<button class="btn btn-sm btn-outline mt" id="record-filter-clear">絞り込みを解除 (${esc(filter.name)})</button>` : ''}
+  </div>`;
+}
 
 export async function renderRecordsPage() {
   const records = await DB.getAll('records');
   records.sort((a, b) => (b.date || 0) - (a.date || 0));
+  const shown = filter ? records.filter(r => (filter.kind === 'my' ? r.myTeamName : r.oppTeamName) === filter.name || (r.source === 'sim' && !(filter.kind === 'my' ? r.myTeamName : r.oppTeamName) && filter.name === '(未保存のパーティ)')) : records;
   const page = document.getElementById('page-records');
   page.innerHTML = `
+    ${renderSummary(records)}
     <button class="btn mb u-w100" id="record-add">+ 対戦記録を追加</button>
     <div id="records-list">
-      ${records.length === 0 ? '<p class="empty-state">記録はまだありません</p>' : ''}
-      ${records.map(r => renderRecord(r)).join('')}
+      ${records.length === 0 ? '<p class="empty-state">対戦シミュで決着がつくと、ここに自動で記録されます</p>' : ''}
+      ${shown.map(r => renderRecord(r)).join('')}
     </div>
     <div id="record-editor" class="hidden"></div>
   `;
 
+  page.querySelectorAll('.stat-row').forEach(btn => btn.addEventListener('click', () => {
+    const same = filter && filter.kind === btn.dataset.kind && filter.name === btn.dataset.name;
+    filter = same ? null : { kind: btn.dataset.kind, name: btn.dataset.name };
+    renderRecordsPage();
+  }));
+  document.getElementById('record-filter-clear')?.addEventListener('click', () => { filter = null; renderRecordsPage(); });
   document.getElementById('record-add').addEventListener('click', () => openRecordEditor());
   page.querySelectorAll('.record [data-action]').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -36,6 +81,7 @@ function renderRecord(r) {
       <strong style="margin-left:8px">${esc(r.opponent || '不明')}</strong>
       ${r.myTeam ? `<div style="font-size:.75rem;color:var(--fg2);margin-top:2px">自分: ${esc(r.myTeam)}</div>` : ''}
       ${r.oppTeam ? `<div style="font-size:.75rem;color:var(--fg2)">相手: ${esc(r.oppTeam)}</div>` : ''}
+      ${r.source === 'sim' ? '<div class="u-hint">シミュ自動記録</div>' : ''}
       ${r.notes ? `<div class="notes">${esc(r.notes)}</div>` : ''}
       ${r.log ? `
       <details class="u-mt4">

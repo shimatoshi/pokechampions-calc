@@ -412,3 +412,10 @@ button:disabled{opacity:.55;cursor:default}.type-badge{border-radius:var(--r-sm)
 /* Team member memos */
 .member-memo{border-top:1px solid var(--line);padding:0 12px 12px}
 .member-memo textarea{min-height:64px;resize:vertical;font-size:.9rem;line-height:1.5}
+
+/* Records summary */
+.stat-row{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 10px;margin-top:4px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);text-align:left;color:var(--fg);cursor:pointer}
+.stat-row.on{border-color:var(--accent);background:var(--soft)}
+.stat-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat-n{font-size:.8rem;color:var(--fg2)}
+.stat-rate{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}

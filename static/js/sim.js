@@ -44,6 +44,7 @@ let sideDetailOpen = { a: false, b: false }; // HP調整・威力補正の折り
 let partyOvOpen = false;
 
 export function renderBattle() {
+  syncBattleRecord();
   const page = document.getElementById('page-sim');
   page.innerHTML = `
     ${renderPivotPrompt()}
@@ -71,7 +72,6 @@ export function renderBattle() {
       <button class="btn btn-sm" id="sim-exec" style="background:var(--accent);flex:2">ターン実行</button>
       <button class="btn btn-sm btn-outline" id="sim-eot">EOT処理</button>
       <button class="btn btn-sm btn-outline" id="sim-undo" ${canUndo() ? '' : 'disabled'} style="color:var(--accent2);border-color:var(--accent2)">↩ 戻す</button>
-      <button class="btn btn-sm btn-outline" id="sim-savelog" style="color:var(--ok);border-color:var(--ok)">📝 ログ保存</button>
       <button class="btn btn-sm btn-outline" id="sim-reselect">選出に戻る</button>
       <button class="btn btn-sm btn-danger" id="sim-end">終了</button>
     </div>
@@ -300,8 +300,6 @@ export function renderBattle() {
   document.getElementById('sim-party-ov')?.addEventListener('toggle', e => {
     partyOvOpen = e.target.open;
   });
-  // バトルログを記録タブに保存
-  document.getElementById('sim-savelog').addEventListener('click', saveBattleLog);
   // パーティ概観: タップで個体詳細（選出済みなら現在HP/ランクも表示）＋BOX保存導線
   document.querySelectorAll('.sim-ov-poke').forEach(box => {
     box.addEventListener('click', () => {
@@ -332,22 +330,44 @@ async function savePokeToBox(poke, close) {
   close?.();
 }
 
-async function saveBattleLog() {
-  if (!battle?.log?.length) { showToast('ログがまだありません'); return; }
-  const teamStr = s => selection[s].map(i => ja('pokemon', parties[s][i].name)).join(', ');
-  const aliveA = battle.rt.a.filter(r => r.hp > 0).length;
-  const aliveB = battle.rt.b.filter(r => r.hp > 0).length;
-  await DB.add('records', {
-    result: aliveA > aliveB ? 'win' : 'lose', // 同数(引き分け/途中)を勝ち扱いにしない
-    opponent: 'シミュレーション',
-    myTeam: teamStr('a'),
-    oppTeam: teamStr('b'),
-    notes: `残数 自分${aliveA} - 相手${aliveB}${aliveA === aliveB ? ' (同数/未決着)' : ''}`,
-    log: battle.log.map(e => e.text).join('\n'),
-    date: Date.now(),
-  });
-  markDirty('records');
-  showToast('バトルログを記録タブに保存した');
+// 決着した対戦を自動で記録タブに蓄積する (手動保存は不要)。
+// 手戻し(undo)で未決着に戻った場合は記録を取り消し、再決着時に同じ記録を更新する。
+async function syncBattleRecord() {
+  if (!battle || battle._recordBusy) return;
+  const winner = battleWinner();
+  if (!winner && !battle.recordId) return;
+  battle._recordBusy = true;
+  try {
+    if (!winner) { await DB.del('records', battle.recordId); battle.recordId = null; markDirty('records'); return; }
+    const setup = await import('./sim-setup.js');
+    const myTeam = setup.getLoadedTeam('a'), oppTeam = setup.getLoadedTeam('b');
+    const names = (side, idxs) => idxs.map(i => parties[side][i].name);
+    const jaList = list => list.map(n => ja('pokemon', n)).join(', ');
+    const aliveA = battle.rt.a.filter(r => r.hp > 0).length;
+    const aliveB = battle.rt.b.filter(r => r.hp > 0).length;
+    const mySel = names('a', selection.a), oppSel = names('b', selection.b);
+    const record = {
+      source: 'sim',
+      result: winner === 'a' ? 'win' : 'lose',
+      opponent: oppTeam?.name || '相手パーティ',
+      myTeam: jaList(mySel), oppTeam: jaList(oppSel),
+      myTeamName: myTeam?.name || '', oppTeamName: oppTeam?.name || '',
+      myTeamId: myTeam?.id ?? null, oppTeamId: oppTeam?.id ?? null,
+      myParty: parties.a.map(p => p.name), oppParty: parties.b.map(p => p.name),
+      mySel, oppSel,
+      turns: battle.turnNum, aliveA, aliveB,
+      notes: `残数 自分${aliveA} - 相手${aliveB} / ${battle.turnNum}ターン`,
+      log: battle.log.map(e => e.text).join('\n'),
+      date: Date.now(),
+    };
+    if (battle.recordId) {
+      const prev = await DB.get('records', battle.recordId);
+      if (prev) { record.id = prev.id; record.notes = prev.notes?.startsWith('残数') ? record.notes : prev.notes; record.date = prev.date; }
+    }
+    battle.recordId = await DB.put('records', record);
+    markDirty('records');
+    if (!battle._recordToasted) { battle._recordToasted = true; showToast(`${record.result === 'win' ? '勝ち' : '負け'}を記録しました`); }
+  } finally { battle._recordBusy = false; }
 }
 
 // ===== オート対戦 (簡易AI) =====

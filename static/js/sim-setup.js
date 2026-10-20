@@ -13,6 +13,8 @@ import { showToast, buildMiniEditor, openEditorModal, showPokemonDetailModal, sw
 // 読込元チームの記憶: パーティ保存時に「更新 or 新規」を選べるようにする
 const loadedTeam = { a: null, b: null }; // { id, name } | null
 
+export const getLoadedTeam = side => loadedTeam[side];
+
 // 前回のパーティを再起動後も復元する (回すたびに組み直さない)
 const PARTY_KEY = 'pokechamp_sim_parties';
 let partiesRestored = false;
