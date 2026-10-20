@@ -408,3 +408,7 @@ button:disabled{opacity:.55;cursor:default}.type-badge{border-radius:var(--r-sm)
 .empty-state{text-align:center;color:var(--fg2);padding:28px 16px;border:1px dashed var(--line);border-radius:var(--r-lg);font-size:.88rem}
 .page.show{animation:page-in .16s ease-out}
 @keyframes page-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* Team member memos */
+.member-memo{border-top:1px solid var(--line);padding:0 12px 12px}
+.member-memo textarea{min-height:64px;resize:vertical;font-size:.9rem;line-height:1.5}

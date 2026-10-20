@@ -12,6 +12,52 @@ import { selectPokemon, initCalcPage } from './calc.js';
 import { restoreStateToUI, showToast, switchPage, buildMiniEditor } from './ui.js';
 let teamView = 'list';
 
+// ===== 編成 ⇔ BOX 同期 =====
+// 編成に入っているポケモンは必ずBOXにも存在する。構成(種族/性格/SP/特性/持ち物/技)が
+// 完全一致するBOX個体があればそれを割り当て、1つでも違えば新しい個体としてBOXに追加する。
+// 個体メモ(notes)はBOX個体に、パーティ内の役割メモ(roleNote)は編成メンバー側に独立して持つ。
+const SP_KEYS = ['hp', 'at', 'df', 'sa', 'sd', 'sp'];
+export function buildKey(m) {
+  return JSON.stringify([
+    m.name, m.item || '', m.ability || '',
+    m.natureMods?.plus || '', m.natureMods?.minus || '',
+    SP_KEYS.map(k => m.sp?.[k] || 0),
+    (m.moves || []).filter(Boolean).sort(),
+  ]);
+}
+
+export async function syncMembersToBox(members) {
+  const boxAll = await DB.getAll('box');
+  const byKey = new Map();
+  for (const b of boxAll) { const k = buildKey(b); if (!byKey.has(k)) byKey.set(k, b); }
+  let added = 0;
+  for (const m of members) {
+    if (!m.name) continue;
+    const key = buildKey(m);
+    const hit = byKey.get(key);
+    if (hit) {
+      let dirty = false;
+      if (!hit.uid) { hit.uid = generateUid(); dirty = true; }
+      if (m.notes && !hit.notes) { hit.notes = m.notes; dirty = true; }
+      if (dirty) await DB.put('box', hit);
+      m.uid = hit.uid;
+    } else {
+      const entry = JSON.parse(JSON.stringify(m));
+      delete entry.id; delete entry._moveEntries; delete entry.roleNote;
+      entry.uid = generateUid();
+      entry.savedCalcs = [];
+      entry.notes = m.notes || '';
+      await DB.add('box', entry);
+      byKey.set(key, entry);
+      m.uid = entry.uid;
+      added++;
+    }
+    delete m.notes; delete m.savedCalcs; delete m.id;
+  }
+  if (added) markDirty('box');
+  return { added };
+}
+
 export function initTeamPage() { renderTeamList(); }
 
 async function renderTeamList() {
@@ -26,6 +72,7 @@ async function renderTeamList() {
         <button class="btn btn-sm" id="tl-new">+ 新規</button>
         <button class="btn btn-sm btn-outline" id="tl-random">🎲 抽選</button>
         <button class="btn btn-sm btn-outline" id="tl-import">インポート</button>
+        <button class="btn btn-sm btn-outline" id="tl-sync" title="保存済みの全チームのポケモンをBOXに登録・紐付けします">BOX同期</button>
         <input type="file" id="tl-import-file" accept=".json" class="hidden">
       </div>
     </div>
@@ -54,6 +101,16 @@ async function renderTeamList() {
     renderTeamDetail();
     showToast('6匹を抽選しました（保存するまで未確定）');
   });
+  document.getElementById('tl-sync').addEventListener('click', async () => {
+    let added = 0;
+    for (const t of teams) {
+      const r = await syncMembersToBox(t.members || []);
+      added += r.added;
+      await DB.put('teams', t);
+    }
+    showToast(added ? `BOXに${added}匹を追加しました` : 'すべてBOXに登録済みです');
+    renderTeamList();
+  });
   document.getElementById('tl-import').addEventListener('click', () => document.getElementById('tl-import-file').click());
   document.getElementById('tl-import-file').addEventListener('change', async e => {
     const file = e.target.files[0];
@@ -62,6 +119,7 @@ async function renderTeamList() {
       const data = JSON.parse(await file.text());
       if (data.name && data.members) {
         delete data.id;
+        await syncMembersToBox(data.members);
         await DB.add('teams', data);
         showToast(`チーム「${data.name}」をインポート`);
         renderTeamList();
@@ -175,6 +233,7 @@ function renderTeamRow(team) {
 
 async function renderTeamDetail() {
   teamView = 'detail';
+  const boxByUid = new Map((await DB.getAll('box')).filter(b => b.uid).map(b => [b.uid, b]));
   const page = document.getElementById('page-team');
   page.innerHTML = `
     <div class="card">
@@ -194,7 +253,7 @@ async function renderTeamDetail() {
       }).join('')}
     </div>
     <div id="team-members">
-      ${currentTeam.members.map((m, i) => renderTeamSlot(m, i)).join('')}
+      ${currentTeam.members.map((m, i) => renderTeamSlot(m, i, boxByUid.get(m.uid))).join('')}
     </div>
     ${currentTeam.members.length < 6 ? `
     <div class="row mt" style="gap:4px">
@@ -257,20 +316,15 @@ async function renderTeamDetail() {
       selectPokemon('atk', atkState.name);
       restoreStateToUI('atk', atkState);
     });
-    slot.querySelector('.to-box-btn')?.addEventListener('click', async e => {
-      e.stopPropagation();
+    const debounce = (fn) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), 500); }; };
+    slot.querySelector('.tm-role')?.addEventListener('input', e => { currentTeam.members[idx].roleNote = e.target.value; });
+    slot.querySelector('.tm-indiv')?.addEventListener('input', debounce(async e => {
       const m = currentTeam.members[idx];
-      const boxAll = await DB.getAll('box');
-      if (m.uid && boxAll.find(b => b.uid === m.uid)) { showToast('同じ個体がBOXに存在します'); return; }
-      const entry = JSON.parse(JSON.stringify(m));
-      delete entry.id; delete entry._moveEntries;
-      if (!entry.uid) { entry.uid = generateUid(); m.uid = entry.uid; }
-      entry.savedCalcs = entry.savedCalcs || [];
-      entry.notes = entry.notes || '';
-      await DB.add('box', entry);
-      markDirty('box');
-      showToast(`${ja('pokemon', m.name)} をBOXに追加`);
-    });
+      const value = e.target.value;
+      const b = m.uid ? boxByUid.get(m.uid) : null;
+      if (b) { b.notes = value; await DB.put('box', b); }
+      else m.notes = value; // 未登録の個体: 保存時にBOX個体のメモとして引き継ぐ
+    }));
   });
 }
 
@@ -279,7 +333,7 @@ export async function renderTeamPage() {
   else renderTeamList();
 }
 
-function renderTeamSlot(member, idx) {
+function renderTeamSlot(member, idx, boxEntry) {
   const p = DATA.pokemon[member.name];
   const types = p ? p.types.map(t => typeBadge(t)).join('') : '';
   return `
@@ -290,12 +344,25 @@ function renderTeamSlot(member, idx) {
           <div class="u-bold">${esc(ja('pokemon', member.name))} ${types}</div>
         </div>
         <button class="btn btn-sm to-calc-btn u-chip">ダメ計</button>
-        <button class="btn btn-sm btn-outline to-box-btn" style="font-size:.72rem;padding:2px 6px;border-color:var(--accent2);color:var(--accent2)">BOX</button>
         <button class="btn btn-sm btn-outline edit-btn">編集</button>
         <button class="btn btn-sm btn-danger del-btn">×</button>
       </div>
       ${showdownHTML(member)}
+      <details class="member-memo">
+        <summary>メモ <span class="section-state">${esc(memoSummary(member, boxEntry))}</span></summary>
+        <label for="tm-role-${idx}">このパーティでの役割 <span class="field-hint">この編成だけのメモ</span></label>
+        <textarea id="tm-role-${idx}" class="tm-role" rows="2" placeholder="例: 初手ステロ→後続の起点作り。◯◯には引く">${esc(member.roleNote || '')}</textarea>
+        <label for="tm-indiv-${idx}">個体メモ <span class="field-hint">${boxEntry ? 'BOXの同じ個体と共通' : '保存時にBOXへ登録されます'}</span></label>
+        <textarea id="tm-indiv-${idx}" class="tm-indiv" rows="2" placeholder="例: HB特化で◯◯確定耐え">${esc(boxEntry ? (boxEntry.notes || '') : (member.notes || ''))}</textarea>
+      </details>
     </div>`;
+}
+
+function memoSummary(member, boxEntry) {
+  const parts = [];
+  if (member.roleNote) parts.push('役割あり');
+  if (boxEntry ? boxEntry.notes : member.notes) parts.push('個体あり');
+  return parts.join('・') || (boxEntry ? 'BOX登録済' : '未登録');
 }
 
 function renderThreatSlot(t) {
@@ -356,7 +423,9 @@ async function openAddFromBox() {
       if (!b) return;
       if (currentTeam.members.length >= 6) { showToast('6匹まで'); return; }
       if (b.uid && currentTeam.members.some(m => m.uid === b.uid)) { showToast('同じ個体が既にチームにいます'); return; }
-      currentTeam.members.push(JSON.parse(JSON.stringify(b)));
+      const copy = JSON.parse(JSON.stringify(b));
+      delete copy.id; delete copy.savedCalcs; delete copy.notes; // 個体メモ等はBOX側が正
+      currentTeam.members.push(copy);
       modal.classList.add('hidden');
       renderTeamPage();
       showToast(`${ja('pokemon', b.name)} をチームに追加`);
@@ -397,8 +466,15 @@ function openTeamEditor(idx) {
   buildMiniEditor(editor, member, 'te', {
     title: isNew ? 'ポケモン追加' : '編集',
     onSave: (m) => {
-      if (isNew) { if (!m.uid) m.uid = generateUid(); currentTeam.members.push(m); }
-      else { currentTeam.members[idx] = m; }
+      if (isNew) { m.uid = null; currentTeam.members.push(m); }
+      else {
+        const prev = currentTeam.members[idx];
+        m.roleNote = prev.roleNote || '';
+        // 構成が変わったら別個体: 紐付けを外し、保存時にBOXから再検索/新規登録する
+        if (buildKey(m) !== buildKey(prev)) { m.uid = null; delete m.notes; }
+        else { m.uid = prev.uid; if (prev.notes) m.notes = prev.notes; }
+        currentTeam.members[idx] = m;
+      }
       editor.classList.add('hidden');
       renderTeamPage();
     },
@@ -407,15 +483,18 @@ function openTeamEditor(idx) {
 }
 
 async function saveTeam() {
+  const { added } = await syncMembersToBox(currentTeam.members);
   const team = { name: currentTeam.name, members: currentTeam.members, notes: currentTeam.notes || '', updatedAt: Date.now() };
   if (currentTeam.id) team.id = currentTeam.id;
   const id = await DB.put('teams', team);
   if (!currentTeam.id) currentTeam.id = id;
-  showToast('保存しました');
+  showToast(added ? `保存しました（BOXに${added}匹を追加）` : '保存しました');
+  renderTeamDetail();
 }
 
 // 現在の内容を元チームに触れず別チームとして保存（バックアップ用途）
 async function saveTeamAsCopy() {
+  await syncMembersToBox(currentTeam.members);
   const name = `${currentTeam.name} (複製)`;
   const team = {
     name,
